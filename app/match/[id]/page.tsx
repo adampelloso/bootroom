@@ -82,11 +82,11 @@ export default async function MatchDetailPage({
       <nav className="mb-8 flex items-center justify-between">
         <Link
           href="/"
-          className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--muted)]"
+          className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary"
         >
           ← Feed
         </Link>
-        <span className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--muted)]">
+        <span className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary">
           Match Detail
         </span>
       </nav>
@@ -118,7 +118,7 @@ export default async function MatchDetailPage({
       <section className="space-y-8">
         {families.map(([family, insights]) => (
           <div key={family}>
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-[var(--muted)]">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-tertiary">
               {family}
             </h2>
             <ul className="space-y-4">
@@ -132,22 +132,22 @@ export default async function MatchDetailPage({
                 }) => (
                   <li
                     key={ins.id}
-                    className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_10px_24px_rgba(17,17,17,0.06)]"
+                    className="rounded-2xl border border-[var(--border-light)] bg-[var(--bg-body)] p-4 shadow-[0_10px_24px_rgba(17,17,17,0.06)]"
                   >
                     <p className="font-medium">{ins.headline}</p>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                      <span className="rounded-full bg-[var(--chip)] px-3 py-1">
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-tertiary">
+                      <span className="rounded-full bg-[var(--bg-surface)] px-3 py-1">
                         {family}
                       </span>
-                      <span className="rounded-full bg-[var(--chip)] px-3 py-1">
+                      <span className="rounded-full bg-[var(--bg-surface)] px-3 py-1">
                         {ins.supportLabel}
                       </span>
-                      <span className="rounded-full bg-[var(--chip)] px-3 py-1">
+                      <span className="rounded-full bg-[var(--bg-surface)] px-3 py-1">
                         {ins.supportValue}
                       </span>
                     </div>
                     {ins.narrative && (
-                      <p className="mt-3 text-sm text-[var(--muted)]">
+                      <p className="mt-3 text-sm text-[var(--text-sec)]">
                         {ins.narrative}
                       </p>
                     )}
@@ -160,7 +160,7 @@ export default async function MatchDetailPage({
       </section>
       <section className="mt-12">
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--muted)]">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary">
             Player Props
           </h2>
           <span className="text-mono text-[11px] uppercase text-tertiary">
@@ -180,7 +180,7 @@ export default async function MatchDetailPage({
                 }}
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-tertiary">
                     {prop.title}
                   </h3>
                   <span className="text-mono text-[11px] uppercase text-tertiary">
@@ -188,7 +188,7 @@ export default async function MatchDetailPage({
                   </span>
                 </div>
                 {rows.length === 0 ? (
-                  <p className="mt-3 text-[13px] text-[var(--muted)]">
+                  <p className="mt-3 text-[13px] text-[var(--text-sec)]">
                     No player props available.
                   </p>
                 ) : (
@@ -202,7 +202,7 @@ export default async function MatchDetailPage({
                           <span className="text-[13px] font-medium">
                             {player.name}
                           </span>
-                          <span className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                          <span className="text-xs uppercase tracking-[0.2em] text-tertiary">
                             {player.teamName}
                           </span>
                         </div>
@@ -210,7 +210,7 @@ export default async function MatchDetailPage({
                           <span className="text-mono text-[15px] font-medium">
                             {player.value}
                           </span>
-                          <span className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
+                          <span className="text-xs uppercase tracking-[0.2em] text-tertiary">
                             {prop.label}
                           </span>
                         </div>
@@ -226,7 +226,7 @@ export default async function MatchDetailPage({
       <div className="mt-10">
         <Link
           href={`/match/${id}/export`}
-          className="inline-block rounded-full border border-[var(--border)] bg-[var(--surface)] px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]"
+          className="inline-block rounded-full border border-[var(--border-light)] bg-[var(--bg-body)] px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-tertiary"
         >
           Share / Export
         </Link>
