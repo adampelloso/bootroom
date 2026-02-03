@@ -1,6 +1,7 @@
 /**
  * Build feed and match detail from provider response.
- * Uses mock provider; staging mode assigns 3 random insight types per match with template-filled headlines/support.
+ * Uses mock provider; staging mode assigns 3 insight types per match with template-filled headlines/support.
+ * Selection is deterministic per fixture id to keep highlights stable on refresh.
  */
 import type { ApiFootballFixtureResponseItem } from "@/lib/api-football-types";
 import type { FeedMatch, FeedInsight, MatchDetail, MatchDetailInsight } from "./feed";

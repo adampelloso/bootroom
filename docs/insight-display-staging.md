@@ -26,10 +26,16 @@ Current feed pool keys:
 - `home_corners_dominance_trend`
 - `away_corners_dominance_trend`
 - `opponent_corners_suppressed`
+- `trailing_pressure_profile`
 - `shot_dominance_edge`
 - `sot_dominance_edge`
+- `opponent_shots_suppressed`
 - `one_sided_match_profile`
 - `underdog_resilience_profile`
+- `high_variance_match_profile`
+- `comeback_frequency`
+- `late_chaos_profile`
+- `scoreline_clustering`
 
 ## Staging match detail pool (match + player markets)
 
@@ -51,10 +57,16 @@ Current match detail pool keys:
 - `home_corners_dominance_trend`
 - `away_corners_dominance_trend`
 - `opponent_corners_suppressed`
+- `trailing_pressure_profile`
 - `shot_dominance_edge`
 - `sot_dominance_edge`
+- `opponent_shots_suppressed`
 - `one_sided_match_profile`
 - `underdog_resilience_profile`
+- `high_variance_match_profile`
+- `comeback_frequency`
+- `late_chaos_profile`
+- `scoreline_clustering`
 - `primary_shooter_concentration`
 - `distributed_shooting_profile`
 - `player_shots_trending_up`
