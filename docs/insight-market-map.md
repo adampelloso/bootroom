@@ -1,6 +1,6 @@
 # Insight Market Map (MVP)
 
-Purpose: map **bettable markets** to **objective, neutral highlights**. These templates avoid betting language while still aligning to common markets. This doc is the source for the feed/detail insight shortlist.
+Purpose: map **bettable markets** to **objective, neutral highlights**. These templates avoid betting language while still aligning to common markets. This doc is the source for the feed/detail insight shortlist. Canonical list of markets lives in `docs/market-list.md`.
 
 Notes:
 - Placeholders use existing catalog fields: `{home}`, `{away}`, `{value}`, `{l5}`, `{l10}`, `{n}`, `{k}`, `{pct}`, `{diff}`, `{against}`.

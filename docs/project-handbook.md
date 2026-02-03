@@ -15,6 +15,7 @@ Single source of truth for onboarding, decisions, and collaboration.
 ## 2) Sources of truth
 - Product spec: `spec.md`
 - Market map: `docs/insight-market-map.md`
+- Market list: `docs/market-list.md`
 - UI reference: `docs/feed-ui-reference.md`
 - Workstreams: `docs/workstreams.md`
 

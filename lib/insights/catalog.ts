@@ -18,9 +18,33 @@ export interface InsightType {
   headlineTemplate: string;
   supportLabel: string;
   supportValueTemplate: string;
+  marketKey?: MarketKey;
   /** If true, included in staging random pool. */
   staging?: boolean;
 }
+
+export type MarketKey =
+  | "match_result"
+  | "double_chance"
+  | "draw_no_bet"
+  | "total_goals"
+  | "team_totals"
+  | "btts"
+  | "correct_score_band"
+  | "first_half_result"
+  | "first_half_total_goals"
+  | "second_half_total_goals"
+  | "higher_scoring_half"
+  | "win_either_half"
+  | "total_corners"
+  | "team_corners"
+  | "most_corners"
+  | "team_shots"
+  | "team_shots_on_target"
+  | "anytime_goalscorer"
+  | "player_shots"
+  | "player_shots_on_target"
+  | "player_assists";
 
 /** Full catalog (subset used for feed staging). */
 const INSIGHT_TYPES: InsightType[] = [
@@ -33,6 +57,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "Combined goals per match (L5): {value}",
     supportLabel: "Both sides score in last {n}",
     supportValueTemplate: "{k}",
+    marketKey: "total_goals",
   },
   {
     key: "low_total_goals_environment",
@@ -42,6 +67,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "{home} + {away} goals avg (L10): {value}",
     supportLabel: "Both sides score in last {n}",
     supportValueTemplate: "{k}",
+    marketKey: "total_goals",
   },
   {
     key: "btts_tendency_high",
@@ -51,6 +77,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "Both sides score in {k} of last {n}",
     supportLabel: "BTTS rate",
     supportValueTemplate: "{pct}%",
+    marketKey: "btts",
   },
   {
     key: "btts_tendency_low",
@@ -60,6 +87,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "Clean sheets in {k} of last {n}",
     supportLabel: "BTTS rate",
     supportValueTemplate: "{pct}%",
+    marketKey: "btts",
   },
   {
     key: "home_goals_trending_up",
@@ -69,6 +97,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "{home} avg {l5} goals at home (L5)",
     supportLabel: "Goals allowed (L5)",
     supportValueTemplate: "{against}",
+    marketKey: "team_totals",
   },
   {
     key: "away_goals_trending_up",
@@ -78,6 +107,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "{away} avg {l5} goals away (L5)",
     supportLabel: "Goals allowed (L5)",
     supportValueTemplate: "{against}",
+    marketKey: "team_totals",
   },
   {
     key: "home_goals_trending_down",
@@ -87,6 +117,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "{home} goals allowed (L5): {against}",
     supportLabel: "Home goals per match (L5)",
     supportValueTemplate: "{l5}",
+    marketKey: "team_totals",
   },
   {
     key: "away_goals_trending_down",
@@ -96,6 +127,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "{away} goals allowed (L5): {against}",
     supportLabel: "Away goals per match (L5)",
     supportValueTemplate: "{l5}",
+    marketKey: "team_totals",
   },
   {
     key: "first_half_goals_tilt",
@@ -105,6 +137,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "1H goals avg (L5): {value}",
     supportLabel: "First-half goals (last {n})",
     supportValueTemplate: "{k}",
+    marketKey: "first_half_total_goals",
   },
   {
     key: "second_half_goals_tilt",
@@ -114,6 +147,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "2H goals avg (L5): {value}",
     supportLabel: "Second-half goals (last {n})",
     supportValueTemplate: "{k}",
+    marketKey: "second_half_total_goals",
   },
   // B) Control (4)
   {
@@ -124,6 +158,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "{home} shots diff +{diff} (L5)",
     supportLabel: "Shots per match (L5)",
     supportValueTemplate: "{l5}",
+    marketKey: "match_result",
   },
   {
     key: "sot_dominance_edge",
@@ -133,6 +168,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "{home} SOT per match (L5): {l5}",
     supportLabel: "SOT against (L5)",
     supportValueTemplate: "{against}",
+    marketKey: "team_shots_on_target",
   },
   {
     key: "opponent_shots_suppressed",
@@ -142,6 +178,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "{home} shots allowed (L5): {against}",
     supportLabel: "Shots per match (L5)",
     supportValueTemplate: "{l5}",
+    marketKey: "team_shots",
   },
   {
     key: "one_sided_match_profile",
@@ -151,6 +188,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "Shots diff +{diff} (L5)",
     supportLabel: "SOT per match (L5)",
     supportValueTemplate: "{l5}",
+    marketKey: "match_result",
   },
   {
     key: "underdog_resilience_profile",
@@ -160,6 +198,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "{away} shots per match (L5): {l5}",
     supportLabel: "Shots allowed (L5)",
     supportValueTemplate: "{against}",
+    marketKey: "double_chance",
   },
   // C) Corners (4)
   {
@@ -170,6 +209,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "Combined corners per match (L5): {value}",
     supportLabel: "10.5+ corners in last {n}",
     supportValueTemplate: "{k}",
+    marketKey: "total_corners",
   },
   {
     key: "low_total_corners_environment",
@@ -179,6 +219,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "Combined corners per match (L5): {value}",
     supportLabel: "10.5+ corners in last {n}",
     supportValueTemplate: "{k}",
+    marketKey: "total_corners",
   },
   {
     key: "home_corners_dominance_trend",
@@ -188,6 +229,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "{home} corners per match (L5): {l5}",
     supportLabel: "Corners diff (L5)",
     supportValueTemplate: "+{diff}",
+    marketKey: "team_corners",
   },
   {
     key: "away_corners_dominance_trend",
@@ -197,6 +239,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "{away} corners per match (L5): {l5}",
     supportLabel: "Corners diff (L5)",
     supportValueTemplate: "+{diff}",
+    marketKey: "team_corners",
   },
   {
     key: "opponent_corners_suppressed",
@@ -206,6 +249,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "{home} corners allowed (L5): {against}",
     supportLabel: "Corners per match (L5)",
     supportValueTemplate: "{l5}",
+    marketKey: "most_corners",
   },
   {
     key: "trailing_pressure_profile",
@@ -215,6 +259,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "Combined corners per match (L5): {value}",
     supportLabel: "10.5+ corners in last {n}",
     supportValueTemplate: "{k}",
+    marketKey: "total_corners",
   },
   // D) Players (4)
   {
@@ -225,6 +270,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "Top shooter share: {pct}%",
     supportLabel: "Player shots (L5)",
     supportValueTemplate: "{l5}",
+    marketKey: "anytime_goalscorer",
   },
   {
     key: "distributed_shooting_profile",
@@ -234,6 +280,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "Player shots (L5): {l5}",
     supportLabel: "Shots (L5 vs L10)",
     supportValueTemplate: "{l5} / {l10}",
+    marketKey: "player_shots",
   },
   {
     key: "player_shots_trending_up",
@@ -243,6 +290,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "Shots (L5 vs L10): {l5} / {l10}",
     supportLabel: "Player shots (L5)",
     supportValueTemplate: "{l5}",
+    marketKey: "player_shots",
   },
   {
     key: "team_shot_volume_boost_spot",
@@ -252,6 +300,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "Player SOT (L5): {l5}",
     supportLabel: "SOT (L5 vs L10)",
     supportValueTemplate: "{l5} / {l10}",
+    marketKey: "player_shots_on_target",
   },
   // E) Timing (4)
   {
@@ -262,6 +311,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "1H goals share: {pct}%",
     supportLabel: "2H goals share",
     supportValueTemplate: "{pct}%",
+    marketKey: "higher_scoring_half",
   },
   {
     key: "comeback_frequency",
@@ -271,6 +321,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "{home} half-win rate (L5): {pct}%",
     supportLabel: "{away} half-win rate (L5)",
     supportValueTemplate: "{pct}%",
+    marketKey: "win_either_half",
   },
   {
     key: "late_chaos_profile",
@@ -280,6 +331,7 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "Second-half goals in {k} of last {n}",
     supportLabel: "2H goals avg (L5)",
     supportValueTemplate: "{value}",
+    marketKey: "second_half_total_goals",
   },
   {
     key: "scoreline_clustering",
@@ -289,46 +341,49 @@ const INSIGHT_TYPES: InsightType[] = [
     headlineTemplate: "Common scoreband in {k} of last {n}",
     supportLabel: "Total goals avg (L5)",
     supportValueTemplate: "{value}",
+    marketKey: "correct_score_band",
   },
 ];
 
 /** Focused feed list (match props only, no player props). */
-export const FEED_INSIGHT_KEYS: string[] = [
-  "high_total_goals_environment",
-  "low_total_goals_environment",
-  "home_goals_trending_up",
-  "away_goals_trending_up",
-  "home_goals_trending_down",
-  "away_goals_trending_down",
-  "btts_tendency_high",
-  "btts_tendency_low",
-  "first_half_goals_tilt",
-  "second_half_goals_tilt",
-  "high_total_corners_environment",
-  "low_total_corners_environment",
-  "home_corners_dominance_trend",
-  "away_corners_dominance_trend",
-  "opponent_corners_suppressed",
-  "trailing_pressure_profile",
-  "shot_dominance_edge",
-  "sot_dominance_edge",
-  "opponent_shots_suppressed",
-  "one_sided_match_profile",
-  "underdog_resilience_profile",
-  "high_variance_match_profile",
-  "comeback_frequency",
-  "late_chaos_profile",
-  "scoreline_clustering",
+const MATCH_MARKET_KEYS: MarketKey[] = [
+  "match_result",
+  "double_chance",
+  "draw_no_bet",
+  "total_goals",
+  "team_totals",
+  "btts",
+  "correct_score_band",
+  "first_half_result",
+  "first_half_total_goals",
+  "second_half_total_goals",
+  "higher_scoring_half",
+  "win_either_half",
+  "total_corners",
+  "team_corners",
+  "most_corners",
+  "team_shots",
+  "team_shots_on_target",
 ];
 
-/** Match detail pool (match + player props). */
-export const DETAIL_INSIGHT_KEYS: string[] = [
-  ...FEED_INSIGHT_KEYS,
-  "primary_shooter_concentration",
-  "distributed_shooting_profile",
-  "player_shots_trending_up",
-  "team_shot_volume_boost_spot",
+const PLAYER_MARKET_KEYS: MarketKey[] = [
+  "anytime_goalscorer",
+  "player_shots",
+  "player_shots_on_target",
+  "player_assists",
 ];
+
+const MATCH_MARKET_SET = new Set(MATCH_MARKET_KEYS);
+const PLAYER_MARKET_SET = new Set(PLAYER_MARKET_KEYS);
+
+export const FEED_INSIGHT_KEYS: string[] = INSIGHT_TYPES.filter(
+  (t) => t.marketKey && MATCH_MARKET_SET.has(t.marketKey),
+).map((t) => t.key);
+
+/** Match detail pool (match + player props). */
+export const DETAIL_INSIGHT_KEYS: string[] = INSIGHT_TYPES.filter(
+  (t) => t.marketKey && (MATCH_MARKET_SET.has(t.marketKey) || PLAYER_MARKET_SET.has(t.marketKey)),
+).map((t) => t.key);
 
 const BY_KEY = new Map(INSIGHT_TYPES.map((t) => [t.key, t]));
 
