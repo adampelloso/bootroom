@@ -40,7 +40,6 @@ const TABS = [
   { key: "corners", label: "Corners" },
   { key: "shots", label: "Shots" },
   { key: "halves", label: "Halves" },
-  { key: "players", label: "Players" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -95,6 +94,15 @@ export function MatchDetailTabs({
     });
   }, [insightsByFamily]);
 
+  const scorerProps = useMemo(
+    () => playerProps.find((prop) => prop.key === "goals"),
+    [playerProps],
+  );
+  const assistProps = useMemo(
+    () => playerProps.find((prop) => prop.key === "assists"),
+    [playerProps],
+  );
+
   return (
     <div>
       <div className="sticky top-0 z-10 -mx-4 bg-[var(--bg-body)] px-4 pb-4 pt-2">
@@ -130,7 +138,7 @@ export function MatchDetailTabs({
       )}
 
       {activeTab === "goals" && (
-        <section className="space-y-4">
+        <section className="space-y-6">
           <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary">
             Goals
           </h2>
@@ -139,6 +147,106 @@ export function MatchDetailTabs({
               <InsightCard key={insight.id} insight={insight} />
             ))}
           </ul>
+          <div className="space-y-4">
+            {scorerProps ? (
+              <div
+                className="rounded-xl"
+                style={{
+                  background: "var(--bg-surface)",
+                  padding: "var(--space-sm) var(--space-md)",
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-tertiary">
+                    To Score
+                  </h3>
+                  <span className="text-mono text-[11px] uppercase text-tertiary">
+                    Goals
+                  </span>
+                </div>
+                {topPlayers(playerStats, scorerProps.key).length === 0 ? (
+                  <p className="mt-3 text-[13px] text-[var(--text-sec)]">
+                    No scorer props available.
+                  </p>
+                ) : (
+                  <ul className="mt-4 space-y-3">
+                    {topPlayers(playerStats, scorerProps.key).map((player) => (
+                      <li
+                        key={`${scorerProps.key}-${player.id}`}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-[13px] font-medium">
+                            {player.name}
+                          </span>
+                          <span className="text-xs uppercase tracking-[0.2em] text-tertiary">
+                            {player.teamName}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-mono text-[15px] font-medium">
+                            {player.value}
+                          </span>
+                          <span className="text-xs uppercase tracking-[0.2em] text-tertiary">
+                            Goals
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : null}
+            {assistProps ? (
+              <div
+                className="rounded-xl"
+                style={{
+                  background: "var(--bg-surface)",
+                  padding: "var(--space-sm) var(--space-md)",
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-tertiary">
+                    To Assist
+                  </h3>
+                  <span className="text-mono text-[11px] uppercase text-tertiary">
+                    Assists
+                  </span>
+                </div>
+                {topPlayers(playerStats, assistProps.key).length === 0 ? (
+                  <p className="mt-3 text-[13px] text-[var(--text-sec)]">
+                    No assist props available.
+                  </p>
+                ) : (
+                  <ul className="mt-4 space-y-3">
+                    {topPlayers(playerStats, assistProps.key).map((player) => (
+                      <li
+                        key={`${assistProps.key}-${player.id}`}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-[13px] font-medium">
+                            {player.name}
+                          </span>
+                          <span className="text-xs uppercase tracking-[0.2em] text-tertiary">
+                            {player.teamName}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-mono text-[15px] font-medium">
+                            {player.value}
+                          </span>
+                          <span className="text-xs uppercase tracking-[0.2em] text-tertiary">
+                            Assists
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : null}
+          </div>
         </section>
       )}
 
@@ -250,73 +358,6 @@ export function MatchDetailTabs({
         </section>
       )}
 
-      {activeTab === "players" && (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary">
-              Player Props
-            </h2>
-            <span className="text-mono text-[11px] uppercase text-tertiary">
-              Top 3
-            </span>
-          </div>
-          <div className="space-y-4">
-            {playerProps.map((prop) => {
-              const rows = topPlayers(playerStats, prop.key);
-              return (
-                <div
-                  key={prop.key}
-                  className="rounded-xl"
-                  style={{
-                    background: "var(--bg-surface)",
-                    padding: "var(--space-sm) var(--space-md)",
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-tertiary">
-                      {prop.title}
-                    </h3>
-                    <span className="text-mono text-[11px] uppercase text-tertiary">
-                      {prop.label}
-                    </span>
-                  </div>
-                  {rows.length === 0 ? (
-                    <p className="mt-3 text-[13px] text-[var(--text-sec)]">
-                      No player props available.
-                    </p>
-                  ) : (
-                    <ul className="mt-4 space-y-3">
-                      {rows.map((player) => (
-                        <li
-                          key={`${prop.key}-${player.id}`}
-                          className="flex items-center justify-between"
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-[13px] font-medium">
-                              {player.name}
-                            </span>
-                            <span className="text-xs uppercase tracking-[0.2em] text-tertiary">
-                              {player.teamName}
-                            </span>
-                          </div>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-mono text-[15px] font-medium">
-                              {player.value}
-                            </span>
-                            <span className="text-xs uppercase tracking-[0.2em] text-tertiary">
-                              {prop.label}
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
     </div>
   );
 }
