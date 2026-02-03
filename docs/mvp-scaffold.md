@@ -19,15 +19,17 @@ First four steps from the Bootroom plan are done.
 
 ## 4. Data pipeline scaffold (no DB yet)
 - **Provider registry:** `lib/providers/registry.ts` — resolves active provider with a safe fallback to mock while real ingestion is wired.
+- **API-Football scaffold:** `lib/providers/api-football-provider.ts` — request wrapper + env-based config (only used when `API_FOOTBALL_KEY` is present).
 - **Normalization types:** `lib/normalization/types.ts` — internal shapes for fixtures, stats, players, odds, and snapshot bundles.
 - **Normalization helpers:** `lib/normalization/*.ts` — converts API-Football responses into internal normalized records.
-- **Ingestion stub:** `lib/normalization/pipeline.ts` — builds an in-memory snapshot and fixture bundles (ready for future DB writes).
+- **Ingestion stub:** `lib/normalization/pipeline.ts` — builds in-memory snapshots and fixture bundles (ready for future DB writes).
+- **Data store interface:** `lib/normalization/store.ts` — in-memory sink that mirrors eventual DB writes.
+- **Ingestion runner:** `lib/normalization/ingestion.ts` — runs a plan against a provider and writes to the store.
 
 ## Run
 - `npm install` then `npm run dev` — open http://localhost:3000 for feed; tap a card for match detail; use “Share / Export” for export view.
 - `npm run build` — production build succeeds.
 
 ## Next (when you “make it work”)
-- Add normalization layer (provider response → internal schema).
-- Add daily job + ApiFootballProvider + DB.
+- Add daily job + ApiFootballProvider + DB writes.
 - Replace stub highlights with real insight engine (features, scoring, ranking).
