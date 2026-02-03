@@ -37,9 +37,15 @@ export default async function ExportPage({
   );
 
   return (
-    <main className="min-h-screen bg-[var(--bg-body)] p-4">
-      <div className="mx-auto flex flex-col items-center gap-4">
-        <p className="text-center text-mono text-[11px] uppercase tracking-[0.2em] text-tertiary">
+    <main
+      className="min-h-screen bg-[var(--bg-body)]"
+      style={{ padding: "var(--space-lg) var(--space-md)" }}
+    >
+      <div
+        className="mx-auto flex flex-col items-center gap-4"
+        style={{ gap: "var(--space-sm)" }}
+      >
+        <p className="text-center text-mono text-[11px] uppercase text-tertiary">
           Minimal chrome for screenshot — tap to capture
         </p>
         <div
@@ -77,12 +83,12 @@ export default async function ExportPage({
               </span>
             ) : null}
           </div>
-          <div className="mt-4 flex flex-col gap-3" style={{ gap: "var(--space-sm)" }}>
+          <div className="flex flex-col">
             {exportInsights.map(
               (ins: { id: string; headline: string }, index: number) => (
                 <div
                   key={ins.id}
-                  className={`flex items-start gap-3 rounded-xl py-3 px-5 ${
+                  className={`flex items-start gap-3 rounded-xl py-3 px-5 mt-1 ${
                     index === 0 ? "bg-black text-white" : ""
                   }`}
                   style={{
@@ -90,6 +96,7 @@ export default async function ExportPage({
                     padding: "var(--space-sm) var(--space-md)",
                     borderRadius: 12,
                     gap: "var(--space-sm)",
+                    marginTop: 4,
                   }}
                 >
                   <div>
@@ -113,20 +120,20 @@ export default async function ExportPage({
         <div className="flex gap-2">
           <Link
             href={`/match/${id}/export?ratio=1:1`}
-            className="rounded-full border border-[var(--border-light)] bg-[var(--bg-body)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-tertiary"
+            className="rounded-full border border-[var(--border-light)] bg-[var(--bg-body)] px-4 py-2 text-mono text-[11px] uppercase text-tertiary"
           >
             1:1
           </Link>
           <Link
             href={`/match/${id}/export?ratio=9:16`}
-            className="rounded-full border border-[var(--border-light)] bg-[var(--bg-body)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-tertiary"
+            className="rounded-full border border-[var(--border-light)] bg-[var(--bg-body)] px-4 py-2 text-mono text-[11px] uppercase text-tertiary"
           >
             9:16
           </Link>
         </div>
         <Link
           href={`/match/${id}`}
-          className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary"
+          className="text-mono text-[11px] uppercase text-tertiary"
         >
           ← Back to match
         </Link>
