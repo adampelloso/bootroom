@@ -30,9 +30,9 @@ const INSIGHT_TYPES: InsightType[] = [
     family: "Goals",
     title: "High total goals environment",
     description: "Match-level goals trend materially above league baseline.",
-    headlineTemplate: "Both sides score in {k} of last {n}",
-    supportLabel: "Combined goals per match (L5)",
-    supportValueTemplate: "{value}",
+    headlineTemplate: "Combined goals per match (L5): {value}",
+    supportLabel: "Both sides score in last {n}",
+    supportValueTemplate: "{k}",
   },
   {
     key: "low_total_goals_environment",
@@ -40,7 +40,7 @@ const INSIGHT_TYPES: InsightType[] = [
     title: "Low total goals environment",
     description: "Match-level goals trend materially below league baseline.",
     headlineTemplate: "{home} + {away} goals avg (L10): {value}",
-    supportLabel: "Both sides score (last {n})",
+    supportLabel: "Both sides score in last {n}",
     supportValueTemplate: "{k}",
   },
   {
@@ -49,7 +49,7 @@ const INSIGHT_TYPES: InsightType[] = [
     title: "BTTS tendency high",
     description: "Both teams scoring frequency elevated.",
     headlineTemplate: "Both sides score in {k} of last {n}",
-    supportLabel: "Both sides score rate",
+    supportLabel: "BTTS rate",
     supportValueTemplate: "{pct}%",
   },
   {
@@ -58,7 +58,7 @@ const INSIGHT_TYPES: InsightType[] = [
     title: "BTTS tendency low",
     description: "Both teams scoring frequency depressed.",
     headlineTemplate: "Clean sheets in {k} of last {n}",
-    supportLabel: "Both sides score rate",
+    supportLabel: "BTTS rate",
     supportValueTemplate: "{pct}%",
   },
   {
@@ -167,9 +167,9 @@ const INSIGHT_TYPES: InsightType[] = [
     family: "Corners",
     title: "High total corners environment",
     description: "Match-level corners trend above baseline.",
-    headlineTemplate: "10.5+ corners in {k} of last {n}",
-    supportLabel: "Combined corners per match (L5)",
-    supportValueTemplate: "{value}",
+    headlineTemplate: "Combined corners per match (L5): {value}",
+    supportLabel: "10.5+ corners in last {n}",
+    supportValueTemplate: "{k}",
   },
   {
     key: "low_total_corners_environment",
@@ -177,7 +177,7 @@ const INSIGHT_TYPES: InsightType[] = [
     title: "Low total corners environment",
     description: "Match-level corners trend below baseline.",
     headlineTemplate: "Combined corners per match (L5): {value}",
-    supportLabel: "10.5+ corners (last {n})",
+    supportLabel: "10.5+ corners in last {n}",
     supportValueTemplate: "{k}",
   },
   {
@@ -213,7 +213,7 @@ const INSIGHT_TYPES: InsightType[] = [
     title: "Trailing pressure profile",
     description: "Corners increase significantly when trailing.",
     headlineTemplate: "Combined corners per match (L5): {value}",
-    supportLabel: "10.5+ corners (last {n})",
+    supportLabel: "10.5+ corners in last {n}",
     supportValueTemplate: "{k}",
   },
   // D) Players (4)
@@ -309,10 +309,16 @@ export const FEED_INSIGHT_KEYS: string[] = [
   "home_corners_dominance_trend",
   "away_corners_dominance_trend",
   "opponent_corners_suppressed",
+  "trailing_pressure_profile",
   "shot_dominance_edge",
   "sot_dominance_edge",
+  "opponent_shots_suppressed",
   "one_sided_match_profile",
   "underdog_resilience_profile",
+  "high_variance_match_profile",
+  "comeback_frequency",
+  "late_chaos_profile",
+  "scoreline_clustering",
 ];
 
 /** Match detail pool (match + player props). */

@@ -1,6 +1,6 @@
 /**
  * Select 3 insight types for a match with diversity: max 2 per family.
- * Random on each call for staging (refresh shows different combos).
+ * Random by default; deterministic when a seed is provided.
  */
 
 import type { InsightType } from "./catalog";
@@ -17,8 +17,8 @@ function shuffle<T>(arr: T[], rng: () => number = Math.random): T[] {
 }
 
 /**
- * Pick 3 staging insight types with max 2 from the same family.
- * Random on every call (staging: refresh to see different combos).
+ * Pick 3 insight types with max 2 from the same family.
+ * Random on every call unless a seed is provided.
  * If seed is provided, selection is deterministic for that seed.
  */
 export function selectThreeForMatch(poolKeys: string[], seed?: number): InsightType[] {
