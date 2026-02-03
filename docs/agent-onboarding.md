@@ -12,7 +12,7 @@ Goal: get a new agent productive in 5–10 minutes with zero overlap.
 ## 2) Pick a stream and create a branch
 Example:
 ```
-git checkout -b codex/insight-market-templates
+git checkout -b insight-market-templates
 ```
 
 ## 3) Confirm your file boundaries

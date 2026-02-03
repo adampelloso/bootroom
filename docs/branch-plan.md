@@ -1,25 +1,25 @@
 # Branch plan and handoff guide
 
-This repo is ready for parallel work. Use `codex/` prefixed branch names.
+This repo is ready for parallel work. Use the branch names listed below (no prefix).
 
 ## Proposed branches (short-term)
 
-1. **`codex/insight-market-templates`**
+1. **`insight-market-templates`**
    - Goal: implement the market→template mapping from `docs/insight-market-map.md`.
    - Update `lib/insights/catalog.ts` templates to be **objective, numeric**, and market-aligned.
    - Keep **feed** match-only and **detail** match + player props.
 
-2. **`codex/feed-highlights-selection`**
+2. **`insight-selection`**
    - Goal: split feed vs detail pools in code (match-only feed, player props in detail).
    - Update `lib/insights/select.ts` and `lib/build-feed.ts` if needed.
    - Ensure feed highlights are deterministic per fixture (optional improvement).
 
-3. **`codex/match-detail-player-props-ui`**
+3. **`match-detail-player-props-ui`**
    - Goal: design the player props section in match detail.
    - Ensure no player props appear in feed.
    - Keep layout consistent with feed typography.
 
-4. **`codex/data-pipeline-scaffold`**
+4. **`data-pipeline-scaffold`**
    - Goal: lay groundwork for API-Football ingestion.
    - Optional: define normalization tables, data fetch scaffolding, and storage plan.
 

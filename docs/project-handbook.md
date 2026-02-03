@@ -25,7 +25,7 @@ Single source of truth for onboarding, decisions, and collaboration.
    - `CONTRIBUTING.md`
    - `docs/workstreams.md`
    - `docs/insight-market-map.md`
-2. Create your branch (prefix `codex/`).
+2. Create your branch (use the name listed in `docs/workstreams.md`).
 3. Stay inside your file boundaries.
 
 ---

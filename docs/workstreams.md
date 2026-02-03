@@ -9,7 +9,7 @@ Goal: let 3–5 agents pick independent streams with minimal conflict.
 ## 1) INSIGHTS: MARKET TEMPLATES
 
 **Branch name**  
-`codex/insight-market-templates`
+`insight-market-templates`
 
 **Goal**  
 Replace subjective highlights with objective, numeric templates aligned to markets.
@@ -37,7 +37,7 @@ Replace subjective highlights with objective, numeric templates aligned to marke
 ## 2) INSIGHTS: SELECTION + POOLS
 
 **Branch name**  
-`codex/insight-selection`
+`insight-selection`
 
 **Goal**  
 Split feed vs detail pools and make selection consistent if needed.
@@ -66,7 +66,7 @@ Split feed vs detail pools and make selection consistent if needed.
 ## 3) UI: MATCH DETAIL + PLAYER PROPS
 
 **Branch name**  
-`codex/match-detail-player-props-ui`
+`match-detail-player-props-ui`
 
 **Goal**  
 Create a dedicated player props section in match detail.
@@ -92,7 +92,7 @@ Create a dedicated player props section in match detail.
 ## 4) UI: EXPORT POLISH
 
 **Branch name**  
-`codex/export-polish`
+`export-polish`
 
 **Goal**  
 Align export view visuals with current feed styling.
@@ -116,7 +116,7 @@ Align export view visuals with current feed styling.
 ## 5) DATA: PROVIDER SCAFFOLD
 
 **Branch name**  
-`codex/data-pipeline-scaffold`
+`data-pipeline-scaffold`
 
 **Goal**  
 Prepare data layer for real ingestion (no DB required yet).
