@@ -1,4 +1,5 @@
 import { mockFootballProvider } from "./mock-provider";
+import { buildApiFootballProvider, resolveApiFootballConfig } from "./api-football-provider";
 import type { FootballProvider, ProviderDescriptor, ProviderKey } from "./types";
 
 interface ProviderEntry {
@@ -6,6 +7,12 @@ interface ProviderEntry {
   provider: FootballProvider;
   ready: boolean;
 }
+
+const apiFootballConfig = resolveApiFootballConfig();
+const apiFootballReady = Boolean(apiFootballConfig);
+const apiFootballProvider = apiFootballConfig
+  ? buildApiFootballProvider(apiFootballConfig)
+  : mockFootballProvider;
 
 const PROVIDERS: Record<ProviderKey, ProviderEntry> = {
   mock: {
@@ -15,8 +22,8 @@ const PROVIDERS: Record<ProviderKey, ProviderEntry> = {
   },
   "api-football": {
     descriptor: { key: "api-football", label: "API-Football", isMock: false },
-    provider: mockFootballProvider,
-    ready: false,
+    provider: apiFootballProvider,
+    ready: apiFootballReady,
   },
 };
 
