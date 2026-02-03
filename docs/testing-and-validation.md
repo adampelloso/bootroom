@@ -28,3 +28,10 @@ This project does not yet have automated tests. Use these checks before review.
 ## Manual sanity checks
 - `npm run dev` loads feed without errors.
 - Random highlights appear in each match.
+
+## Real data snapshot
+If `.env` contains API_FOOTBALL_KEY, run:
+```
+node scripts/season-snapshot.mjs --league=39 --season=2025
+```
+This outputs L5/L10/season goal summaries for the EPL season.
