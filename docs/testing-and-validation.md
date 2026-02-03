@@ -35,3 +35,11 @@ If `.env` contains API_FOOTBALL_KEY, run:
 node scripts/season-snapshot.mjs --league=39 --season=2025
 ```
 This outputs L5/L10/season goal summaries for the EPL season.
+
+## Full season ingest (fixtures + team stats + player stats)
+If `.env` contains API_FOOTBALL_KEY, run:
+```
+node scripts/season-ingest.mjs --league=39 --season=2025 --delay=5000
+```
+This pulls all finished fixtures for the season and writes:
+`data/epl-2025-fixtures.json`.
