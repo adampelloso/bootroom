@@ -130,7 +130,6 @@ export default async function MatchDetailPage({
         insightsByFamily={insightsByFamily}
         playerStats={playerStats}
         playerProps={playerProps}
-        topPlayers={topPlayers}
       />
     </main>
   );

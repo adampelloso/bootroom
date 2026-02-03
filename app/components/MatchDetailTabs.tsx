@@ -32,11 +32,6 @@ type Props = {
   insightsByFamily: Record<string, Insight[]>;
   playerStats: PlayerPropStat[];
   playerProps: readonly PlayerPropDef[];
-  topPlayers: (
-    players: PlayerPropStat[],
-    key: "shotsTotal" | "shotsOn" | "goals" | "assists",
-    limit?: number,
-  ) => Array<PlayerPropStat & { value: number }>;
 };
 
 const TABS = [
@@ -74,9 +69,19 @@ export function MatchDetailTabs({
   insightsByFamily,
   playerStats,
   playerProps,
-  topPlayers,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
+
+  const topPlayers = (
+    players: PlayerPropStat[],
+    key: "shotsTotal" | "shotsOn" | "goals" | "assists",
+    limit = 3,
+  ) =>
+    players
+      .map((player) => ({ ...player, value: player[key] ?? 0 }))
+      .filter((player) => player.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, limit);
 
   const goalsInsights = insightsByFamily.Goals ?? [];
   const cornersInsights = insightsByFamily.Corners ?? [];
