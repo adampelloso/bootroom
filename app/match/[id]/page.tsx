@@ -164,7 +164,7 @@ export default async function MatchDetailPage({
             Player Props
           </h2>
           <span className="text-mono text-[11px] uppercase text-tertiary">
-            Match Detail
+            Top 3
           </span>
         </div>
         <div className="mt-4 space-y-4">
@@ -173,18 +173,22 @@ export default async function MatchDetailPage({
             return (
               <div
                 key={prop.key}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_10px_24px_rgba(17,17,17,0.06)]"
+                className="rounded-xl"
+                style={{
+                  background: "var(--bg-surface)",
+                  padding: "var(--space-sm) var(--space-md)",
+                }}
               >
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
                     {prop.title}
                   </h3>
                   <span className="text-mono text-[11px] uppercase text-tertiary">
-                    Top 3
+                    {prop.label}
                   </span>
                 </div>
                 {rows.length === 0 ? (
-                  <p className="mt-3 text-sm text-[var(--muted)]">
+                  <p className="mt-3 text-[13px] text-[var(--muted)]">
                     No player props available.
                   </p>
                 ) : (
