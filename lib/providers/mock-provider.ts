@@ -11,6 +11,7 @@ import {
   getMockFixtureStatsResponse,
   getMockFixturePlayersResponse,
   getMockOddsResponse,
+  getMockH2HResponse,
 } from "./mock-data";
 
 /**
@@ -26,7 +27,12 @@ export const mockFootballProvider: FootballProvider = {
     return { response: [2024, 2025] };
   },
 
-  async getFixtures(leagueId: number, seasonYear: number): Promise<ApiFootballFixturesResponse> {
+  async getFixtures(
+    leagueId: number,
+    seasonYear: number,
+    _from?: string,
+    _to?: string,
+  ): Promise<ApiFootballFixturesResponse> {
     return getMockFixturesResponse(leagueId, seasonYear);
   },
 
@@ -44,5 +50,13 @@ export const mockFootballProvider: FootballProvider = {
 
   async getOdds(fixtureId: number, markets?: string[]): Promise<ApiFootballOddsResponse> {
     return getMockOddsResponse(fixtureId, markets);
+  },
+
+  async getH2HFixtures(
+    homeTeamId: number,
+    awayTeamId: number,
+    options?: { last?: number; league?: number },
+  ): Promise<ApiFootballFixturesResponse> {
+    return getMockH2HResponse(homeTeamId, awayTeamId, options);
   },
 };

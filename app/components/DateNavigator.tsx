@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useEffect } from "react";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -49,19 +50,36 @@ function buildCalendarDays(base: Date): Array<{ date: Date; inMonth: boolean }> 
   return days;
 }
 
-export function DateNavigator() {
+function parseDateSafe(str: string): Date | null {
+  const d = new Date(str + "T12:00:00Z");
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export function DateNavigator({ currentDate }: { currentDate: string }) {
+  const router = useRouter();
   const today = useMemo(() => new Date(), []);
-  const [selectedDate, setSelectedDate] = useState<Date>(today);
+  const initial = useMemo(() => parseDateSafe(currentDate) ?? today, [currentDate]);
+  const [selectedDate, setSelectedDate] = useState<Date>(initial);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [viewMonth, setViewMonth] = useState<Date>(startOfMonth(today));
+  const [viewMonth, setViewMonth] = useState<Date>(startOfMonth(initial));
+
+  useEffect(() => {
+    const parsed = parseDateSafe(currentDate);
+    if (parsed && !isSameDay(parsed, selectedDate)) {
+      setSelectedDate(parsed);
+      setViewMonth(startOfMonth(parsed));
+    }
+  }, [currentDate]);
 
   const headerDate = formatHeaderDate(selectedDate);
   const calendarDays = buildCalendarDays(viewMonth);
+  const toDateParam = (d: Date) => d.toISOString().slice(0, 10);
 
   const shiftDate = (deltaDays: number) => {
     setSelectedDate((current) => {
       const next = new Date(current);
-      next.setDate(next.getDate() + deltaDays);
+      next.setDate(current.getDate() + deltaDays);
+      router.push(`/?date=${toDateParam(next)}`);
       return next;
     });
   };
@@ -143,6 +161,8 @@ export function DateNavigator() {
                 onClick={() => {
                   setSelectedDate(today);
                   setViewMonth(startOfMonth(today));
+                  setIsPickerOpen(false);
+                  router.push(`/?date=${toDateParam(today)}`);
                 }}
                 className="text-mono text-[11px] uppercase font-medium"
               >
@@ -195,6 +215,7 @@ export function DateNavigator() {
                     onClick={() => {
                       setSelectedDate(date);
                       setIsPickerOpen(false);
+                      router.push(`/?date=${toDateParam(date)}`);
                     }}
                     className="h-12 rounded-2xl transition-colors"
                     style={{

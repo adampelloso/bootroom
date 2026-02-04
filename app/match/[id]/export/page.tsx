@@ -85,10 +85,10 @@ export default async function ExportPage({
           </div>
           <div className="flex flex-col">
             {exportInsights.map(
-              (ins: { id: string; headline: string }, index: number) => (
+              (ins: { id: string; headline: string; period?: string }, index: number) => (
                 <div
                   key={ins.id}
-                  className={`flex items-start gap-3 rounded-xl py-3 px-5 mt-1 ${
+                  className={`flex items-start justify-between gap-3 rounded-xl py-3 px-5 mt-1 ${
                     index === 0 ? "bg-black text-white" : ""
                   }`}
                   style={{
@@ -99,19 +99,21 @@ export default async function ExportPage({
                     marginTop: 4,
                   }}
                 >
-                  <div>
-                    {index === 0 ? (
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80">
-                        Key Insight
-                      </span>
-                    ) : null}
-                    <p
-                      className={`font-medium ${index === 0 ? "mt-2" : ""}`}
-                      style={{ fontSize: "13px", lineHeight: 1.5 }}
+                  <p
+                    className="font-medium flex-1 min-w-0"
+                    style={{ fontSize: "13px", lineHeight: 1.5 }}
+                  >
+                    {ins.headline}
+                  </p>
+                  {ins.period ? (
+                    <span
+                      className={`text-mono text-[11px] uppercase shrink-0 ${
+                        index === 0 ? "text-white/70" : "text-tertiary"
+                      }`}
                     >
-                      {ins.headline}
-                    </p>
-                  </div>
+                      {ins.period}
+                    </span>
+                  ) : null}
                 </div>
               )
             )}

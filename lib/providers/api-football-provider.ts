@@ -48,11 +48,16 @@ export function buildApiFootballProvider(config: ApiFootballConfig): FootballPro
     async getSeasons(leagueId: number) {
       return fetchJson<{ response: unknown[] }>(config, `/leagues/seasons?league=${leagueId}`);
     },
-    async getFixtures(leagueId: number, seasonYear: number): Promise<ApiFootballFixturesResponse> {
-      return fetchJson<ApiFootballFixturesResponse>(
-        config,
-        `/fixtures?league=${leagueId}&season=${seasonYear}`,
-      );
+    async getFixtures(
+      leagueId: number,
+      seasonYear: number,
+      from?: string,
+      to?: string,
+    ): Promise<ApiFootballFixturesResponse> {
+      let path = `/fixtures?league=${leagueId}&season=${seasonYear}`;
+      if (from) path += `&from=${from}`;
+      if (to) path += `&to=${to}`;
+      return fetchJson<ApiFootballFixturesResponse>(config, path);
     },
     async getFixture(fixtureId: number): Promise<ApiFootballFixturesResponse> {
       return fetchJson<ApiFootballFixturesResponse>(config, `/fixtures?id=${fixtureId}`);
@@ -72,6 +77,16 @@ export function buildApiFootballProvider(config: ApiFootballConfig): FootballPro
     async getOdds(fixtureId: number, markets?: string[]): Promise<ApiFootballOddsResponse> {
       const marketParam = markets && markets.length > 0 ? `&markets=${markets.join(",")}` : "";
       return fetchJson<ApiFootballOddsResponse>(config, `/odds?fixture=${fixtureId}${marketParam}`);
+    },
+    async getH2HFixtures(
+      homeTeamId: number,
+      awayTeamId: number,
+      options?: { last?: number; league?: number },
+    ): Promise<ApiFootballFixturesResponse> {
+      let path = `/fixtures/headtohead?h2h=${homeTeamId}-${awayTeamId}`;
+      if (options?.league) path += `&league=${options.league}`;
+      if (options?.last) path += `&last=${options.last}`;
+      return fetchJson<ApiFootballFixturesResponse>(config, path);
     },
   };
 }

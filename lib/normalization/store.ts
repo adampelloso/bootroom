@@ -1,4 +1,5 @@
-import type { FixtureBundle, NormalizedSnapshot } from "./pipeline";
+import type { FixtureBundle } from "./pipeline";
+import type { NormalizedSnapshot } from "./types";
 
 export interface NormalizationStore {
   writeSnapshot(snapshot: NormalizedSnapshot): Promise<void>;

@@ -341,3 +341,18 @@ export function getMockOddsResponse(_fixtureId: number, _markets?: string[]): Ap
     response: [],
   };
 }
+
+const MOCK_H2H_FIXTURES: ApiFootballFixturesResponse["response"] = [
+  { fixture: { id: 9001, referee: null, timezone: "UTC", date: "2024-09-03T19:00:00+00:00", timestamp: 0, periods: { first: null, second: null }, venue: { id: 555, name: "Emirates Stadium", city: "London" }, status: { long: "Match Finished", short: "FT", elapsed: 90 } }, league: { id: 39, name: "Premier League", country: "England", logo: "", flag: "", season: 2024, round: "" }, teams: { home: { id: 42, name: "Arsenal", logo: "", winner: true }, away: { id: 33, name: "Manchester United", logo: "", winner: false } }, goals: { home: 3, away: 1 }, score: { halftime: { home: 2, away: 0 }, fulltime: { home: 3, away: 1 }, extratime: null, penalty: null } },
+  { fixture: { id: 9002, referee: null, timezone: "UTC", date: "2024-05-12T16:30:00+00:00", timestamp: 0, periods: { first: null, second: null }, venue: { id: 556, name: "Old Trafford", city: "Manchester" }, status: { long: "Match Finished", short: "FT", elapsed: 90 } }, league: { id: 39, name: "Premier League", country: "England", logo: "", flag: "", season: 2024, round: "" }, teams: { home: { id: 33, name: "Manchester United", logo: "", winner: false }, away: { id: 42, name: "Arsenal", logo: "", winner: true } }, goals: { home: 0, away: 2 }, score: { halftime: { home: 0, away: 1 }, fulltime: { home: 0, away: 2 }, extratime: null, penalty: null } },
+  { fixture: { id: 9003, referee: null, timezone: "UTC", date: "2023-09-03T16:30:00+00:00", timestamp: 0, periods: { first: null, second: null }, venue: { id: 556, name: "Old Trafford", city: "Manchester" }, status: { long: "Match Finished", short: "FT", elapsed: 90 } }, league: { id: 39, name: "Premier League", country: "England", logo: "", flag: "", season: 2023, round: "" }, teams: { home: { id: 33, name: "Manchester United", logo: "", winner: true }, away: { id: 42, name: "Arsenal", logo: "", winner: false } }, goals: { home: 3, away: 1 }, score: { halftime: { home: 1, away: 0 }, fulltime: { home: 3, away: 1 }, extratime: null, penalty: null } },
+];
+
+export function getMockH2HResponse(
+  _homeTeamId: number,
+  _awayTeamId: number,
+  options?: { last?: number },
+): ApiFootballFixturesResponse {
+  const limit = options?.last ?? 20;
+  return fixturesResponse(MOCK_H2H_FIXTURES.slice(0, limit));
+}

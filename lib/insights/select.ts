@@ -1,10 +1,35 @@
 /**
  * Select 3 insight types for a match with diversity: max 2 per family.
- * Random by default; deterministic when a seed is provided.
+ * Avoids contradictory pairs (e.g. BTTS high vs clean sheets high).
+ * Deterministic when seed is provided.
  */
 
 import type { InsightType } from "./catalog";
 import { getInsightType } from "./catalog";
+
+/** Pairs of insight keys that are contradictory and should not appear together. */
+const CONTRADICTORY_PAIRS: [string, string][] = [
+  ["btts_tendency_high", "btts_tendency_low"],
+  ["high_total_goals_environment", "low_total_goals_environment"],
+  ["high_total_corners_environment", "low_total_corners_environment"],
+];
+
+const EXCLUDED_BY_KEY = new Map<string, Set<string>>();
+for (const [a, b] of CONTRADICTORY_PAIRS) {
+  if (!EXCLUDED_BY_KEY.has(a)) EXCLUDED_BY_KEY.set(a, new Set());
+  if (!EXCLUDED_BY_KEY.has(b)) EXCLUDED_BY_KEY.set(b, new Set());
+  EXCLUDED_BY_KEY.get(a)!.add(b);
+  EXCLUDED_BY_KEY.get(b)!.add(a);
+}
+
+function isExcludedByPicked(key: string, pickedKeys: Set<string>): boolean {
+  const excluded = EXCLUDED_BY_KEY.get(key);
+  if (!excluded) return false;
+  for (const p of pickedKeys) {
+    if (excluded.has(p)) return true;
+  }
+  return false;
+}
 
 /** Fisher-Yates shuffle. */
 function shuffle<T>(arr: T[], rng: () => number = Math.random): T[] {
@@ -18,8 +43,8 @@ function shuffle<T>(arr: T[], rng: () => number = Math.random): T[] {
 
 /**
  * Pick 3 insight types with max 2 from the same family.
- * Random on every call unless a seed is provided.
- * If seed is provided, selection is deterministic for that seed.
+ * Excludes contradictory pairs (e.g. BTTS high + clean sheets high).
+ * Deterministic when seed is provided.
  */
 export function selectThreeForMatch(poolKeys: string[], seed?: number): InsightType[] {
   const staging = poolKeys
@@ -28,13 +53,16 @@ export function selectThreeForMatch(poolKeys: string[], seed?: number): InsightT
   const rng = seed === undefined ? Math.random : mulberry32(seed);
   const shuffled = shuffle(staging, rng);
   const picked: InsightType[] = [];
+  const pickedKeys = new Set<string>();
   const familyCount: Record<string, number> = {};
 
   for (const t of shuffled) {
     if (picked.length >= 3) break;
     const count = familyCount[t.family] ?? 0;
     if (count >= 2) continue;
+    if (isExcludedByPicked(t.key, pickedKeys)) continue;
     picked.push(t);
+    pickedKeys.add(t.key);
     familyCount[t.family] = count + 1;
   }
 

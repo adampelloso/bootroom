@@ -1,14 +1,30 @@
 import { MatchCard } from "./components/MatchCard";
-import { DateNavigator } from "./components/DateNavigator";
 import { getFeedMatches } from "@/lib/build-feed";
 import type { FeedMatch } from "@/lib/feed";
+import { LeagueFilterPill } from "./components/LeagueFilter";
+import { DateScrubber } from "./components/DateScrubber";
+import { DEFAULT_LEAGUE_ID, SUPPORTED_LEAGUES, type LeagueFilterValue } from "@/lib/leagues";
 
-async function getFeed() {
-  return getFeedMatches();
+function toISODate(d: Date): string {
+  return d.toISOString().slice(0, 10);
 }
 
-export default async function FeedPage() {
-  const matches = await getFeed();
+export default async function FeedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string; league?: LeagueFilterValue }>;
+}) {
+  const params = await searchParams;
+  const dateStr = params.date;
+  const league = params.league ?? (`${DEFAULT_LEAGUE_ID}` as LeagueFilterValue);
+  const today = toISODate(new Date());
+  const from = dateStr ?? today;
+  const to = from;
+  const leagueIds =
+    league === "all"
+      ? SUPPORTED_LEAGUES.map((l) => l.id)
+      : [Number(league)];
+  const matches = await getFeedMatches(from, to, leagueIds);
 
   return (
     <main
@@ -26,49 +42,10 @@ export default async function FeedPage() {
           >
             Match Feed
           </h1>
-          <DateNavigator />
+          <LeagueFilterPill currentDate={from} currentLeague={league} />
         </header>
 
-        <div
-          className="flex gap-3 pb-8 px-5 filters-scroll"
-          style={{ gap: "var(--space-sm)", paddingBottom: "var(--space-lg)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}
-        >
-          <button
-            type="button"
-            className="py-2.5 px-5 rounded-full font-mono text-[11px] uppercase whitespace-nowrap border-none cursor-pointer transition-all duration-200 shrink-0"
-            style={{ background: "var(--bg-accent)", color: "var(--text-on-accent)", padding: "10px 20px" }}
-          >
-            EPL
-          </button>
-          <button
-            type="button"
-            className="py-2.5 px-5 rounded-full font-mono text-[11px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 bg-transparent border shrink-0"
-            style={{ color: "var(--text-main)", borderColor: "var(--border-light)", padding: "10px 20px" }}
-          >
-            Bundesliga
-          </button>
-          <button
-            type="button"
-            className="py-2.5 px-5 rounded-full font-mono text-[11px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 bg-transparent border shrink-0"
-            style={{ color: "var(--text-main)", borderColor: "var(--border-light)", padding: "10px 20px" }}
-          >
-            Serie A
-          </button>
-          <button
-            type="button"
-            className="py-2.5 px-5 rounded-full font-mono text-[11px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 bg-transparent border shrink-0"
-            style={{ color: "var(--text-main)", borderColor: "var(--border-light)", padding: "10px 20px" }}
-          >
-            La Liga
-          </button>
-          <button
-            type="button"
-            className="py-2.5 px-5 rounded-full font-mono text-[11px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 bg-transparent border shrink-0"
-            style={{ color: "var(--text-main)", borderColor: "var(--border-light)", padding: "10px 20px" }}
-          >
-            Ligue 1
-          </button>
-        </div>
+        <DateScrubber currentDate={from} currentLeague={league} />
       </div>
 
       <section

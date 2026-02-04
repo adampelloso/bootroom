@@ -19,12 +19,27 @@ export interface ProviderDescriptor {
   isMock: boolean;
 }
 
+export interface H2HOptions {
+  last?: number;
+  league?: number;
+}
+
 export interface FootballProvider {
   getLeagues(): Promise<{ response: unknown[] }>;
   getSeasons(leagueId: number): Promise<{ response: unknown[] }>;
-  getFixtures(leagueId: number, seasonYear: number): Promise<ApiFootballFixturesResponse>;
+  getFixtures(
+    leagueId: number,
+    seasonYear: number,
+    from?: string,
+    to?: string,
+  ): Promise<ApiFootballFixturesResponse>;
   getFixture(fixtureId: number): Promise<ApiFootballFixturesResponse>;
   getFixtureStats(fixtureId: number): Promise<ApiFootballFixtureStatisticsResponse>;
   getFixturePlayers(fixtureId: number): Promise<ApiFootballFixturePlayersResponse>;
   getOdds(fixtureId: number, markets?: string[]): Promise<ApiFootballOddsResponse>;
+  getH2HFixtures(
+    homeTeamId: number,
+    awayTeamId: number,
+    options?: H2HOptions,
+  ): Promise<ApiFootballFixturesResponse>;
 }

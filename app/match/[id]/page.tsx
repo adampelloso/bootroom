@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMatchDetail } from "@/lib/build-feed";
-import { mockFootballProvider } from "@/lib/providers/mock-provider";
+import { resolveProvider } from "@/lib/providers/registry";
+import { getMatchStats } from "@/lib/insights/team-stats";
 import { MatchDetailTabs } from "@/app/components/MatchDetailTabs";
 
 function formatKickoff(iso: string): string {
@@ -30,7 +31,8 @@ type PlayerPropStat = {
 async function getPlayerProps(id: string): Promise<PlayerPropStat[]> {
   const fixtureId = Number(id);
   if (Number.isNaN(fixtureId)) return [];
-  const res = await mockFootballProvider.getFixturePlayers(fixtureId);
+  const { provider } = resolveProvider("api-football");
+  const res = await provider.getFixturePlayers(fixtureId);
   const teams = res.response ?? [];
   return teams.flatMap((team) =>
     team.players.map((player) => {
@@ -60,7 +62,7 @@ function topPlayers(
     .slice(0, limit);
 }
 
-function sortByScore(insights: { totalScore: number }[]) {
+function sortByScore<T extends { totalScore: number }>(insights: T[]): T[] {
   return [...insights].sort((a, b) => b.totalScore - a.totalScore);
 }
 
@@ -74,7 +76,19 @@ export default async function MatchDetailPage({
   if (!match) notFound();
 
   const insightsByFamily = match.insightsByFamily ?? {};
-  const families = Object.entries(insightsByFamily);
+  const fixtureDate = match.kickoffUtc?.slice(0, 10);
+  const rollingStats = getMatchStats(
+    match.homeTeamName,
+    match.awayTeamName,
+    fixtureDate
+  );
+  const { provider } = resolveProvider("api-football");
+  const h2hRes = await provider.getH2HFixtures(
+    match.homeTeamId,
+    match.awayTeamId,
+    { last: 20, league: 39 }
+  );
+  const h2hFixtures = h2hRes.response ?? [];
   const playerStats = await getPlayerProps(id);
   const playerProps = [
     { key: "shotsTotal", title: "Shots", label: "Shots" },
@@ -96,9 +110,17 @@ export default async function MatchDetailPage({
         >
           ← Feed
         </Link>
-        <span className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary">
-          Match Detail
-        </span>
+        <div className="flex items-center gap-4">
+          <Link
+            href={`/match/${id}/export`}
+            className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary"
+          >
+            Screenshot
+          </Link>
+          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary">
+            Match Detail
+          </span>
+        </div>
       </nav>
       <header className="mb-10">
         <div className="flex items-center justify-between text-mono text-[11px] uppercase text-tertiary">
@@ -130,6 +152,12 @@ export default async function MatchDetailPage({
         insightsByFamily={insightsByFamily}
         playerStats={playerStats}
         playerProps={playerProps}
+        rollingStats={rollingStats}
+        h2hFixtures={h2hFixtures}
+        homeTeamId={match.homeTeamId}
+        awayTeamId={match.awayTeamId}
+        homeTeamName={match.homeTeamName}
+        awayTeamName={match.awayTeamName}
       />
     </main>
   );

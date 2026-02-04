@@ -1,10 +1,23 @@
 /**
- * Fill insight templates with stub or computed context.
- * Replaces placeholders {home}, {away}, {value}, {l5}, {l10}, {n}, {k}, {pct}, {diff}, {against}.
+ * Fill insight templates with stub or real context.
+ * Replaces placeholders {home}, {away}, {value}, {l5}, {l10}, {n}, {k}, {pct}, {diff}, {against}, {combinedCleanSheets}.
  */
 
 import type { InsightType } from "./catalog";
-import type { StubContext } from "./stub-context";
+
+export interface InsightContext {
+  home: string;
+  away: string;
+  value: string;
+  l5: string;
+  l10: string;
+  n: string;
+  k: string;
+  pct: string;
+  diff: string;
+  against: string;
+  combinedCleanSheets?: string;
+}
 
 export interface FilledInsight {
   headline: string;
@@ -12,7 +25,7 @@ export interface FilledInsight {
   supportValue: string;
 }
 
-function replacePlaceholders(str: string, ctx: StubContext): string {
+function replacePlaceholders(str: string, ctx: InsightContext): string {
   return str
     .replace(/\{home\}/g, ctx.home)
     .replace(/\{away\}/g, ctx.away)
@@ -23,15 +36,16 @@ function replacePlaceholders(str: string, ctx: StubContext): string {
     .replace(/\{k\}/g, ctx.k)
     .replace(/\{pct\}/g, ctx.pct)
     .replace(/\{diff\}/g, ctx.diff)
-    .replace(/\{against\}/g, ctx.against);
+    .replace(/\{against\}/g, ctx.against)
+    .replace(/\{combinedCleanSheets\}/g, ctx.combinedCleanSheets ?? "0");
 }
 
 /**
- * Given a catalog type and stub context, produce headline, supportLabel, supportValue.
+ * Given a catalog type and context, produce headline, supportLabel, supportValue.
  */
 export function fillInsightTemplate(
   type: InsightType,
-  ctx: StubContext
+  ctx: InsightContext
 ): FilledInsight {
   return {
     headline: replacePlaceholders(type.headlineTemplate, ctx),

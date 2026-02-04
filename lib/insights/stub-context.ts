@@ -14,6 +14,7 @@ export interface StubContext {
   pct: string;
   diff: string;
   against: string;
+  combinedCleanSheets?: string;
 }
 
 /** Simple deterministic hash: (fixtureId + insightKey) -> 0..1. */
@@ -60,6 +61,7 @@ export function buildStubContext(
   const diff = inRange(2, 6, s3);
   const against = intIn(4, 12, s);
 
+  const cleanSheets = intIn(1, 4, s3);
   return {
     home: homeTeamName,
     away: awayTeamName,
@@ -71,5 +73,6 @@ export function buildStubContext(
     pct: String(pct),
     diff: String(diff),
     against: String(against),
+    combinedCleanSheets: String(cleanSheets),
   };
 }
