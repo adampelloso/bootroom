@@ -28,12 +28,8 @@ export default async function FeedPage({
   const matches = await getFeedMatches(from, to, leagueIds);
 
   return (
-    <main
-      className="min-h-screen flex flex-col overflow-hidden"
-      style={{ maxHeight: "calc(100vh - 48px)" }}
-    >
-      <div className="sticky top-0 z-10 bg-[var(--bg-body)]">
-        <header
+    <main className="min-h-screen flex flex-col bg-[var(--bg-body)]">
+      <header
           className="flex justify-between items-center px-5 pt-8 pb-3"
           style={{ paddingTop: "var(--space-lg)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}
         >
@@ -47,13 +43,12 @@ export default async function FeedPage({
             <ThemeToggle />
             <LeagueFilterPill currentDate={from} currentLeague={league} />
           </div>
-        </header>
+      </header>
 
-        <DateScrubber currentDate={from} currentLeague={league} />
-      </div>
+      <DateScrubber currentDate={from} currentLeague={league} />
 
       <section
-        className="flex flex-col gap-5 px-5 border-t border-[var(--border-light)] pt-5 overflow-y-auto"
+        className="flex flex-col gap-5 px-5 border-t border-[var(--border-light)] pt-5 pb-8"
         style={{ gap: "var(--space-md)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}
       >
         {matches.length === 0 ? (

@@ -9,8 +9,10 @@ import {
   TREND_STAT_TITLES,
   TREND_STAT_INTEGER,
 } from "@/lib/insights/trend-chart-data";
+import { getLeagueAverage } from "@/lib/insights/league-baseline";
 import { StatTrendChart } from "./StatTrendChart";
 import { H2HBarChart } from "./H2HBarChart";
+import { ConditionsRow } from "./ConditionsRow";
 
 /** Groups with For/Against toggle; single stats rendered as one chart each. */
 const TREND_GROUPS: Array<{
@@ -111,7 +113,29 @@ type Props = {
   venue?: "Home" | "Away" | "Combined";
   /** Conditions row: sample (L5 / L10 / Season). */
   sample?: "L5" | "L10" | "Season";
+  /** For Stage 2: which sections to expand by default (angle-relevant). */
+  primaryAngle?: string;
+  secondaryAngle?: string;
 };
+
+/** Which sections to expand by default. Shots and SOT never both. BTTS only if in angle. */
+function getSectionsForAngles(primaryAngle?: string, secondaryAngle?: string): Record<string, boolean> {
+  const text = `${primaryAngle ?? ""} ${secondaryAngle ?? ""}`.toLowerCase();
+  const goals = /o\/u|total goals|team goals|lean over|lean under|home bias|away bias|goals/.test(text);
+  const corners = /corners|high corners|low corners/.test(text);
+  const btts = /btts/.test(text);
+  const hasSot = /sot|on target/.test(text);
+  const hasShots = /shots/.test(text);
+  const shots = hasShots && !hasSot;
+  const sot = hasSot;
+  return {
+    goals: goals || (!corners && !btts && !shots && !sot),
+    corners,
+    shots,
+    sot,
+    btts,
+  };
+}
 
 const TABS = [
   { key: "home", label: "Home" },
@@ -154,75 +178,132 @@ function ForAgainstToggle({
   );
 }
 
+function CollapsibleSection({
+  id,
+  label,
+  defaultOpen,
+  children,
+}: {
+  id: string;
+  label: string;
+  defaultOpen: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-[var(--border-light)] rounded-xl overflow-hidden bg-[var(--bg-surface)]">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.2em] text-tertiary hover:bg-[var(--bg-muted)]/50"
+      >
+        {label}
+        <span className="text-tertiary">{open ? "−" : "+"}</span>
+      </button>
+      {open ? <div className="px-4 pb-3 pt-0">{children}</div> : null}
+    </div>
+  );
+}
+
 function SingleTeamTrendSection({
   teamName,
   trendsByStat,
   category,
+  sectionsDefaultOpen,
+  expandAll,
 }: {
   teamName: string;
   trendsByStat: TrendsByStat;
   category: InsightFamily | "all";
+  sectionsDefaultOpen?: Record<string, boolean>;
+  expandAll?: boolean;
 }) {
   const [groupMode, setGroupMode] = useState<Record<string, "For" | "Against">>({});
+  const defaults = sectionsDefaultOpen ?? {};
+  const open = (key: string) => expandAll || !!defaults[key];
 
   const groups = getTrendGroupsForCategory(category);
   const single = getTrendSingleForCategory(category);
-
   const getKey = (group: (typeof TREND_GROUPS)[number]) =>
     groupMode[group.id] === "Against" ? group.againstKey : group.forKey;
 
   if (groups.length === 0 && single.length === 0) return null;
 
+  const goalsGroup = groups.find((g) => g.id === "goals");
+  const cornersGroup = groups.find((g) => g.id === "corners");
+  const shotsGroup = groups.find((g) => g.id === "shots");
+  const sotGroup = groups.find((g) => g.id === "sot");
+  const bttsSingle = single.find((s) => s.key === "btts");
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary">
         {teamName} – Last 10 (trend + avg)
       </h2>
-      {groups.map((group) => {
-        const key = getKey(group);
-        const mode = groupMode[group.id] ?? "For";
-        return (
-          <div key={group.id} className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-tertiary">
-                  {group.label}
-                </h3>
-                {MARKET_TAGS_BY_GROUP[group.id] ? (
-                  <p className="text-[10px] text-tertiary mt-0.5" aria-hidden>
-                    For: {MARKET_TAGS_BY_GROUP[group.id]}
-                  </p>
-                ) : null}
-              </div>
-              <ForAgainstToggle
-                value={mode}
-                onChange={(v) => setGroupMode((prev) => ({ ...prev, [group.id]: v }))}
-              />
-            </div>
-            <StatTrendChart
-              title={TREND_STAT_TITLES[key]}
-              data={trendsByStat[key].data}
-              average={trendsByStat[key].average}
-              integerValues={TREND_STAT_INTEGER[key] === true}
+      {goalsGroup && (
+        <CollapsibleSection id="goals" label="Goals" defaultOpen={open("goals")}>
+          <div className="flex items-center justify-end mb-2">
+            <ForAgainstToggle
+              value={groupMode.goals ?? "For"}
+              onChange={(v) => setGroupMode((p) => ({ ...p, goals: v }))}
             />
           </div>
-        );
-      })}
-      {single.map(({ key, title }) => (
-        <div key={key} className="space-y-2">
-          <div>
-            <p className="text-[10px] text-tertiary" aria-hidden>
-              For: {key === "btts" ? MARKET_TAGS_BTTS : MARKET_TAGS_CLEAN_SHEETS}
-            </p>
+          <StatTrendChart
+            title={TREND_STAT_TITLES[getKey(goalsGroup)]}
+            data={trendsByStat[getKey(goalsGroup)].data}
+            average={trendsByStat[getKey(goalsGroup)].average}
+            integerValues={true}
+            leagueAvg={getLeagueAverage(goalsGroup.forKey)}
+          />
+        </CollapsibleSection>
+      )}
+      {cornersGroup && (
+        <CollapsibleSection id="corners" label="Corners" defaultOpen={open("corners")}>
+          <div className="flex items-center justify-end mb-2">
+            <ForAgainstToggle
+              value={groupMode.corners ?? "For"}
+              onChange={(v) => setGroupMode((p) => ({ ...p, corners: v }))}
+            />
           </div>
           <StatTrendChart
-            title={title}
-            data={trendsByStat[key].data}
-            average={trendsByStat[key].average}
-            integerValues={TREND_STAT_INTEGER[key] === true}
+            title={TREND_STAT_TITLES[getKey(cornersGroup)]}
+            data={trendsByStat[getKey(cornersGroup)].data}
+            average={trendsByStat[getKey(cornersGroup)].average}
+            leagueAvg={getLeagueAverage(cornersGroup.forKey)}
           />
-        </div>
-      ))}
+        </CollapsibleSection>
+      )}
+      {shotsGroup && (
+        <CollapsibleSection id="shots" label="Shots" defaultOpen={open("shots")}>
+          <StatTrendChart
+            title={TREND_STAT_TITLES.shotsFor}
+            data={trendsByStat.shotsFor.data}
+            average={trendsByStat.shotsFor.average}
+            leagueAvg={getLeagueAverage("shotsFor")}
+          />
+        </CollapsibleSection>
+      )}
+      {sotGroup && (
+        <CollapsibleSection id="sot" label="Shots on target" defaultOpen={open("sot")}>
+          <StatTrendChart
+            title={TREND_STAT_TITLES.sotFor}
+            data={trendsByStat.sotFor.data}
+            average={trendsByStat.sotFor.average}
+            leagueAvg={getLeagueAverage("sotFor")}
+          />
+        </CollapsibleSection>
+      )}
+      {bttsSingle && (
+        <CollapsibleSection id="btts" label="BTTS" defaultOpen={open("btts")}>
+          <StatTrendChart
+            title={bttsSingle.title}
+            data={trendsByStat.btts.data}
+            average={trendsByStat.btts.average}
+            integerValues={true}
+            leagueAvg={getLeagueAverage("btts")}
+          />
+        </CollapsibleSection>
+      )}
     </div>
   );
 }
@@ -418,8 +499,12 @@ export function MatchDetailTabs({
   currentCategory = "all",
   venue,
   sample,
+  primaryAngle,
+  secondaryAngle,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("home");
+  const [deepExpanded, setDeepExpanded] = useState(false);
+  const sectionsDefaultOpen = getSectionsForAngles(primaryAngle, secondaryAngle);
 
   const topPlayers = (
     players: PlayerPropStat[],
@@ -474,6 +559,8 @@ export function MatchDetailTabs({
               teamName={homeTeamName}
               trendsByStat={homeTrends}
               category={currentCategory}
+              sectionsDefaultOpen={sectionsDefaultOpen}
+              expandAll={deepExpanded}
             />
           ) : rollingStats ? (
             <p className="text-[13px] text-tertiary">No last-10 data for home team.</p>
@@ -532,6 +619,8 @@ export function MatchDetailTabs({
               teamName={awayTeamName}
               trendsByStat={awayTrends}
               category={currentCategory}
+              sectionsDefaultOpen={sectionsDefaultOpen}
+              expandAll={deepExpanded}
             />
           ) : rollingStats ? (
             <p className="text-[13px] text-tertiary">No last-10 data for away team.</p>
@@ -562,6 +651,24 @@ export function MatchDetailTabs({
         </section>
       )}
 
+      <section className="mt-6 pt-4 border-t border-[var(--border-light)]">
+        <button
+          type="button"
+          onClick={() => setDeepExpanded((e) => !e)}
+          className="w-full flex items-center justify-between px-0 py-2 text-left text-mono text-[11px] uppercase text-tertiary hover:text-[var(--text-sec)]"
+        >
+          Deep exploration
+          <span>{deepExpanded ? "−" : "+"}</span>
+        </button>
+        {deepExpanded && (
+          <div className="mt-2 pt-2 text-[12px] text-tertiary border-t border-[var(--border-light)]/50">
+            <ConditionsRow venue={venue ?? "Combined"} sample={sample ?? "L10"} time="Full" />
+            <p className="mt-2 text-[11px]">
+              Use filters above to change venue and sample. All sections in the tabs above can be expanded.
+            </p>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

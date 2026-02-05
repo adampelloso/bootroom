@@ -50,6 +50,38 @@ export interface H2HSummary {
   lastWinner?: string;
 }
 
+/** Season hit rate for feed (e.g. 6/10). */
+export type SeasonRate = { hits: number; total: number };
+
+/** Feed market row: BTTS, O2.5, or Corners. Max 3 per match. */
+export type FeedMarketRow =
+  | {
+      market: "BTTS";
+      homeHits: number;
+      awayHits: number;
+      combinedHits: number;
+      avgGoals?: number;
+      seasonHome?: SeasonRate;
+      seasonAway?: SeasonRate;
+    }
+  | {
+      market: "O2.5";
+      homeHits: number;
+      awayHits: number;
+      combinedHits: number;
+      avgGoals: number;
+      seasonHome?: SeasonRate;
+      seasonAway?: SeasonRate;
+    }
+  | {
+      market: "Corners";
+      homeAvg: number;
+      awayAvg: number;
+      combinedAvg: number;
+      seasonHomeAvg?: number;
+      seasonAwayAvg?: number;
+    };
+
 export interface FeedMatch {
   id: string;
   providerFixtureId: number;
@@ -65,13 +97,15 @@ export interface FeedMatch {
   status: string;
   homeGoals: number | null;
   awayGoals: number | null;
+  /** Market rows for feed: BTTS, O2.5, Corners (max 3). */
+  marketRows: FeedMarketRow[];
+  /** Home team avg goals for/against (last 5 home). */
+  homeAvgGoalsFor?: number;
+  homeAvgGoalsAgainst?: number;
+  /** Away team avg goals for/against (last 5 away). */
+  awayAvgGoalsFor?: number;
+  awayAvgGoalsAgainst?: number;
   highlights: FeedInsight[];
-  /** Primary betting angle (e.g. "Under goals"). Always show when available. */
-  primaryAngle?: string;
-  /** Secondary angle (e.g. "Away corners"). */
-  secondaryAngle?: string;
-  /** Match volatility for bettors. */
-  volatility?: "Low" | "Medium" | "High";
   homeForm?: FormResult[];
   awayForm?: FormResult[];
   h2hSummary?: H2HSummary;
@@ -100,6 +134,13 @@ export interface MatchDetail {
   homeGoals: number | null;
   awayGoals: number | null;
   insightsByFamily: Record<string, MatchDetailInsight[]>;
+  /** Decision summary: primary angle (required to show angle). */
+  primaryAngle?: string;
+  /** Optional secondary angle. */
+  secondaryAngle?: string;
+  volatility?: "Low" | "Medium" | "High";
+  /** 2–3 short statements supporting the angle. */
+  supportingStatements?: string[];
   homeForm?: FormResult[];
   awayForm?: FormResult[];
 }

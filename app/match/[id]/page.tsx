@@ -2,12 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMatchDetail } from "@/lib/build-feed";
 import { resolveProvider } from "@/lib/providers/registry";
-import { getMatchStats, getTeamLastNMatchRows, type VenueFilter } from "@/lib/insights/team-stats";
+import { getMatchStats, getTeamLastNMatchRows } from "@/lib/insights/team-stats";
 import { buildTrendsByStat } from "@/lib/insights/trend-chart-data";
-import { getWhatStandsOut } from "@/lib/insights/what-stands-out";
-import { MatchDetailTabs } from "@/app/components/MatchDetailTabs";
-import { CategoryScrubber } from "@/app/components/CategoryScrubber";
-import { ConditionsRow } from "@/app/components/ConditionsRow";
+import { getFeedMarketRows, getDetailScreenshotCharts } from "@/lib/insights/feed-market-stats";
+import { MarketSnapshot } from "@/app/components/MarketSnapshot";
+import { ScreenshotCharts } from "@/app/components/ScreenshotCharts";
+import { DeepStats } from "@/app/components/DeepStats";
+import { DetailTabs } from "@/app/components/DetailTabs";
+import { FiltersReveal } from "@/app/components/FiltersReveal";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { FormSummary } from "@/app/components/MatchCard";
 import type { InsightFamily } from "@/lib/insights/catalog";
@@ -58,22 +60,6 @@ async function getPlayerProps(id: string): Promise<PlayerPropStat[]> {
   );
 }
 
-function topPlayers(
-  players: PlayerPropStat[],
-  key: "shotsTotal" | "shotsOn" | "goals" | "assists",
-  limit = 3
-) {
-  return players
-    .map((player) => ({ ...player, value: player[key] ?? 0 }))
-    .filter((player) => player.value > 0)
-    .sort((a, b) => b.value - a.value)
-    .slice(0, limit);
-}
-
-function sortByScore<T extends { totalScore: number }>(insights: T[]): T[] {
-  return [...insights].sort((a, b) => b.totalScore - a.totalScore);
-}
-
 type VenueCondition = "Home" | "Away" | "Combined";
 type SampleCondition = "L5" | "L10" | "Season";
 
@@ -100,63 +86,35 @@ export default async function MatchDetailPage({
   const search = (await searchParams) as { category?: string; venue?: string; sample?: string; debug?: string };
   const category = search.category;
   const debugParam = search.debug;
-  const { venue, sample } = parseConditions(search);
   const match = await getMatch(id);
   if (!match) notFound();
-
+  const parsed = parseConditions(search);
+  const venue = parsed.venue;
+  const sample = parsed.sample;
   const currentCategory = (category as InsightFamily | "all" | undefined) ?? "all";
   const showDebug = debugParam === "1" || debugParam === "true";
 
-  const insightsByFamily = match.insightsByFamily ?? {};
   const fixtureDate = match.kickoffUtc?.slice(0, 10);
-  const venueFilter: VenueFilter = venue === "Home" ? "home" : venue === "Away" ? "away" : "all";
-  const rollingStats = getMatchStats(
-    match.homeTeamName,
-    match.awayTeamName,
-    fixtureDate,
-    { venue: venueFilter }
-  );
-  const n = sample === "L5" ? 5 : sample === "Season" ? 38 : 10;
-  const rollingRef = sample === "L5" ? "l5" : sample === "Season" ? "season" : "l10";
-  const homeLastN = getTeamLastNMatchRows(match.homeTeamName, n, fixtureDate, { venue: venueFilter });
-  const awayLastN = getTeamLastNMatchRows(match.awayTeamName, n, fixtureDate, { venue: venueFilter });
+  const snapshotRows = getFeedMarketRows(match.homeTeamName, match.awayTeamName, fixtureDate);
+  const screenshotCharts = getDetailScreenshotCharts(match.homeTeamName, match.awayTeamName, fixtureDate);
+
+  const rollingStats = getMatchStats(match.homeTeamName, match.awayTeamName, fixtureDate, { venue: "all" });
+  const homeLast10 = getTeamLastNMatchRows(match.homeTeamName, 10, fixtureDate, { venue: "all" });
+  const awayLast10 = getTeamLastNMatchRows(match.awayTeamName, 10, fixtureDate, { venue: "all" });
   const homeTrends =
-    rollingStats && homeLastN.length > 0
-      ? buildTrendsByStat(homeLastN, rollingStats.home[rollingRef])
+    rollingStats && homeLast10.length > 0
+      ? buildTrendsByStat(homeLast10, rollingStats.home.l10)
       : null;
   const awayTrends =
-    rollingStats && awayLastN.length > 0
-      ? buildTrendsByStat(awayLastN, rollingStats.away[rollingRef])
+    rollingStats && awayLast10.length > 0
+      ? buildTrendsByStat(awayLast10, rollingStats.away.l10)
       : null;
-  const { provider } = resolveProvider("api-football");
-  const h2hRes = await provider.getH2HFixtures(
-    match.homeTeamId,
-    match.awayTeamId,
-    { last: 20, league: 39 }
-  );
-  const h2hFixtures = h2hRes.response ?? [];
-  const playerStats = await getPlayerProps(id);
-  const playerProps = [
-    { key: "shotsTotal", title: "Shots", label: "Shots" },
-    { key: "shotsOn", title: "Shots on Target", label: "SOT" },
-    { key: "goals", title: "Goalscorer", label: "Goals" },
-    { key: "assists", title: "Assists", label: "Assists" },
-  ] as const;
-  const allInsights = sortByScore(
-    Object.values(insightsByFamily).flat()
-  );
-  const overviewInsights = allInsights.slice(0, 8);
-  const whatStandsOut = getWhatStandsOut(rollingStats, sample);
 
   const isFinished = match.homeGoals != null && match.awayGoals != null;
 
   return (
-    <main
-      className="min-h-screen flex flex-col overflow-hidden"
-      style={{ maxHeight: "calc(100vh - 48px)" }}
-    >
-      <div className="bg-[var(--bg-body)]">
-        <header
+    <main className="min-h-screen flex flex-col bg-[var(--bg-body)]">
+      <header
           className="flex justify-between items-center px-5 pt-8 pb-3"
           style={{ paddingTop: "var(--space-lg)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}
         >
@@ -237,61 +195,37 @@ export default async function MatchDetailPage({
           </div>
         </div>
 
-        <CategoryScrubber currentCategory={currentCategory} />
-        <ConditionsRow venue={venue} sample={sample} time="Full" />
-      </div>
+      <DetailTabs />
+
+      <MarketSnapshot rows={snapshotRows} />
+
+      <ScreenshotCharts
+        charts={screenshotCharts}
+        homeTeamName={match.homeTeamName}
+        awayTeamName={match.awayTeamName}
+        threeOnly
+      />
+
+      <DeepStats
+        homeTeamName={match.homeTeamName}
+        awayTeamName={match.awayTeamName}
+        homeTrends={homeTrends}
+        awayTrends={awayTrends}
+        rollingStats={rollingStats}
+      />
+
+      <FiltersReveal
+        currentCategory={currentCategory}
+        venue={venue}
+        sample={sample}
+      />
 
       {showDebug ? (
         <section className="px-5 py-3 border-t border-[var(--border-light)] bg-[var(--bg-surface)] text-[11px] font-mono text-tertiary overflow-x-auto">
           <p className="font-semibold text-[var(--text-sec)] mb-2">[Debug ?debug=1]</p>
-          <p>home: {match.homeTeamName} | away: {match.awayTeamName} | date: {fixtureDate ?? "—"} | venue: {venue} | sample: {sample}</p>
-          <p>homeLastN.length: {homeLastN.length} | awayLastN.length: {awayLastN.length}</p>
-          {homeLastN.length > 0 ? (
-            <p>homeLastN[0]: goalsFor={homeLastN[0].goalsFor} vs {homeLastN[0].opponentName}</p>
-          ) : null}
-          {rollingStats ? (
-            <p>rollingStats.home.{rollingRef}.goalsFor: {rollingStats.home[rollingRef].goalsFor} | away: {rollingStats.away[rollingRef].goalsFor}</p>
-          ) : (
-            <p>rollingStats: null</p>
-          )}
+          <p>home: {match.homeTeamName} | away: {match.awayTeamName} | date: {fixtureDate ?? "—"}</p>
         </section>
       ) : null}
-      {whatStandsOut.length > 0 ? (
-        <section
-          className="px-5 py-3 border-t border-[var(--border-light)] bg-[var(--bg-surface)]"
-          style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}
-          aria-label="What stands out"
-        >
-          <p className="text-mono text-[11px] uppercase text-tertiary mb-2">What stands out</p>
-          <ul className="list-disc list-inside space-y-1 text-[13px] text-[var(--text-sec)]">
-            {whatStandsOut.map((bullet, i) => (
-              <li key={i}>{bullet}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-      <section
-        className="flex flex-col gap-5 px-5 border-t border-[var(--border-light)] pt-5 overflow-y-auto"
-        style={{ gap: "var(--space-md)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}
-      >
-        <MatchDetailTabs
-          overviewInsights={overviewInsights}
-          insightsByFamily={insightsByFamily}
-          playerStats={playerStats}
-          playerProps={playerProps}
-          rollingStats={rollingStats}
-          h2hFixtures={h2hFixtures}
-          homeTeamId={match.homeTeamId}
-          awayTeamId={match.awayTeamId}
-          homeTeamName={match.homeTeamName}
-          awayTeamName={match.awayTeamName}
-          homeTrends={homeTrends}
-          awayTrends={awayTrends}
-          currentCategory={currentCategory}
-          venue={venue}
-          sample={sample}
-        />
-      </section>
     </main>
   );
 }

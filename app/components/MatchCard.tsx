@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { FeedMatch, FeedInsight, FormResult } from "@/lib/feed";
+import type { FeedMatch, FeedMarketRow, FormResult } from "@/lib/feed";
 
 function formatKickoffTime(iso: string): string {
   const d = new Date(iso);
@@ -55,50 +55,74 @@ function H2HTeaser({ summary }: { summary: { homeWins: number; draws: number; aw
   );
 }
 
-function venueTag(h: FeedInsight): string {
-  const period = h.period ?? "L10";
-  if (h.venueContext === "Combined") return period.startsWith("Combined") ? period : `Combined ${period}`;
-  return `${h.venueContext} ${period}`;
+function formatSeasonRate(r: { hits: number; total: number }): string {
+  return r.total > 0 ? `Season ${r.hits}/${r.total}` : "";
 }
 
-const CONFIDENCE_STYLE: Record<FeedInsight["confidence"], string> = {
-  Soft: "bg-[var(--bg-muted)] text-tertiary",
-  Medium: "bg-[var(--bg-accent)]/20 text-[var(--text-main)]",
-  Strong: "bg-[var(--bg-accent)] text-[var(--text-on-accent)]",
-};
-
-function HighlightRow({ h, index }: { h: FeedInsight; index: number }) {
-  const isAccent = index === 0;
-  const onAccent = isAccent ? "text-[var(--text-on-accent)]" : "";
-  const onAccentMuted = isAccent ? "text-[var(--text-on-accent)]/70" : "text-tertiary";
-  const confidenceClass = isAccent
-    ? "bg-[var(--text-on-accent)]/20 text-[var(--text-on-accent)]"
-    : CONFIDENCE_STYLE[h.confidence];
-  return (
-    <div
-      className={`flex flex-col gap-1.5 ${isAccent ? "bg-[var(--bg-accent)] text-[var(--text-on-accent)]" : ""}`}
-      style={{
-        padding: "var(--space-sm) var(--space-md)",
-        background: isAccent ? undefined : "var(--bg-surface)",
-      }}
-    >
-      <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-        <span
-          className={`px-1.5 py-0.5 rounded text-mono uppercase ${isAccent ? "bg-[var(--text-on-accent)]/20" : "bg-[var(--bg-muted)] text-tertiary"}`}
-        >
-          {h.market}
-        </span>
-        <span className={onAccentMuted}>{h.direction}</span>
-        <span className={`px-1.5 py-0.5 rounded text-mono uppercase ${confidenceClass}`} style={{ fontSize: "10px" }}>
-          {h.confidence}
-        </span>
-        <span className={onAccentMuted}>
-          {venueTag(h)}
-        </span>
+/** One market row: Label | Home (x/5) Away (x/5) | Combined (x/10) [Avg] [Season] */
+function MarketRow({ row }: { row: FeedMarketRow }) {
+  if (row.market === "BTTS") {
+    const season =
+      row.seasonHome && row.seasonAway
+        ? `${formatSeasonRate(row.seasonHome)} / ${formatSeasonRate(row.seasonAway)}`
+        : row.seasonHome
+          ? formatSeasonRate(row.seasonHome)
+          : row.seasonAway
+            ? formatSeasonRate(row.seasonAway)
+            : null;
+    return (
+      <div className="flex flex-col gap-0.5">
+        <div className="flex items-baseline justify-between gap-4 text-mono text-[11px] text-tertiary">
+          <span className="shrink-0 w-16">{row.market}</span>
+          <span className="shrink-0 w-24 text-right">Home ({row.homeHits}/5) Away ({row.awayHits}/5)</span>
+          <span className="shrink-0 w-20 text-right">Combined ({row.combinedHits}/10)</span>
+        </div>
+        {season ? (
+          <div className="text-mono text-[10px] text-tertiary/80 pl-0">Season: {season}</div>
+        ) : null}
       </div>
-      <p className={`font-medium flex-1 min-w-0 ${onAccent}`} style={{ fontSize: "13px", lineHeight: 1.5 }}>
-        {h.headline}
-      </p>
+    );
+  }
+  if (row.market === "O2.5") {
+    const season =
+      row.seasonHome && row.seasonAway
+        ? `${formatSeasonRate(row.seasonHome)} / ${formatSeasonRate(row.seasonAway)}`
+        : row.seasonHome
+          ? formatSeasonRate(row.seasonHome)
+          : row.seasonAway
+            ? formatSeasonRate(row.seasonAway)
+            : null;
+    return (
+      <div className="flex flex-col gap-0.5">
+        <div className="flex items-baseline justify-between gap-4 text-mono text-[11px] text-tertiary">
+          <span className="shrink-0 w-16">{row.market}</span>
+          <span className="shrink-0 w-24 text-right">Home ({row.homeHits}/5) Away ({row.awayHits}/5)</span>
+          <span className="shrink-0 w-20 text-right">Combined ({row.combinedHits}/10) Avg: {row.avgGoals.toFixed(1)}</span>
+        </div>
+        {season ? (
+          <div className="text-mono text-[10px] text-tertiary/80 pl-0">Season: {season}</div>
+        ) : null}
+      </div>
+    );
+  }
+  const season =
+    row.seasonHomeAvg != null && row.seasonAwayAvg != null
+      ? `H ${row.seasonHomeAvg.toFixed(1)} / A ${row.seasonAwayAvg.toFixed(1)}`
+      : row.seasonHomeAvg != null
+        ? row.seasonHomeAvg.toFixed(1)
+        : row.seasonAwayAvg != null
+          ? row.seasonAwayAvg.toFixed(1)
+          : null;
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="flex items-baseline justify-between gap-4 text-mono text-[11px] text-tertiary">
+        <span className="shrink-0 w-16">Corners</span>
+        <span className="shrink-0 w-24 text-right">Home {row.homeAvg.toFixed(1)} Away {row.awayAvg.toFixed(1)}</span>
+        <span className="shrink-0 w-20 text-right">Combined {row.combinedAvg.toFixed(1)}</span>
+      </div>
+      {season ? (
+        <div className="text-mono text-[10px] text-tertiary/80 pl-0">Season avg: {season}</div>
+      ) : null}
     </div>
   );
 }
@@ -201,34 +225,26 @@ export function MatchCard({ match }: { match: FeedMatch }) {
         </div>
       ) : null}
 
-      {(match.primaryAngle ?? match.secondaryAngle ?? match.volatility) ? (
-        <div
-          className="text-mono text-[11px] uppercase text-tertiary flex flex-wrap items-center gap-x-2 gap-y-1"
-          style={{ marginTop: "var(--space-xs)" }}
-        >
-          {match.primaryAngle ? (
-            <span>
-              <span className="text-tertiary/80">Primary:</span> {match.primaryAngle}
-            </span>
-          ) : null}
-          {match.secondaryAngle ? (
-            <span>
-              <span className="text-tertiary/80">Secondary:</span> {match.secondaryAngle}
-            </span>
-          ) : null}
-          {match.volatility ? (
-            <span>
-              <span className="text-tertiary/80">Volatility:</span> {match.volatility}
-            </span>
-          ) : null}
+      {(match.homeAvgGoalsFor != null || match.awayAvgGoalsFor != null) ? (
+        <div className="text-mono text-[11px] text-tertiary">
+          Avg goals (L5):{" "}
+          {match.homeAvgGoalsFor != null && match.homeAvgGoalsAgainst != null && (
+            <span>Home {match.homeAvgGoalsFor.toFixed(1)} for / {match.homeAvgGoalsAgainst.toFixed(1)} against</span>
+          )}
+          {match.homeAvgGoalsFor != null && match.awayAvgGoalsFor != null && " · "}
+          {match.awayAvgGoalsFor != null && match.awayAvgGoalsAgainst != null && (
+            <span>Away {match.awayAvgGoalsFor.toFixed(1)} for / {match.awayAvgGoalsAgainst.toFixed(1)} against</span>
+          )}
         </div>
       ) : null}
 
-      <div className="mt-3">
-        {match.highlights.map((h, index) => (
-          <HighlightRow key={h.id} h={h} index={index} />
-        ))}
-      </div>
+      {match.marketRows.length > 0 ? (
+        <div className="mt-3 space-y-1.5">
+          {match.marketRows.map((row, i) => (
+            <MarketRow key={`${row.market}-${i}`} row={row} />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

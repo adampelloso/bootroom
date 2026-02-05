@@ -16,6 +16,7 @@ export interface RollingStats {
   cornersFor: number;
   cornersAgainst: number;
   bttsCount: number;
+  o25Count: number;
   cleanSheets: number;
   matchCount: number;
 }
@@ -166,6 +167,7 @@ function computeRolling(matches: TeamMatchRow[], n: number): RollingStats {
       cornersFor: 0,
       cornersAgainst: 0,
       bttsCount: 0,
+      o25Count: 0,
       cleanSheets: 0,
       matchCount: 0,
     };
@@ -182,6 +184,7 @@ function computeRolling(matches: TeamMatchRow[], n: number): RollingStats {
     cornersFor: sum((r) => r.cornersFor) / count,
     cornersAgainst: sum((r) => r.cornersAgainst) / count,
     bttsCount: slice.filter((r) => r.btts).length,
+    o25Count: slice.filter((r) => r.goalsFor + r.goalsAgainst >= 3).length,
     cleanSheets: slice.filter((r) => r.cleanSheet).length,
     matchCount: count,
   };

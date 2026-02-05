@@ -16,6 +16,8 @@ type Props = {
   average: number;
   /** For integer stats (e.g. goals) show whole numbers */
   integerValues?: boolean;
+  /** League average (optional); shown as label and reference line */
+  leagueAvg?: number;
 };
 
 function abbreviate(name: string, maxLen = 10): string {
@@ -27,7 +29,7 @@ function abbreviate(name: string, maxLen = 10): string {
   return name.slice(0, maxLen);
 }
 
-export function StatTrendChart({ title, data, average, integerValues }: Props) {
+export function StatTrendChart({ title, data, average, integerValues, leagueAvg }: Props) {
   if (data.length === 0) {
     return (
       <div
@@ -47,7 +49,8 @@ export function StatTrendChart({ title, data, average, integerValues }: Props) {
 
   const safeValues = data.map((d) => typeof d.value === "number" && !Number.isNaN(d.value) ? d.value : 0);
   const safeAvg = typeof average === "number" && !Number.isNaN(average) ? average : 0;
-  const maxVal = Math.max(...safeValues, safeAvg, 0.5);
+  const safeLeagueAvg = leagueAvg != null && !Number.isNaN(leagueAvg) ? leagueAvg : null;
+  const maxVal = Math.max(...safeValues, safeAvg, safeLeagueAvg ?? 0, 0.5);
 
   return (
     <div
@@ -61,12 +64,12 @@ export function StatTrendChart({ title, data, average, integerValues }: Props) {
         {title}
       </h3>
       <div className="flex flex-col gap-1">
-        {/* Average line label — averages can be decimals; show .0 only when needed */}
-        <div className="flex items-center justify-end gap-2 text-[10px] text-tertiary font-mono">
-          <span>avg</span>
-          <span>
-            {safeAvg % 1 === 0 ? String(Math.round(safeAvg)) : safeAvg.toFixed(1)}
-          </span>
+        {/* Average + league avg labels */}
+        <div className="flex items-center justify-end gap-3 text-[10px] text-tertiary font-mono">
+          <span>avg {safeAvg % 1 === 0 ? String(Math.round(safeAvg)) : safeAvg.toFixed(1)}</span>
+          {safeLeagueAvg != null ? (
+            <span>League avg {safeLeagueAvg % 1 === 0 ? String(Math.round(safeLeagueAvg)) : safeLeagueAvg.toFixed(1)}</span>
+          ) : null}
         </div>
         {/* Chart area: bars + average line. Use fixed pixel height so bar % has a defined containing block. */}
         <div
@@ -82,6 +85,16 @@ export function StatTrendChart({ title, data, average, integerValues }: Props) {
               bottom: maxVal > 0 ? `${(safeAvg / maxVal) * 96}px` : 0,
             }}
           />
+          {safeLeagueAvg != null && maxVal > 0 ? (
+            <div
+              className="absolute left-0 right-0 border-t border-dashed z-10 pointer-events-none"
+              style={{
+                borderColor: "var(--text-tertiary)",
+                opacity: 0.5,
+                bottom: `${(safeLeagueAvg / maxVal) * 96}px`,
+              }}
+            />
+          ) : null}
           {data.map((point, i) => {
             const num = typeof point.value === "number" && !Number.isNaN(point.value) ? point.value : 0;
             const pct = maxVal > 0 ? (num / maxVal) * 100 : 0;

@@ -19,6 +19,9 @@ import { buildStubContext } from "@/lib/insights/stub-context";
 import { buildRealContext } from "@/lib/insights/real-context";
 import { fillInsightTemplate } from "@/lib/insights/fill-template";
 import { getMatchStats, getTeamRecentResults } from "@/lib/insights/team-stats";
+import { getTeamStats } from "@/lib/insights/team-stats";
+import { getFeedMarketRows, feedMatchScore } from "@/lib/insights/feed-market-stats";
+import { getWhatStandsOut } from "@/lib/insights/what-stands-out";
 import type { H2HSummary } from "./feed";
 import type { FootballProvider } from "@/lib/providers/types";
 import { SUPPORTED_LEAGUES, DEFAULT_LEAGUE_ID } from "@/lib/leagues";
@@ -152,10 +155,15 @@ function buildHighlights(
   return highlights;
 }
 
+/** Exactly one primary, at most one secondary (hard cap 2). */
 function derivePrimaryAngle(highlights: FeedInsight[]): {
   primaryAngle?: string;
   secondaryAngle?: string;
   volatility?: "Low" | "Medium" | "High";
+  primaryDirection?: string;
+  primaryMarket?: string;
+  secondaryDirection?: string;
+  secondaryMarket?: string;
 } {
   if (highlights.length === 0) return {};
   const strong = highlights.filter((h) => h.confidence === "Strong");
@@ -168,16 +176,79 @@ function derivePrimaryAngle(highlights: FeedInsight[]): {
       ? `${primary.direction} (${primary.market})`
       : primary.headline.slice(0, 50)
     : undefined;
-  const secondaryAngle = secondary
-    ? secondary.direction !== "Stats"
-      ? `${secondary.direction} (${secondary.market})`
-      : undefined
-    : undefined;
+  const secondaryAngle =
+    secondary && secondary !== primary
+      ? secondary.direction !== "Stats"
+        ? `${secondary.direction} (${secondary.market})`
+        : undefined
+      : undefined;
   return {
     primaryAngle: primaryAngle ?? undefined,
     secondaryAngle: secondaryAngle ?? undefined,
     volatility: "Low",
+    primaryDirection: primary?.direction,
+    primaryMarket: primary?.market,
+    secondaryDirection: secondary?.direction,
+    secondaryMarket: secondary?.market,
   };
+}
+
+/** Goals family: O/U, Team Goals, BTTS. */
+const GOALS_MARKETS = new Set(["O/U", "Team Goals", "BTTS", "1H Goals", "2H Goals"]);
+const CONTRADICT_PAIRS: [string, string][] = [
+  ["Lean Over", "Lean Under"],
+  ["BTTS Yes", "BTTS No"],
+  ["High corners", "Low corners"],
+  ["Team goals up", "Team goals down"],
+];
+function contradictsAngle(direction: string, angleDirection: string): boolean {
+  for (const [a, b] of CONTRADICT_PAIRS) {
+    if ((direction === a && angleDirection === b) || (direction === b && angleDirection === a))
+      return true;
+  }
+  return false;
+}
+
+function supportsAngle(
+  h: FeedInsight,
+  angleDirection?: string,
+  angleMarket?: string
+): boolean {
+  if (!angleDirection || angleDirection === "Stats") return false;
+  if (h.direction === "Stats") return false;
+  const sameMarket = angleMarket && h.market === angleMarket;
+  const sameFamily =
+    angleMarket &&
+    GOALS_MARKETS.has(angleMarket) &&
+    GOALS_MARKETS.has(h.market);
+  const cornersFamily = (angleMarket === "Corners" || angleMarket === "Team Corners") && (h.market === "Corners" || h.market === "Team Corners");
+  const shotsFamily = (angleMarket === "Shots" || angleMarket === "SOT") && (h.market === "Shots" || h.market === "SOT");
+  if (sameMarket || sameFamily || cornersFamily || shotsFamily) {
+    if (contradictsAngle(h.direction, angleDirection)) return false;
+    return true;
+  }
+  return false;
+}
+
+/** Filter to highlights that support primary or secondary angle; cap at 3. Prefer venue-scoped. */
+function filterHighlightsToSupport(
+  highlights: FeedInsight[],
+  primaryDirection?: string,
+  primaryMarket?: string,
+  secondaryDirection?: string,
+  secondaryMarket?: string
+): FeedInsight[] {
+  const supporting = highlights.filter(
+    (h) =>
+      supportsAngle(h, primaryDirection, primaryMarket) ||
+      supportsAngle(h, secondaryDirection, secondaryMarket)
+  );
+  const withVenueFirst = [...supporting].sort((a, b) => {
+    const aVenue = a.venueContext === "Combined" ? 1 : 0;
+    const bVenue = b.venueContext === "Combined" ? 1 : 0;
+    return aVenue - bVenue;
+  });
+  return withVenueFirst.slice(0, 3);
 }
 
 function teamCodeFallback(name: string): string {
@@ -215,8 +286,10 @@ async function buildFeedMatch(
   const homeCode = teamIdToCode.get(homeId) ?? teamCodeFallback(home);
   const awayCode = teamIdToCode.get(awayId) ?? teamCodeFallback(away);
 
-  const highlights = buildHighlights(item, FEED_INSIGHT_KEYS);
-  const { primaryAngle, secondaryAngle, volatility } = derivePrimaryAngle(highlights);
+  const marketRows = getFeedMarketRows(home, away, fixtureDate);
+
+  const homeL5 = getTeamStats(home, fixtureDate, { venue: "home" });
+  const awayL5 = getTeamStats(away, fixtureDate, { venue: "away" });
 
   return {
     id: `match-${item.fixture.id}`,
@@ -232,10 +305,12 @@ async function buildFeedMatch(
     status: item.fixture.status.short,
     homeGoals: item.goals.home,
     awayGoals: item.goals.away,
-    highlights,
-    primaryAngle,
-    secondaryAngle,
-    volatility,
+    marketRows,
+    homeAvgGoalsFor: homeL5?.l5.matchCount ? homeL5.l5.goalsFor : undefined,
+    homeAvgGoalsAgainst: homeL5?.l5.matchCount ? homeL5.l5.goalsAgainst : undefined,
+    awayAvgGoalsFor: awayL5?.l5.matchCount ? awayL5.l5.goalsFor : undefined,
+    awayAvgGoalsAgainst: awayL5?.l5.matchCount ? awayL5.l5.goalsAgainst : undefined,
+    highlights: [],
     homeForm: homeForm.length > 0 ? homeForm : undefined,
     awayForm: awayForm.length > 0 ? awayForm : undefined,
     h2hSummary: h2hSummary ?? undefined,
@@ -280,6 +355,7 @@ export async function getFeedMatches(
   );
 
   const matches = await Promise.all(list.map((item) => buildFeedMatch(item, provider, teamIdToCode)));
+  matches.sort((a, b) => feedMatchScore(b.marketRows) - feedMatchScore(a.marketRows));
   return matches;
 }
 
@@ -319,6 +395,15 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
     insightsByFamily[h.family].push(toDetailInsight(h));
   }
 
+  const rollingStats = getMatchStats(home, away, fixtureDate);
+  const supportingStatements = getWhatStandsOut(rollingStats, "L10");
+  const derived = derivePrimaryAngle(highlights);
+  const hasSupport = supportingStatements.length >= 1;
+  const primaryAngle = hasSupport ? (derived.primaryAngle ?? undefined) : undefined;
+  const secondaryAngle = hasSupport ? (derived.secondaryAngle ?? undefined) : undefined;
+  const volatility = hasSupport ? derived.volatility : undefined;
+  const angleStatements = supportingStatements.slice(0, 3);
+
   return {
     id: `match-${item.fixture.id}`,
     providerFixtureId: item.fixture.id,
@@ -336,6 +421,10 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
     homeGoals: item.goals.home,
     awayGoals: item.goals.away,
     insightsByFamily,
+    primaryAngle,
+    secondaryAngle,
+    volatility,
+    supportingStatements: primaryAngle ? angleStatements : undefined,
     homeForm: homeForm.length > 0 ? homeForm : undefined,
     awayForm: awayForm.length > 0 ? awayForm : undefined,
   };
