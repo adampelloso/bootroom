@@ -50,7 +50,7 @@ export default async function ExportPage({
         </p>
         <div
           id="export-card"
-          className={`${aspectClass} w-full border border-black bg-[var(--bg-body)]`}
+          className={`${aspectClass} w-full border border-[var(--border-light)] bg-[var(--bg-body)]`}
           style={{ padding: "var(--space-md)" }}
         >
           <div className="flex items-center justify-between text-mono text-[11px] uppercase text-tertiary">
@@ -89,7 +89,7 @@ export default async function ExportPage({
                 <div
                   key={ins.id}
                   className={`flex items-start justify-between gap-3 rounded-xl py-3 px-5 mt-1 ${
-                    index === 0 ? "bg-black text-white" : ""
+                    index === 0 ? "bg-[var(--bg-accent)] text-[var(--text-on-accent)]" : ""
                   }`}
                   style={{
                     background: index === 0 ? undefined : "var(--bg-surface)",
@@ -108,7 +108,7 @@ export default async function ExportPage({
                   {ins.period ? (
                     <span
                       className={`text-mono text-[11px] uppercase shrink-0 ${
-                        index === 0 ? "text-white/70" : "text-tertiary"
+                        index === 0 ? "text-[var(--text-on-accent)]/70" : "text-tertiary"
                       }`}
                     >
                       {ins.period}

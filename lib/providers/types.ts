@@ -3,6 +3,7 @@ import type {
   ApiFootballFixtureStatisticsResponse,
   ApiFootballFixturePlayersResponse,
   ApiFootballOddsResponse,
+  ApiFootballTeamsResponse,
 } from "@/lib/api-football-types";
 
 /**
@@ -42,4 +43,5 @@ export interface FootballProvider {
     awayTeamId: number,
     options?: H2HOptions,
   ): Promise<ApiFootballFixturesResponse>;
+  getTeams(leagueId: number, seasonYear: number): Promise<ApiFootballTeamsResponse>;
 }

@@ -50,6 +50,7 @@ async function main() {
   const season = Number(args.season ?? 2025);
   const delayMs = Number(args.delay ?? 5000);
   const limit = args.limit ? Number(args.limit) : null;
+   const skipPlayers = Boolean(args.skipPlayers);
   const baseUrl = env.API_FOOTBALL_BASE_URL ?? "https://v3.football.api-sports.io";
   const host = env.API_FOOTBALL_HOST;
   const key = env.API_FOOTBALL_KEY;
@@ -68,6 +69,9 @@ async function main() {
 
   const selected = limit ? finished.slice(0, limit) : finished;
   console.log(`Finished fixtures: ${finished.length}. Processing ${selected.length}...`);
+  if (skipPlayers) {
+    console.log("Player stats will be skipped (stats + fixtures only).");
+  }
 
   const outDir = path.join(process.cwd(), "data");
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir);
@@ -82,13 +86,17 @@ async function main() {
     console.log(`[${index}/${selected.length}] fixture ${fixtureId}`);
     const stats = await fetchJson(baseUrl, key, host, `/fixtures/statistics?fixture=${fixtureId}`);
     await delay(delayMs);
-    const players = await fetchJson(baseUrl, key, host, `/fixtures/players?fixture=${fixtureId}`);
-    await delay(delayMs);
+    let players = [];
+    if (!skipPlayers) {
+      const playersRes = await fetchJson(baseUrl, key, host, `/fixtures/players?fixture=${fixtureId}`);
+      players = playersRes.response ?? [];
+      await delay(delayMs);
+    }
 
     results.push({
       fixture,
       stats: stats.response ?? [],
-      players: players.response ?? [],
+      players,
     });
   }
 

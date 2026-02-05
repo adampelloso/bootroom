@@ -3,6 +3,7 @@ import type {
   ApiFootballFixtureStatisticsResponse,
   ApiFootballFixturePlayersResponse,
   ApiFootballOddsResponse,
+  ApiFootballTeamsResponse,
 } from "@/lib/api-football-types";
 import type { FootballProvider } from "./types";
 
@@ -87,6 +88,12 @@ export function buildApiFootballProvider(config: ApiFootballConfig): FootballPro
       if (options?.league) path += `&league=${options.league}`;
       if (options?.last) path += `&last=${options.last}`;
       return fetchJson<ApiFootballFixturesResponse>(config, path);
+    },
+    async getTeams(leagueId: number, seasonYear: number): Promise<ApiFootballTeamsResponse> {
+      return fetchJson<ApiFootballTeamsResponse>(
+        config,
+        `/teams?league=${leagueId}&season=${seasonYear}`,
+      );
     },
   };
 }

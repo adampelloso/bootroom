@@ -1,7 +1,65 @@
 "use client";
 
 import { useState } from "react";
-import type { MatchStatsResult } from "@/lib/insights/team-stats";
+import type { MatchStatsResult, RollingStats } from "@/lib/insights/team-stats";
+import type { InsightFamily } from "@/lib/insights/catalog";
+import {
+  type TrendsByStat,
+  type TrendStatKey,
+  TREND_STAT_TITLES,
+  TREND_STAT_INTEGER,
+} from "@/lib/insights/trend-chart-data";
+import { StatTrendChart } from "./StatTrendChart";
+import { H2HBarChart } from "./H2HBarChart";
+
+/** Groups with For/Against toggle; single stats rendered as one chart each. */
+const TREND_GROUPS: Array<{
+  id: string;
+  label: string;
+  forKey: TrendStatKey;
+  againstKey: TrendStatKey;
+}> = [
+  { id: "goals", label: "Goals", forKey: "goalsFor", againstKey: "goalsAgainst" },
+  { id: "corners", label: "Corners", forKey: "cornersFor", againstKey: "cornersAgainst" },
+  { id: "shots", label: "Shots", forKey: "shotsFor", againstKey: "shotsAgainst" },
+  { id: "sot", label: "Shots on target", forKey: "sotFor", againstKey: "sotAgainst" },
+];
+
+const TREND_SINGLE: Array<{ key: TrendStatKey; title: string }> = [
+  { key: "btts", title: "BTTS (matches)" },
+  { key: "cleanSheet", title: "Clean sheets" },
+];
+
+function getTrendGroupsForCategory(category: InsightFamily | "all") {
+  switch (category) {
+    case "Goals":
+      return TREND_GROUPS.filter((g) => g.id === "goals");
+    case "Control":
+      return TREND_GROUPS.filter((g) => g.id === "shots" || g.id === "sot");
+    case "Corners":
+      return TREND_GROUPS.filter((g) => g.id === "corners");
+    case "all":
+      return TREND_GROUPS;
+    default:
+      return [];
+  }
+}
+
+function getTrendSingleForCategory(category: InsightFamily | "all") {
+  if (category !== "all" && category !== "Goals" && category !== "Control" && category !== "Corners")
+    return [];
+  return TREND_SINGLE;
+}
+
+/** Market tags shown under each chart/section (plan 2.4). */
+const MARKET_TAGS_BY_GROUP: Record<string, string> = {
+  goals: "Team goals, Match totals, BTTS",
+  corners: "Team corners, Match corners",
+  shots: "Team shots",
+  sot: "Player SOT, Team SOT",
+};
+const MARKET_TAGS_BTTS = "BTTS";
+const MARKET_TAGS_CLEAN_SHEETS = "BTTS, Clean sheets";
 
 type Insight = {
   id: string;
@@ -45,135 +103,126 @@ type Props = {
   awayTeamId: number;
   homeTeamName: string;
   awayTeamName: string;
+  /** Precomputed trend data (server) so client gets plain values. */
+  homeTrends: TrendsByStat | null;
+  awayTrends: TrendsByStat | null;
+  currentCategory?: InsightFamily | "all";
+  /** Conditions row: venue filter (data filtering in todo 7). */
+  venue?: "Home" | "Away" | "Combined";
+  /** Conditions row: sample (L5 / L10 / Season). */
+  sample?: "L5" | "L10" | "Season";
 };
 
 const TABS = [
   { key: "home", label: "Home" },
-  { key: "h2h", label: "H2H" },
+  { key: "h2h", label: "Compare" },
   { key: "away", label: "Away" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
 
-function InsightCard({ insight }: { insight: Insight }) {
-  return (
-    <li className="rounded-2xl border border-[var(--border-light)] bg-[var(--bg-body)] p-4 shadow-[0_10px_24px_rgba(17,17,17,0.06)]">
-      <p className="font-medium">{insight.headline}</p>
-      {(insight.supportLabel || insight.supportValue) ? (
-        <div className="mt-2 flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-tertiary">
-          {insight.supportLabel ? (
-            <span className="rounded-full bg-[var(--bg-surface)] px-3 py-1">
-              {insight.supportLabel}
-            </span>
-          ) : null}
-          {insight.supportValue ? (
-            <span className="rounded-full bg-[var(--bg-surface)] px-3 py-1">
-              {insight.supportValue}
-            </span>
-          ) : null}
-        </div>
-      ) : null}
-      {insight.narrative ? (
-        <p className="mt-3 text-sm text-[var(--text-sec)]">{insight.narrative}</p>
-      ) : null}
-    </li>
-  );
-}
-
-function fmt(n: number) {
-  return n.toFixed(1);
-}
-
-function SingleTeamStatsSection({
-  teamName,
-  stats,
+function ForAgainstToggle({
+  value,
+  onChange,
 }: {
-  teamName: string;
-  stats: MatchStatsResult["home"];
+  value: "For" | "Against";
+  onChange: (v: "For" | "Against") => void;
 }) {
   return (
     <div
-      className="rounded-xl overflow-hidden"
-      style={{
-        background: "var(--bg-surface)",
-        padding: "var(--space-sm) var(--space-md)",
-      }}
+      className="inline-flex rounded-full border border-[var(--border-light)] bg-[var(--bg-surface)] p-0.5"
+      role="tablist"
+      aria-label="For or Against"
     >
-      <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary mb-4">
-        {teamName} – Rolling form (L5 / L10)
-      </h2>
-      <div className="overflow-x-auto">
-        <table className="w-full text-[13px]">
-          <tbody className="text-tertiary">
-            <tr className="border-b border-[var(--border-light)]/50">
-              <td className="py-2">Goals for</td>
-              <td className="text-right py-2 font-mono">{fmt(stats.l5.goalsFor)} / {fmt(stats.l10.goalsFor)}</td>
-            </tr>
-            <tr className="border-b border-[var(--border-light)]/50">
-              <td className="py-2">Goals against</td>
-              <td className="text-right py-2 font-mono">{fmt(stats.l5.goalsAgainst)} / {fmt(stats.l10.goalsAgainst)}</td>
-            </tr>
-            <tr className="border-b border-[var(--border-light)]/50">
-              <td className="py-2">Shots for</td>
-              <td className="text-right py-2 font-mono">{fmt(stats.l5.shotsFor)} / {fmt(stats.l10.shotsFor)}</td>
-            </tr>
-            <tr className="border-b border-[var(--border-light)]/50">
-              <td className="py-2">Shots against</td>
-              <td className="text-right py-2 font-mono">{fmt(stats.l5.shotsAgainst)} / {fmt(stats.l10.shotsAgainst)}</td>
-            </tr>
-            <tr className="border-b border-[var(--border-light)]/50">
-              <td className="py-2">Corners for</td>
-              <td className="text-right py-2 font-mono">{fmt(stats.l5.cornersFor)} / {fmt(stats.l10.cornersFor)}</td>
-            </tr>
-            <tr className="border-b border-[var(--border-light)]/50">
-              <td className="py-2">BTTS (matches)</td>
-              <td className="text-right py-2 font-mono">{stats.l5.bttsCount} / {stats.l10.bttsCount}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      {(["For", "Against"] as const).map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          role="tab"
+          aria-selected={value === opt}
+          onClick={() => onChange(opt)}
+          className="rounded-full px-3 py-1 text-[11px] font-mono uppercase transition-colors"
+          style={{
+            background: value === opt ? "var(--bg-accent)" : "transparent",
+            color: value === opt ? "var(--text-on-accent)" : "var(--text-tertiary)",
+          }}
+        >
+          {opt}
+        </button>
+      ))}
     </div>
   );
 }
 
-function RecentFormComparison({
-  rollingStats,
-  homeTeamName,
-  awayTeamName,
+function SingleTeamTrendSection({
+  teamName,
+  trendsByStat,
+  category,
 }: {
-  rollingStats: MatchStatsResult;
-  homeTeamName: string;
-  awayTeamName: string;
+  teamName: string;
+  trendsByStat: TrendsByStat;
+  category: InsightFamily | "all";
 }) {
-  const { home, away } = rollingStats;
+  const [groupMode, setGroupMode] = useState<Record<string, "For" | "Against">>({});
+
+  const groups = getTrendGroupsForCategory(category);
+  const single = getTrendSingleForCategory(category);
+
+  const getKey = (group: (typeof TREND_GROUPS)[number]) =>
+    groupMode[group.id] === "Against" ? group.againstKey : group.forKey;
+
+  if (groups.length === 0 && single.length === 0) return null;
+
   return (
-    <div
-      className="rounded-xl overflow-hidden"
-      style={{
-        background: "var(--bg-surface)",
-        padding: "var(--space-sm) var(--space-md)",
-      }}
-    >
-      <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary mb-4">
-        Recent form comparison (L5 / L10)
+    <div className="space-y-4">
+      <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary">
+        {teamName} – Last 10 (trend + avg)
       </h2>
-      <div className="overflow-x-auto">
-        <table className="w-full text-[13px] min-w-[300px]">
-          <thead>
-            <tr className="border-b border-[var(--border-light)]">
-              <th className="text-left py-2 font-mono text-[11px] uppercase text-tertiary">Stat</th>
-              <th className="text-right py-2 font-mono text-[11px] uppercase text-tertiary truncate max-w-[80px]" title={homeTeamName}>{homeTeamName}</th>
-              <th className="text-right py-2 font-mono text-[11px] uppercase text-tertiary truncate max-w-[80px]" title={awayTeamName}>{awayTeamName}</th>
-            </tr>
-          </thead>
-          <tbody className="text-tertiary">
-            <tr className="border-b border-[var(--border-light)]/50"><td className="py-2">Goals for</td><td className="text-right py-2 font-mono">{fmt(home.l5.goalsFor)} / {fmt(home.l10.goalsFor)}</td><td className="text-right py-2 font-mono">{fmt(away.l5.goalsFor)} / {fmt(away.l10.goalsFor)}</td></tr>
-            <tr className="border-b border-[var(--border-light)]/50"><td className="py-2">Goals against</td><td className="text-right py-2 font-mono">{fmt(home.l5.goalsAgainst)} / {fmt(home.l10.goalsAgainst)}</td><td className="text-right py-2 font-mono">{fmt(away.l5.goalsAgainst)} / {fmt(away.l10.goalsAgainst)}</td></tr>
-            <tr className="border-b border-[var(--border-light)]/50"><td className="py-2">Shots for</td><td className="text-right py-2 font-mono">{fmt(home.l5.shotsFor)} / {fmt(home.l10.shotsFor)}</td><td className="text-right py-2 font-mono">{fmt(away.l5.shotsFor)} / {fmt(away.l10.shotsFor)}</td></tr>
-            <tr className="border-b border-[var(--border-light)]/50"><td className="py-2">Corners for</td><td className="text-right py-2 font-mono">{fmt(home.l5.cornersFor)} / {fmt(home.l10.cornersFor)}</td><td className="text-right py-2 font-mono">{fmt(away.l5.cornersFor)} / {fmt(away.l10.cornersFor)}</td></tr>
-          </tbody>
-        </table>
-      </div>
+      {groups.map((group) => {
+        const key = getKey(group);
+        const mode = groupMode[group.id] ?? "For";
+        return (
+          <div key={group.id} className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-tertiary">
+                  {group.label}
+                </h3>
+                {MARKET_TAGS_BY_GROUP[group.id] ? (
+                  <p className="text-[10px] text-tertiary mt-0.5" aria-hidden>
+                    For: {MARKET_TAGS_BY_GROUP[group.id]}
+                  </p>
+                ) : null}
+              </div>
+              <ForAgainstToggle
+                value={mode}
+                onChange={(v) => setGroupMode((prev) => ({ ...prev, [group.id]: v }))}
+              />
+            </div>
+            <StatTrendChart
+              title={TREND_STAT_TITLES[key]}
+              data={trendsByStat[key].data}
+              average={trendsByStat[key].average}
+              integerValues={TREND_STAT_INTEGER[key] === true}
+            />
+          </div>
+        );
+      })}
+      {single.map(({ key, title }) => (
+        <div key={key} className="space-y-2">
+          <div>
+            <p className="text-[10px] text-tertiary" aria-hidden>
+              For: {key === "btts" ? MARKET_TAGS_BTTS : MARKET_TAGS_CLEAN_SHEETS}
+            </p>
+          </div>
+          <StatTrendChart
+            title={title}
+            data={trendsByStat[key].data}
+            average={trendsByStat[key].average}
+            integerValues={TREND_STAT_INTEGER[key] === true}
+          />
+        </div>
+      ))}
     </div>
   );
 }
@@ -229,6 +278,130 @@ function H2HFixtureList({
   );
 }
 
+type L10Key = keyof RollingStats;
+
+const H2H_GROUPS: Array<{
+  id: string;
+  label: string;
+  forKey: L10Key;
+  againstKey: L10Key;
+  integerValues?: boolean;
+}> = [
+  { id: "goals", label: "Goals", forKey: "goalsFor", againstKey: "goalsAgainst", integerValues: true },
+  { id: "corners", label: "Corners", forKey: "cornersFor", againstKey: "cornersAgainst" },
+  { id: "shots", label: "Shots", forKey: "shotsFor", againstKey: "shotsAgainst" },
+  { id: "sot", label: "Shots on target", forKey: "sotFor", againstKey: "sotAgainst" },
+];
+
+const H2H_SINGLE: Array<{ key: L10Key; label: string; integerValues?: boolean }> = [
+  { key: "bttsCount", label: "BTTS matches", integerValues: true },
+  { key: "cleanSheets", label: "Clean sheets", integerValues: true },
+];
+
+function getH2HGroupsForCategory(category: InsightFamily | "all") {
+  switch (category) {
+    case "Goals":
+      return H2H_GROUPS.filter((g) => g.id === "goals");
+    case "Control":
+      return H2H_GROUPS.filter((g) => g.id === "shots" || g.id === "sot");
+    case "Corners":
+      return H2H_GROUPS.filter((g) => g.id === "corners");
+    case "all":
+      return H2H_GROUPS;
+    default:
+      return [];
+  }
+}
+
+function getH2HSingleForCategory(category: InsightFamily | "all") {
+  if (category !== "all" && category !== "Goals" && category !== "Control" && category !== "Corners")
+    return [];
+  return H2H_SINGLE;
+}
+
+function H2HBarChartsSection({
+  rollingStats,
+  homeTeamName,
+  awayTeamName,
+  category,
+  homeColor,
+  awayColor,
+}: {
+  rollingStats: MatchStatsResult;
+  homeTeamName: string;
+  awayTeamName: string;
+  category: InsightFamily | "all";
+  homeColor?: string;
+  awayColor?: string;
+}) {
+  const { home, away } = rollingStats;
+  const groups = getH2HGroupsForCategory(category);
+  const single = getH2HSingleForCategory(category);
+  const [groupMode, setGroupMode] = useState<Record<string, "For" | "Against">>({});
+
+  if (groups.length === 0 && single.length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary">
+        {category === "all" ? "Compare (L10 avg)" : `${category} comparison`}
+      </h2>
+      {groups.map((group) => {
+        const mode = groupMode[group.id] ?? "For";
+        const key = mode === "Against" ? group.againstKey : group.forKey;
+        const label = `${group.label} ${mode.toLowerCase()}`;
+        return (
+          <div key={group.id} className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-tertiary">
+                  {group.label}
+                </h3>
+                {MARKET_TAGS_BY_GROUP[group.id] ? (
+                  <p className="text-[10px] text-tertiary mt-0.5" aria-hidden>
+                    For: {MARKET_TAGS_BY_GROUP[group.id]}
+                  </p>
+                ) : null}
+              </div>
+              <ForAgainstToggle
+                value={mode}
+                onChange={(v) => setGroupMode((prev) => ({ ...prev, [group.id]: v }))}
+              />
+            </div>
+            <H2HBarChart
+              statLabel={label}
+              homeValue={home.l10[key]}
+              awayValue={away.l10[key]}
+              homeLabel={homeTeamName}
+              awayLabel={awayTeamName}
+              homeColor={homeColor}
+              awayColor={awayColor}
+              integerValues={group.integerValues}
+            />
+          </div>
+        );
+      })}
+      {single.map((s) => (
+        <div key={s.key} className="space-y-2">
+          <p className="text-[10px] text-tertiary" aria-hidden>
+            For: {s.key === "bttsCount" ? MARKET_TAGS_BTTS : MARKET_TAGS_CLEAN_SHEETS}
+          </p>
+          <H2HBarChart
+            statLabel={s.label}
+            homeValue={home.l10[s.key]}
+            awayValue={away.l10[s.key]}
+            homeLabel={homeTeamName}
+            awayLabel={awayTeamName}
+            homeColor={homeColor}
+            awayColor={awayColor}
+            integerValues={s.integerValues}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function MatchDetailTabs({
   overviewInsights,
   insightsByFamily,
@@ -240,6 +413,11 @@ export function MatchDetailTabs({
   awayTeamId,
   homeTeamName,
   awayTeamName,
+  homeTrends,
+  awayTrends,
+  currentCategory = "all",
+  venue,
+  sample,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("home");
 
@@ -254,47 +432,54 @@ export function MatchDetailTabs({
       .sort((a, b) => b.value - a.value)
       .slice(0, limit);
 
+  const activeIndex = TABS.findIndex((t) => t.key === activeTab);
+
   return (
     <div>
-      <div className="sticky top-0 z-10 -mx-4 bg-[var(--bg-body)] px-4 pb-4 pt-2">
-        <div className="flex gap-3 filters-scroll">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={`rounded-full px-4 py-2 text-[11px] uppercase font-mono whitespace-nowrap transition-all ${
-                activeTab === tab.key
-                  ? "bg-black text-white"
-                  : "border border-[var(--border-light)] text-[var(--text-main)]"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+      <div className="-mx-4 bg-[var(--bg-body)] px-4 pb-4 pt-2">
+        <div
+          className="relative flex rounded-full border border-[var(--border-light)] bg-[var(--bg-surface)] px-1 py-1"
+          style={{ overflow: "hidden" }}
+        >
+          <div
+            className="absolute top-1 bottom-1 rounded-full bg-[var(--bg-accent)] transition-transform duration-200 ease-out"
+            style={{
+              width: "33.3333%",
+              transform: `translateX(${activeIndex * 100}%)`,
+            }}
+          />
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className="relative z-10 flex-1 px-2 py-1 text-[11px] uppercase font-mono whitespace-nowrap text-center transition-colors"
+                style={{
+                  color: isActive ? "var(--text-on-accent)" : "var(--text-main)",
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {activeTab === "home" && (
         <section className="space-y-6">
-          {rollingStats ? (
-            <SingleTeamStatsSection
+          {homeTrends ? (
+            <SingleTeamTrendSection
               teamName={homeTeamName}
-              stats={rollingStats.home}
+              trendsByStat={homeTrends}
+              category={currentCategory}
             />
+          ) : rollingStats ? (
+            <p className="text-[13px] text-tertiary">No last-10 data for home team.</p>
           ) : (
             <p className="text-[13px] text-tertiary">No rolling stats for home team.</p>
           )}
-          <div>
-            <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary">
-              Insights (home)
-            </h2>
-            <ul className="mt-4 space-y-4">
-              {(insightsByFamily.Goals ?? []).concat(insightsByFamily.Control ?? []).slice(0, 6).map((insight) => (
-                <InsightCard key={insight.id} insight={insight} />
-              ))}
-            </ul>
-          </div>
           {playerStats.filter((p) => p.teamName === homeTeamName).length > 0 ? (
             <div
               className="rounded-xl"
@@ -321,42 +506,38 @@ export function MatchDetailTabs({
 
       {activeTab === "h2h" && (
         <section className="space-y-6">
+          {rollingStats ? (
+            <H2HBarChartsSection
+              rollingStats={rollingStats}
+              homeTeamName={homeTeamName}
+              awayTeamName={awayTeamName}
+              category={currentCategory}
+            />
+          ) : (
+            <p className="text-[13px] text-tertiary">No H2H comparison data available.</p>
+          )}
           <H2HFixtureList
             fixtures={h2hFixtures}
             homeTeamId={homeTeamId}
             homeTeamName={homeTeamName}
             awayTeamName={awayTeamName}
           />
-          {rollingStats ? (
-            <RecentFormComparison
-              rollingStats={rollingStats}
-              homeTeamName={homeTeamName}
-              awayTeamName={awayTeamName}
-            />
-          ) : null}
         </section>
       )}
 
       {activeTab === "away" && (
         <section className="space-y-6">
-          {rollingStats ? (
-            <SingleTeamStatsSection
+          {awayTrends ? (
+            <SingleTeamTrendSection
               teamName={awayTeamName}
-              stats={rollingStats.away}
+              trendsByStat={awayTrends}
+              category={currentCategory}
             />
+          ) : rollingStats ? (
+            <p className="text-[13px] text-tertiary">No last-10 data for away team.</p>
           ) : (
             <p className="text-[13px] text-tertiary">No rolling stats for away team.</p>
           )}
-          <div>
-            <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-tertiary">
-              Insights (away)
-            </h2>
-            <ul className="mt-4 space-y-4">
-              {(insightsByFamily.Goals ?? []).concat(insightsByFamily.Control ?? []).slice(0, 6).map((insight) => (
-                <InsightCard key={insight.id} insight={insight} />
-              ))}
-            </ul>
-          </div>
           {playerStats.filter((p) => p.teamName === awayTeamName).length > 0 ? (
             <div
               className="rounded-xl"

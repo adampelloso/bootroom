@@ -32,6 +32,26 @@ export interface ApiFootballTeam {
   winner: boolean | null;
 }
 
+/** Team from /teams endpoint (includes code) */
+export interface ApiFootballTeamInfo {
+  id: number;
+  name: string;
+  code: string | null;
+  country: string;
+  founded: number | null;
+  logo: string;
+  venue?: { name?: string } | null;
+}
+
+export interface ApiFootballTeamsResponse {
+  get: string;
+  parameters: Record<string, string | number>;
+  errors: Record<string, unknown>;
+  results: number;
+  paging: { current: number; total: number };
+  response: Array<{ team: ApiFootballTeamInfo }>;
+}
+
 export interface ApiFootballGoals {
   home: number | null;
   away: number | null;

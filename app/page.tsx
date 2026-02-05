@@ -3,6 +3,7 @@ import { getFeedMatches } from "@/lib/build-feed";
 import type { FeedMatch } from "@/lib/feed";
 import { LeagueFilterPill } from "./components/LeagueFilter";
 import { DateScrubber } from "./components/DateScrubber";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { DEFAULT_LEAGUE_ID, SUPPORTED_LEAGUES, type LeagueFilterValue } from "@/lib/leagues";
 
 function toISODate(d: Date): string {
@@ -42,14 +43,17 @@ export default async function FeedPage({
           >
             Match Feed
           </h1>
-          <LeagueFilterPill currentDate={from} currentLeague={league} />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <LeagueFilterPill currentDate={from} currentLeague={league} />
+          </div>
         </header>
 
         <DateScrubber currentDate={from} currentLeague={league} />
       </div>
 
       <section
-        className="flex flex-col gap-5 px-5 border-t border-black pt-5 overflow-y-auto"
+        className="flex flex-col gap-5 px-5 border-t border-[var(--border-light)] pt-5 overflow-y-auto"
         style={{ gap: "var(--space-md)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}
       >
         {matches.length === 0 ? (

@@ -67,7 +67,7 @@ export function LeagueFilterPill({
           />
           <div
             role="menu"
-            className="absolute right-0 mt-2 z-[100] w-56 rounded-2xl border border-[var(--border-light)] bg-[var(--bg-body)] shadow-[0_18px_48px_rgba(17,17,17,0.12)] overflow-hidden"
+            className="absolute right-0 mt-2 z-[100] w-56 rounded-2xl border border-[var(--border-light)] bg-[var(--bg-body)] shadow-[0_18px_48px_rgba(0,0,0,0.4)] overflow-hidden"
           >
             {items.map((it) => {
               const selected = it.value === league;

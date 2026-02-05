@@ -4,6 +4,7 @@ import type {
   ApiFootballFixtureStatisticsResponse,
   ApiFootballFixturePlayersResponse,
   ApiFootballOddsResponse,
+  ApiFootballTeamsResponse,
 } from "@/lib/api-football-types";
 import {
   getMockFixturesResponse,
@@ -12,6 +13,7 @@ import {
   getMockFixturePlayersResponse,
   getMockOddsResponse,
   getMockH2HResponse,
+  getMockTeamsResponse,
 } from "./mock-data";
 
 /**
@@ -58,5 +60,9 @@ export const mockFootballProvider: FootballProvider = {
     options?: { last?: number; league?: number },
   ): Promise<ApiFootballFixturesResponse> {
     return getMockH2HResponse(homeTeamId, awayTeamId, options);
+  },
+
+  async getTeams(leagueId: number, seasonYear: number): Promise<ApiFootballTeamsResponse> {
+    return getMockTeamsResponse(leagueId, seasonYear);
   },
 };

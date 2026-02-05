@@ -423,6 +423,13 @@ export function getInsightType(key: string): InsightType | undefined {
   return BY_KEY.get(key);
 }
 
+/** Venue context for betting: every stat must be Home, Away, or Combined. */
+export function getVenueContextForInsightKey(key: string): "Home" | "Away" | "Combined" {
+  if (key.startsWith("home_")) return "Home";
+  if (key.startsWith("away_")) return "Away";
+  return "Combined";
+}
+
 export function getStagingInsightTypes(): InsightType[] {
   const byKey = new Map(INSIGHT_TYPES.map((t) => [t.key, t]));
   return FEED_INSIGHT_KEYS.map((key) => byKey.get(key)).filter(Boolean) as InsightType[];

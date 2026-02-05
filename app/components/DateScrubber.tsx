@@ -94,7 +94,7 @@ export function DateScrubber({
               minWidth: 72,
             }}
           >
-            <div className="text-tertiary" style={{ color: isSelected ? "rgba(255,255,255,0.75)" : "var(--text-tertiary)" }}>
+            <div className="text-tertiary" style={{ color: isSelected ? "var(--text-on-accent)/75" : "var(--text-tertiary)" }}>
               {label.top}
             </div>
             <div style={{ marginTop: 2 }}>{label.bottom}</div>

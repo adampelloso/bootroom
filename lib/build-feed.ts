@@ -7,7 +7,14 @@ import type { ApiFootballFixtureResponseItem } from "@/lib/api-football-types";
 import type { FeedMatch, FeedInsight, MatchDetail, MatchDetailInsight } from "./feed";
 import { resolveProvider } from "@/lib/providers/registry";
 import { selectThreeForMatch } from "@/lib/insights/select";
-import { DETAIL_INSIGHT_KEYS, FEED_INSIGHT_KEYS } from "@/lib/insights/catalog";
+import {
+  DETAIL_INSIGHT_KEYS,
+  FEED_INSIGHT_KEYS,
+  getVenueContextForInsightKey,
+} from "@/lib/insights/catalog";
+import type { InsightType } from "@/lib/insights/catalog";
+import type { RealContext } from "@/lib/insights/real-context";
+import type { SignalConfidence, SignalDirection } from "./feed";
 import { buildStubContext } from "@/lib/insights/stub-context";
 import { buildRealContext } from "@/lib/insights/real-context";
 import { fillInsightTemplate } from "@/lib/insights/fill-template";
@@ -17,6 +24,55 @@ import type { FootballProvider } from "@/lib/providers/types";
 import { SUPPORTED_LEAGUES, DEFAULT_LEAGUE_ID } from "@/lib/leagues";
 
 const DEFAULT_SEASON = 2025;
+
+/** Short labels for feed pills from catalog marketKey. */
+const MARKET_KEY_TO_LABEL: Record<string, string> = {
+  total_goals: "O/U",
+  team_totals: "Team Goals",
+  btts: "BTTS",
+  total_corners: "Corners",
+  team_corners: "Team Corners",
+  most_corners: "Corners",
+  team_shots: "Shots",
+  team_shots_on_target: "SOT",
+  match_result: "Match",
+  double_chance: "Double Chance",
+  first_half_total_goals: "1H Goals",
+  second_half_total_goals: "2H Goals",
+  correct_score_band: "Correct Score",
+  higher_scoring_half: "Half",
+  win_either_half: "Half",
+  anytime_goalscorer: "Anytime",
+  player_shots: "Player Shots",
+  player_shots_on_target: "Player SOT",
+};
+
+function marketLabel(marketKey: string | undefined): string {
+  if (!marketKey) return "Stats";
+  return MARKET_KEY_TO_LABEL[marketKey] ?? marketKey.replace(/_/g, " ");
+}
+
+function deriveDirection(type: InsightType, _ctx: RealContext | ReturnType<typeof buildStubContext>): SignalDirection {
+  const k = type.key;
+  if (k === "high_total_goals_environment") return "Lean Over";
+  if (k === "low_total_goals_environment") return "Lean Under";
+  if (k === "btts_tendency_high") return "BTTS Yes";
+  if (k === "btts_tendency_low") return "BTTS No";
+  if (k === "high_total_corners_environment") return "High corners";
+  if (k === "low_total_corners_environment") return "Low corners";
+  if (k.startsWith("home_")) return "Home bias";
+  if (k.startsWith("away_")) return "Away bias";
+  if (k.includes("trending_up") || k.includes("dominance")) return "Team goals up";
+  if (k.includes("trending_down")) return "Team goals down";
+  return "Stats";
+}
+
+function deriveConfidence(
+  _type: InsightType,
+  _ctx: RealContext | ReturnType<typeof buildStubContext>
+): SignalConfidence {
+  return "Medium";
+}
 
 function deriveH2HSummary(
   h2hResponse: { response?: unknown[] },
@@ -68,7 +124,7 @@ function buildHighlights(
   let index = 0;
 
   for (const type of types) {
-    let ctx;
+    let ctx: RealContext | ReturnType<typeof buildStubContext>;
     if (matchStats) {
       const realCtx = buildRealContext(matchStats, type, home, away);
       if (!realCtx) continue;
@@ -85,6 +141,10 @@ function buildHighlights(
       supportLabel: filled.supportLabel,
       supportValue: filled.supportValue,
       period: type.period,
+      market: marketLabel(type.marketKey),
+      direction: deriveDirection(type, ctx),
+      confidence: deriveConfidence(type, ctx),
+      venueContext: getVenueContextForInsightKey(type.key),
     });
     index += 1;
   }
@@ -92,9 +152,49 @@ function buildHighlights(
   return highlights;
 }
 
+function derivePrimaryAngle(highlights: FeedInsight[]): {
+  primaryAngle?: string;
+  secondaryAngle?: string;
+  volatility?: "Low" | "Medium" | "High";
+} {
+  if (highlights.length === 0) return {};
+  const strong = highlights.filter((h) => h.confidence === "Strong");
+  const medium = highlights.filter((h) => h.confidence === "Medium");
+  const ordered = [...strong, ...medium, ...highlights.filter((h) => h.confidence === "Soft")];
+  const primary = ordered[0];
+  const secondary = ordered[1];
+  const primaryAngle = primary
+    ? primary.direction !== "Stats"
+      ? `${primary.direction} (${primary.market})`
+      : primary.headline.slice(0, 50)
+    : undefined;
+  const secondaryAngle = secondary
+    ? secondary.direction !== "Stats"
+      ? `${secondary.direction} (${secondary.market})`
+      : undefined
+    : undefined;
+  return {
+    primaryAngle: primaryAngle ?? undefined,
+    secondaryAngle: secondaryAngle ?? undefined,
+    volatility: "Low",
+  };
+}
+
+function teamCodeFallback(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return parts
+      .map((p) => (p[0] ?? "").toUpperCase())
+      .join("")
+      .slice(0, 3);
+  }
+  return name.slice(0, 3).toUpperCase() || name;
+}
+
 async function buildFeedMatch(
   item: ApiFootballFixtureResponseItem,
   provider: FootballProvider,
+  teamIdToCode: Map<number, string>,
 ): Promise<FeedMatch> {
   const fixtureDate = item.fixture.date?.slice(0, 10);
   const home = item.teams.home.name;
@@ -108,15 +208,23 @@ async function buildFeedMatch(
     league: typeof leagueId === "number" ? leagueId : undefined,
   });
 
-  const homeForm = getTeamRecentResults(home, 5, fixtureDate);
-  const awayForm = getTeamRecentResults(away, 5, fixtureDate);
+  const homeForm = getTeamRecentResults(home, 10, fixtureDate);
+  const awayForm = getTeamRecentResults(away, 10, fixtureDate);
   const h2hSummary = deriveH2HSummary(h2hRes, homeId, awayId, home, away);
+
+  const homeCode = teamIdToCode.get(homeId) ?? teamCodeFallback(home);
+  const awayCode = teamIdToCode.get(awayId) ?? teamCodeFallback(away);
+
+  const highlights = buildHighlights(item, FEED_INSIGHT_KEYS);
+  const { primaryAngle, secondaryAngle, volatility } = derivePrimaryAngle(highlights);
 
   return {
     id: `match-${item.fixture.id}`,
     providerFixtureId: item.fixture.id,
     homeTeamName: home,
     awayTeamName: away,
+    homeTeamCode: homeCode,
+    awayTeamCode: awayCode,
     homeTeamLogo: item.teams.home.logo,
     awayTeamLogo: item.teams.away.logo,
     kickoffUtc: item.fixture.date,
@@ -124,7 +232,10 @@ async function buildFeedMatch(
     status: item.fixture.status.short,
     homeGoals: item.goals.home,
     awayGoals: item.goals.away,
-    highlights: buildHighlights(item, FEED_INSIGHT_KEYS),
+    highlights,
+    primaryAngle,
+    secondaryAngle,
+    volatility,
     homeForm: homeForm.length > 0 ? homeForm : undefined,
     awayForm: awayForm.length > 0 ? awayForm : undefined,
     h2hSummary: h2hSummary ?? undefined,
@@ -158,7 +269,17 @@ export async function getFeedMatches(
   const list = fixturesResponses.flatMap((r) => r.response ?? []);
   list.sort((a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime());
 
-  const matches = await Promise.all(list.map((item) => buildFeedMatch(item, provider)));
+  const teamIdToCode = new Map<number, string>();
+  await Promise.all(
+    ids.map(async (leagueId) => {
+      const res = await provider.getTeams(leagueId, seasonByLeague.get(leagueId) ?? DEFAULT_SEASON);
+      for (const { team } of res.response ?? []) {
+        if (team.code) teamIdToCode.set(team.id, team.code);
+      }
+    }),
+  );
+
+  const matches = await Promise.all(list.map((item) => buildFeedMatch(item, provider, teamIdToCode)));
   return matches;
 }
 
@@ -170,6 +291,27 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
   const item = res.response?.[0];
   if (!item) return null;
 
+  const leagueId = item.league?.id;
+  const season = item.league?.season ?? DEFAULT_SEASON;
+  const fixtureDate = item.fixture.date?.slice(0, 10);
+  const home = item.teams.home.name;
+  const away = item.teams.away.name;
+  const homeId = item.teams.home.id;
+  const awayId = item.teams.away.id;
+
+  let teamIdToCode = new Map<number, string>();
+  if (leagueId) {
+    const teamsRes = await provider.getTeams(leagueId, season);
+    for (const { team } of teamsRes.response ?? []) {
+      if (team.code) teamIdToCode.set(team.id, team.code);
+    }
+  }
+
+  const homeCode = teamIdToCode.get(homeId) ?? teamCodeFallback(home);
+  const awayCode = teamIdToCode.get(awayId) ?? teamCodeFallback(away);
+  const homeForm = getTeamRecentResults(home, 10, fixtureDate);
+  const awayForm = getTeamRecentResults(away, 10, fixtureDate);
+
   const highlights = buildHighlights(item, DETAIL_INSIGHT_KEYS);
   const insightsByFamily: Record<string, MatchDetailInsight[]> = {};
   for (const h of highlights) {
@@ -180,10 +322,12 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
   return {
     id: `match-${item.fixture.id}`,
     providerFixtureId: item.fixture.id,
-    homeTeamId: item.teams.home.id,
-    awayTeamId: item.teams.away.id,
-    homeTeamName: item.teams.home.name,
-    awayTeamName: item.teams.away.name,
+    homeTeamId: homeId,
+    awayTeamId: awayId,
+    homeTeamName: home,
+    awayTeamName: away,
+    homeTeamCode: homeCode,
+    awayTeamCode: awayCode,
     homeTeamLogo: item.teams.home.logo,
     awayTeamLogo: item.teams.away.logo,
     kickoffUtc: item.fixture.date,
@@ -192,6 +336,8 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
     homeGoals: item.goals.home,
     awayGoals: item.goals.away,
     insightsByFamily,
+    homeForm: homeForm.length > 0 ? homeForm : undefined,
+    awayForm: awayForm.length > 0 ? awayForm : undefined,
   };
 }
 

@@ -7,6 +7,7 @@ import type {
   ApiFootballFixtureStatisticsResponse,
   ApiFootballFixturePlayersResponse,
   ApiFootballOddsResponse,
+  ApiFootballTeamsResponse,
 } from "@/lib/api-football-types";
 
 const MOCK_FIXTURES: ApiFootballFixturesResponse["response"] = [
@@ -355,4 +356,27 @@ export function getMockH2HResponse(
 ): ApiFootballFixturesResponse {
   const limit = options?.last ?? 20;
   return fixturesResponse(MOCK_H2H_FIXTURES.slice(0, limit));
+}
+
+const MOCK_TEAMS: ApiFootballTeamsResponse["response"] = [
+  { team: { id: 42, name: "Arsenal", code: "ARS", country: "England", founded: 1886, logo: "https://media.api-sports.io/football/teams/42.png", venue: null } },
+  { team: { id: 33, name: "Manchester United", code: "MUN", country: "England", founded: 1878, logo: "https://media.api-sports.io/football/teams/33.png", venue: null } },
+  { team: { id: 50, name: "Manchester City", code: "MCI", country: "England", founded: 1880, logo: "https://media.api-sports.io/football/teams/50.png", venue: null } },
+  { team: { id: 40, name: "Liverpool", code: "LIV", country: "England", founded: 1892, logo: "https://media.api-sports.io/football/teams/40.png", venue: null } },
+  { team: { id: 47, name: "Tottenham", code: "TOT", country: "England", founded: 1882, logo: "https://media.api-sports.io/football/teams/47.png", venue: null } },
+  { team: { id: 66, name: "Aston Villa", code: "AVL", country: "England", founded: 1874, logo: "https://media.api-sports.io/football/teams/66.png", venue: null } },
+  { team: { id: 45, name: "Everton", code: "EVE", country: "England", founded: 1878, logo: "https://media.api-sports.io/football/teams/45.png", venue: null } },
+  { team: { id: 49, name: "Chelsea", code: "CHE", country: "England", founded: 1905, logo: "https://media.api-sports.io/football/teams/49.png", venue: null } },
+  { team: { id: 35, name: "Bournemouth", code: "BOU", country: "England", founded: 1899, logo: "https://media.api-sports.io/football/teams/35.png", venue: null } },
+];
+
+export function getMockTeamsResponse(_leagueId: number, _seasonYear: number): ApiFootballTeamsResponse {
+  return {
+    get: "teams",
+    parameters: {},
+    errors: {},
+    results: MOCK_TEAMS.length,
+    paging: { current: 1, total: 1 },
+    response: MOCK_TEAMS,
+  };
 }
