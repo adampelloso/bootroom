@@ -29,24 +29,28 @@ function H2HTeaser({ summary }: { summary: { homeWins: number; draws: number; aw
 
 export function MatchCard({ match }: { match: FeedMatch }) {
   const isFinished = match.homeGoals != null && match.awayGoals != null;
-  const o25Row = match.marketRows.find((r) => r.market === "O2.5");
-  const bttsRow = match.marketRows.find((r) => r.market === "BTTS");
-  const cornersRow = match.marketRows.find((r) => r.market === "Corners");
   const hasEvFlags = match.modelProbs?.evFlags && match.modelProbs.evFlags.length > 0;
+  const mp = match.modelProbs;
+  const hasMcData = mp?.expectedHomeGoals != null && mp?.expectedAwayGoals != null;
 
-  // Build dense stats line
-  const statParts: string[] = [];
-  if (o25Row && o25Row.market === "O2.5") {
-    statParts.push(`O2.5 ${o25Row.combinedHits}/10`);
-  }
-  if (bttsRow && bttsRow.market === "BTTS") {
-    statParts.push(`BTTS ${bttsRow.combinedHits}/10`);
-  }
-  if (o25Row && o25Row.market === "O2.5") {
-    statParts.push(`AVG ${o25Row.avgGoals.toFixed(1)}`);
-  }
-  if (cornersRow && cornersRow.market === "Corners") {
-    statParts.push(`CORNERS ${cornersRow.combinedAvg.toFixed(1)}`);
+  // Fallback: historical stats line (only when no MC data)
+  let statParts: string[] = [];
+  if (!hasMcData) {
+    const o25Row = match.marketRows.find((r) => r.market === "O2.5");
+    const bttsRow = match.marketRows.find((r) => r.market === "BTTS");
+    const cornersRow = match.marketRows.find((r) => r.market === "Corners");
+    if (o25Row && o25Row.market === "O2.5") {
+      statParts.push(`O2.5 ${o25Row.combinedHits}/10`);
+    }
+    if (bttsRow && bttsRow.market === "BTTS") {
+      statParts.push(`BTTS ${bttsRow.combinedHits}/10`);
+    }
+    if (o25Row && o25Row.market === "O2.5") {
+      statParts.push(`AVG ${o25Row.avgGoals.toFixed(1)}`);
+    }
+    if (cornersRow && cornersRow.market === "Corners") {
+      statParts.push(`CORNERS ${cornersRow.combinedAvg.toFixed(1)}`);
+    }
   }
 
   return (
@@ -156,12 +160,28 @@ export function MatchCard({ match }: { match: FeedMatch }) {
         </div>
       )}
 
-      {/* Dense stats line */}
-      {statParts.length > 0 && (
+      {/* MC model stats or historical fallback */}
+      {hasMcData ? (
+        <div className="mt-1 flex flex-col gap-0.5">
+          <p className="text-secondary-data text-tertiary">
+            {`xG ${mp!.expectedHomeGoals!.toFixed(1)} – ${mp!.expectedAwayGoals!.toFixed(1)}`}
+            {mp!.expectedHomeCorners != null && mp!.expectedAwayCorners != null
+              ? ` · CORNERS ${(mp!.expectedHomeCorners + mp!.expectedAwayCorners).toFixed(1)}`
+              : ""}
+          </p>
+          {mp!.topScorelines && mp!.topScorelines.length > 0 && (
+            <p className="text-mono text-[12px] text-tertiary">
+              {mp!.topScorelines
+                .map((s) => `${s.score} (${Math.round(s.prob * 100)}%)`)
+                .join(" · ")}
+            </p>
+          )}
+        </div>
+      ) : statParts.length > 0 ? (
         <p className="text-secondary-data text-tertiary mt-1">
           {statParts.join(" · ")}
         </p>
-      )}
+      ) : null}
     </Link>
   );
 }

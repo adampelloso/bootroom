@@ -1,12 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMatchDetail } from "@/lib/build-feed";
-import { estimateMatchGoalLambdas, estimateMatchCornerLambdas, debugGoalLambdaComponents } from "@/lib/modeling/baseline-params";
-import { simulateMatch } from "@/lib/modeling/mc-engine";
-import { applyCalibration } from "@/lib/modeling/calibration";
-import { blendModelAndMarket } from "@/lib/modeling/odds-blend";
-import { getOddsKeyForLeagueId } from "@/lib/leagues";
-import { getMarketProbsForMatch } from "@/lib/odds/the-odds-api";
+import { getPrecomputedSim } from "@/lib/modeling/sim-reader";
 import { ScorelineBarChart } from "@/app/components/ScorelineBarChart";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
 
@@ -31,13 +26,9 @@ export default async function MatchSimPage({ params }: { params: Promise<{ id: s
   const match = await getMatch(id);
   if (!match) notFound();
 
-  const fixtureDate = match.kickoffUtc?.slice(0, 10);
+  const precomputed = getPrecomputedSim(match.providerFixtureId, match.kickoffUtc);
 
-  const goalLambdas = estimateMatchGoalLambdas(match.homeTeamName, match.awayTeamName, fixtureDate);
-  const cornerLambdas = estimateMatchCornerLambdas(match.homeTeamName, match.awayTeamName, fixtureDate);
-  const components = debugGoalLambdaComponents(match.homeTeamName, match.awayTeamName, fixtureDate);
-
-  if (!goalLambdas) {
+  if (!precomputed) {
     return (
       <main className="min-h-screen flex flex-col bg-[var(--bg-body)]">
         <header
@@ -62,104 +53,65 @@ export default async function MatchSimPage({ params }: { params: Promise<{ id: s
           className="px-5 py-4 text-mono text-[12px] text-tertiary"
           style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}
         >
-          <p>No sufficient historical data to run a simulation for this fixture.</p>
+          <p>No simulation data available for this fixture. Run the simulation pipeline to generate data.</p>
         </section>
       </main>
     );
   }
 
-  const sim = simulateMatch({
-    lambdaHomeGoals: goalLambdas.lambdaHomeGoals,
-    lambdaAwayGoals: goalLambdas.lambdaAwayGoals,
-    lambdaHomeCorners: cornerLambdas?.lambdaHomeCorners,
-    lambdaAwayCorners: cornerLambdas?.lambdaAwayCorners,
-    simulations: 50000,
-    tempoStd: 0.15,
-  });
+  const { sim, feedProbs, inputs } = precomputed;
+  const { goalLambdas, cornerLambdas, components } = inputs;
 
-  // Get market probabilities (when odds key exists for this competition)
-  const oddsKey = match.leagueId != null ? getOddsKeyForLeagueId(match.leagueId) : null;
-  const marketProbs =
-    oddsKey != null
-      ? getMarketProbsForMatch(
-          oddsKey,
-          match.homeTeamName,
-          match.awayTeamName,
-          match.kickoffUtc
-        )
-      : null;
-
-  // Apply calibration to model probabilities
-  const rawModelProbs = {
-    home: applyCalibration("1X2", "H", sim.pHomeWin),
-    draw: applyCalibration("1X2", "D", sim.pDraw),
-    away: applyCalibration("1X2", "A", sim.pAwayWin),
-    over_2_5: applyCalibration("OU_2.5", "Over", sim.pO25),
-    under_2_5: applyCalibration("OU_2.5", "Under", 1 - sim.pO25),
-  };
-
-  // Blend model vs market based on simple confidence proxy (sample size)
-  const blendedModelProbs = marketProbs
-    ? blendModelAndMarket(rawModelProbs, marketProbs, {
-        // TODO: hook real sample sizes from insights; placeholder defaults for now.
-        homeSampleSize: 38,
-        awaySampleSize: 38,
-      })
-    : rawModelProbs;
-
-  const edges = marketProbs
-    ? {
-        home: blendedModelProbs.home - marketProbs.home,
-        draw: blendedModelProbs.draw - marketProbs.draw,
-        away: blendedModelProbs.away - marketProbs.away,
-        over_2_5: marketProbs.over_2_5
-          ? (blendedModelProbs.over_2_5 ?? rawModelProbs.over_2_5) - marketProbs.over_2_5
-          : undefined,
-      }
-    : null;
-
-  // Build edge-first rows for Model vs Market section
+  // Build edge rows from feedProbs
   const edgeRows: EdgeRow[] = [];
-  if (marketProbs && edges) {
+  if (feedProbs.edges) {
+    const edges = feedProbs.edges;
+    // To show model vs market, we need to derive market probs from blended - edge
+    const marketHome = feedProbs.home - edges.home;
+    const marketDraw = feedProbs.draw - edges.draw;
+    const marketAway = feedProbs.away - edges.away;
+
     edgeRows.push({
       outcome: "HOME",
       market: "1X2",
-      modelProb: blendedModelProbs.home,
-      marketProb: marketProbs.home,
+      modelProb: feedProbs.home,
+      marketProb: marketHome,
       edge: edges.home,
     });
     edgeRows.push({
       outcome: "DRAW",
       market: "1X2",
-      modelProb: blendedModelProbs.draw,
-      marketProb: marketProbs.draw,
+      modelProb: feedProbs.draw,
+      marketProb: marketDraw,
       edge: edges.draw,
     });
     edgeRows.push({
       outcome: "AWAY",
       market: "1X2",
-      modelProb: blendedModelProbs.away,
-      marketProb: marketProbs.away,
+      modelProb: feedProbs.away,
+      marketProb: marketAway,
       edge: edges.away,
     });
-    if (marketProbs.over_2_5 != null && edges.over_2_5 != null) {
+    if (edges.over_2_5 != null && feedProbs.over_2_5 != null) {
+      const marketOver = feedProbs.over_2_5 - edges.over_2_5;
+      const modelUnder = 1 - feedProbs.over_2_5;
+      const marketUnder = 1 - marketOver;
       edgeRows.push({
         outcome: "OVER",
         market: "O2.5",
-        modelProb: blendedModelProbs.over_2_5 ?? rawModelProbs.over_2_5,
-        marketProb: marketProbs.over_2_5,
+        modelProb: feedProbs.over_2_5,
+        marketProb: marketOver,
         edge: edges.over_2_5,
       });
       edgeRows.push({
         outcome: "UNDER",
         market: "O2.5",
-        modelProb: blendedModelProbs.under_2_5 ?? rawModelProbs.under_2_5,
-        marketProb: marketProbs.under_2_5 ?? 0,
-        edge: (blendedModelProbs.under_2_5 ?? rawModelProbs.under_2_5) - (marketProbs.under_2_5 ?? 0),
+        modelProb: modelUnder,
+        marketProb: marketUnder,
+        edge: modelUnder - marketUnder,
       });
     }
   }
-  // Sort by edge descending
   edgeRows.sort((a, b) => b.edge - a.edge);
 
   const sortedScorelines = Object.entries(sim.scorelines)
@@ -263,7 +215,7 @@ export default async function MatchSimPage({ params }: { params: Promise<{ id: s
         <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-2">Goals markets</h2>
         <div className="text-primary-data space-y-1">
           <p>BTTS: {formatPercent(sim.pBTTS)}</p>
-          <p>O2.5: {formatPercent(blendedModelProbs.over_2_5 ?? rawModelProbs.over_2_5)}</p>
+          <p>O2.5: {formatPercent(sim.pO25)}</p>
           <p>O3.5: {formatPercent(sim.pO35)}</p>
         </div>
       </section>

@@ -65,6 +65,21 @@ if [ -n "${INJURY_TEAM_IDS}" ]; then
   done
 fi
 
+# Upcoming fixtures (for simulation pipeline)
+echo "[ingest-daily] fetching upcoming fixtures"
+node "scripts/ingest-upcoming-fixtures.mjs" --season="${SEASON}" || {
+  echo "[ingest-daily] WARNING: upcoming fixtures ingest failed"
+}
+
+# Pre-compute Monte Carlo simulations
+echo "[ingest-daily] running simulations"
+npx tsx "scripts/run-simulations.mts" || {
+  echo "[ingest-daily] WARNING: simulation run failed"
+}
+
+# Cleanup old simulation files (>7 days)
+find data/simulations -name "*.json" -mtime +7 -delete 2>/dev/null || true
+
 # Basic health check: count fixture files (any league) and total fixtures.
 FIX_FILES="$(find data -maxdepth 1 -name "*-${SEASON}-fixtures.json" 2>/dev/null | wc -l)"
 echo "[ingest-daily] fixture files for season ${SEASON}: ${FIX_FILES}"

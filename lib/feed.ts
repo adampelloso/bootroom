@@ -126,6 +126,11 @@ export interface FeedMatch {
       over_2_5?: number;
     };
     evFlags?: string[];
+    expectedHomeGoals?: number;
+    expectedAwayGoals?: number;
+    expectedHomeCorners?: number;
+    expectedAwayCorners?: number;
+    topScorelines?: { score: string; prob: number }[];
   };
 }
 
