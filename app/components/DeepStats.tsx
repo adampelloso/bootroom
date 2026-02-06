@@ -48,14 +48,14 @@ export function DeepStats({ homeTeamName, awayTeamName, homeTrends, awayTrends, 
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between py-2 text-left text-mono text-[11px] uppercase text-tertiary"
       >
-        Deep stats
+        Deep stats: xG, shot maps, possession +
         <span>{open ? "−" : "+"}</span>
       </button>
       {open && (
         <div className="pt-2 space-y-4 text-[12px] text-tertiary">
           {homeTrends && (
             <div>
-              <h3 className="text-[11px] uppercase mb-2">{homeTeamName} – Goals</h3>
+              <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-2">{homeTeamName} – Goals</h3>
               <StatTrendChart
                 title={TREND_STAT_TITLES.goalsFor}
                 data={homeTrends.goalsFor.data}
@@ -72,7 +72,7 @@ export function DeepStats({ homeTeamName, awayTeamName, homeTrends, awayTrends, 
           )}
           {awayTrends && (
             <div>
-              <h3 className="text-[11px] uppercase mb-2">{awayTeamName} – Goals</h3>
+              <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-2">{awayTeamName} – Goals</h3>
               <StatTrendChart
                 title={TREND_STAT_TITLES.goalsFor}
                 data={awayTrends.goalsFor.data}
@@ -89,7 +89,7 @@ export function DeepStats({ homeTeamName, awayTeamName, homeTrends, awayTrends, 
           )}
           {homeTrends && (
             <>
-              <h3 className="text-[11px] uppercase mt-4">Shots</h3>
+              <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] mt-4">Shots</h3>
               <StatTrendChart
                 title={TREND_STAT_TITLES.shotsFor}
                 data={homeTrends.shotsFor.data}

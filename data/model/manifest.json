@@ -1,0 +1,7 @@
+{
+  "model_version": "baseline-epl-2020-v1",
+  "calibration_version": "baseline-epl-2020-v1",
+  "ev_policy_version": "v1",
+  "notes": "Baseline Poisson backtest over EPL 2020 with isotonic calibration for 1X2 and OU_2.5."
+}
+

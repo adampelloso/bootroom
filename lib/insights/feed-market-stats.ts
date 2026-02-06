@@ -67,20 +67,23 @@ function avgTotalCorners(rows: TeamMatchRow[]): number {
 /**
  * Compute feed market rows for a match.
  * Home team: last 5 home. Away team: last 5 away. Combined = those 10.
- * Season stats: each team's full season (all matches before fixture) for hit rate / avg.
- * Returns up to 3 rows in order: BTTS, O2.5, Corners. Skips a market if no data.
+ * When leagueId is set (e.g. for cups), only matches from that competition are used.
  */
 export function getFeedMarketRows(
   homeTeamName: string,
   awayTeamName: string,
-  fixtureDate?: string
+  fixtureDate?: string,
+  options?: { leagueId?: number }
 ): FeedMarketRow[] {
-  const homeHome = getTeamLastNMatchRows(homeTeamName, 5, fixtureDate, { venue: "home" });
-  const awayAway = getTeamLastNMatchRows(awayTeamName, 5, fixtureDate, { venue: "away" });
+  const opts = { venue: "home" as const, leagueId: options?.leagueId };
+  const homeHome = getTeamLastNMatchRows(homeTeamName, 5, fixtureDate, opts);
+  const awayOpts = { venue: "away" as const, leagueId: options?.leagueId };
+  const awayAway = getTeamLastNMatchRows(awayTeamName, 5, fixtureDate, awayOpts);
   const combined = [...homeHome, ...awayAway];
 
-  const homeSeason = getTeamStats(homeTeamName, fixtureDate, { venue: "all" });
-  const awaySeason = getTeamStats(awayTeamName, fixtureDate, { venue: "all" });
+  const seasonOpts = { venue: "all" as const, leagueId: options?.leagueId };
+  const homeSeason = getTeamStats(homeTeamName, fixtureDate, seasonOpts);
+  const awaySeason = getTeamStats(awayTeamName, fixtureDate, seasonOpts);
 
   const rows: FeedMarketRow[] = [];
 
@@ -159,11 +162,12 @@ export function feedMatchScore(rows: FeedMarketRow[]): number {
 /** One chart point for screenshot charts. */
 export type ScreenshotChartPoint = { value: number; opponentName: string };
 
-/** Screenshot charts: Total Goals, BTTS, Total Corners (combined 10), then Team Corners For home/away (10 each). */
+/** Screenshot charts: Total Goals, BTTS, Total Corners (combined 10), then Team Corners For home/away (10 each). Optional leagueId filters to same competition. */
 export function getDetailScreenshotCharts(
   homeTeamName: string,
   awayTeamName: string,
-  fixtureDate?: string
+  fixtureDate?: string,
+  options?: { leagueId?: number }
 ): {
   totalGoals: { data: ScreenshotChartPoint[]; average: number };
   btts: { data: ScreenshotChartPoint[]; average: number };
@@ -171,8 +175,10 @@ export function getDetailScreenshotCharts(
   homeCornersFor: { data: ScreenshotChartPoint[]; average: number };
   awayCornersFor: { data: ScreenshotChartPoint[]; average: number };
 } {
-  const homeHome5 = getTeamLastNMatchRows(homeTeamName, 5, fixtureDate, { venue: "home" });
-  const awayAway5 = getTeamLastNMatchRows(awayTeamName, 5, fixtureDate, { venue: "away" });
+  const optsHome = { venue: "home" as const, leagueId: options?.leagueId };
+  const optsAway = { venue: "away" as const, leagueId: options?.leagueId };
+  const homeHome5 = getTeamLastNMatchRows(homeTeamName, 5, fixtureDate, optsHome);
+  const awayAway5 = getTeamLastNMatchRows(awayTeamName, 5, fixtureDate, optsAway);
   const combined = [...homeHome5, ...awayAway5].sort((a, b) => a.dateMs - b.dateMs);
 
   const totalGoalsData: ScreenshotChartPoint[] = combined.map((r) => ({
@@ -200,8 +206,8 @@ export function getDetailScreenshotCharts(
       ? totalCornersData.reduce((a, p) => a + p.value, 0) / totalCornersData.length
       : 0;
 
-  const homeHome10 = getTeamLastNMatchRows(homeTeamName, 10, fixtureDate, { venue: "home" });
-  const awayAway10 = getTeamLastNMatchRows(awayTeamName, 10, fixtureDate, { venue: "away" });
+  const homeHome10 = getTeamLastNMatchRows(homeTeamName, 10, fixtureDate, optsHome);
+  const awayAway10 = getTeamLastNMatchRows(awayTeamName, 10, fixtureDate, optsAway);
 
   const homeCornersForData: ScreenshotChartPoint[] = homeHome10.map((r) => ({
     value: r.cornersFor,

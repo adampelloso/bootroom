@@ -22,9 +22,16 @@ import { getMatchStats, getTeamRecentResults } from "@/lib/insights/team-stats";
 import { getTeamStats } from "@/lib/insights/team-stats";
 import { getFeedMarketRows, feedMatchScore } from "@/lib/insights/feed-market-stats";
 import { getWhatStandsOut } from "@/lib/insights/what-stands-out";
+import { getFeedMatchModelProbs } from "@/lib/modeling/feed-model-probs";
 import type { H2HSummary } from "./feed";
 import type { FootballProvider } from "@/lib/providers/types";
-import { SUPPORTED_LEAGUES, DEFAULT_LEAGUE_ID } from "@/lib/leagues";
+import {
+  SUPPORTED_LEAGUES,
+  SUPPORTED_COMPETITIONS,
+  DEFAULT_LEAGUE_ID,
+  getCompetitionByLeagueId,
+  isCup,
+} from "@/lib/leagues";
 
 const DEFAULT_SEASON = 2025;
 
@@ -115,6 +122,7 @@ function deriveH2HSummary(
 function buildHighlights(
   item: ApiFootballFixtureResponseItem,
   poolKeys: string[],
+  formLeagueId?: number,
 ): FeedInsight[] {
   const home = item.teams.home.name;
   const away = item.teams.away.name;
@@ -122,7 +130,10 @@ function buildHighlights(
   const fixtureDate = item.fixture.date?.slice(0, 10);
   const types = selectThreeForMatch(poolKeys, fixtureId);
 
-  const matchStats = getMatchStats(home, away, fixtureDate);
+  const matchStats = getMatchStats(home, away, fixtureDate, {
+    venue: "all",
+    leagueId: formLeagueId,
+  });
   const highlights: FeedInsight[] = [];
   let index = 0;
 
@@ -273,29 +284,35 @@ async function buildFeedMatch(
   const homeId = item.teams.home.id;
   const awayId = item.teams.away.id;
   const leagueId = item.league?.id;
+  const competition = leagueId != null ? getCompetitionByLeagueId(leagueId) : undefined;
+  const leagueName = competition?.label ?? item.league?.name;
+  const useSameCompetitionForm = leagueId != null && isCup(leagueId);
+  const formLeagueId = useSameCompetitionForm ? leagueId : undefined;
 
   const h2hRes = await provider.getH2HFixtures(homeId, awayId, {
     last: 5,
     league: typeof leagueId === "number" ? leagueId : undefined,
   });
 
-  const homeForm = getTeamRecentResults(home, 10, fixtureDate);
-  const awayForm = getTeamRecentResults(away, 10, fixtureDate);
+  const homeForm = getTeamRecentResults(home, 10, fixtureDate, { leagueId: formLeagueId });
+  const awayForm = getTeamRecentResults(away, 10, fixtureDate, { leagueId: formLeagueId });
   const h2hSummary = deriveH2HSummary(h2hRes, homeId, awayId, home, away);
 
   const homeCode = teamIdToCode.get(homeId) ?? teamCodeFallback(home);
   const awayCode = teamIdToCode.get(awayId) ?? teamCodeFallback(away);
 
-  const marketRows = getFeedMarketRows(home, away, fixtureDate);
+  const marketRows = getFeedMarketRows(home, away, fixtureDate, { leagueId: formLeagueId });
 
-  const homeL5 = getTeamStats(home, fixtureDate, { venue: "home" });
-  const awayL5 = getTeamStats(away, fixtureDate, { venue: "away" });
+  const homeL5 = getTeamStats(home, fixtureDate, { venue: "home", leagueId: formLeagueId });
+  const awayL5 = getTeamStats(away, fixtureDate, { venue: "away", leagueId: formLeagueId });
 
-  return {
+  const match: FeedMatch = {
     id: `match-${item.fixture.id}`,
     providerFixtureId: item.fixture.id,
     homeTeamName: home,
     awayTeamName: away,
+    leagueId,
+    leagueName,
     homeTeamCode: homeCode,
     awayTeamCode: awayCode,
     homeTeamLogo: item.teams.home.logo,
@@ -315,6 +332,14 @@ async function buildFeedMatch(
     awayForm: awayForm.length > 0 ? awayForm : undefined,
     h2hSummary: h2hSummary ?? undefined,
   };
+
+  // Compute model probabilities for feed (on-demand, cached)
+  const modelProbs = getFeedMatchModelProbs(match);
+  if (modelProbs) {
+    match.modelProbs = modelProbs;
+  }
+
+  return match;
 }
 
 export async function getFeedMatches(
@@ -328,7 +353,7 @@ export async function getFeedMatches(
       ? leagueIds
       : [DEFAULT_LEAGUE_ID];
 
-  const seasonByLeague = new Map(SUPPORTED_LEAGUES.map((l) => [l.id, l.season]));
+  const seasonByLeague = new Map(SUPPORTED_COMPETITIONS.map((c) => [c.id, c.season]));
 
   const fixturesResponses = await Promise.all(
     ids.map((leagueId) =>
@@ -385,17 +410,22 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
 
   const homeCode = teamIdToCode.get(homeId) ?? teamCodeFallback(home);
   const awayCode = teamIdToCode.get(awayId) ?? teamCodeFallback(away);
-  const homeForm = getTeamRecentResults(home, 10, fixtureDate);
-  const awayForm = getTeamRecentResults(away, 10, fixtureDate);
+  const competition = leagueId != null ? getCompetitionByLeagueId(leagueId) : undefined;
+  const leagueName = competition?.label ?? item.league?.name;
+  const useSameCompetitionForm = leagueId != null && isCup(leagueId);
+  const formLeagueId = useSameCompetitionForm ? leagueId : undefined;
 
-  const highlights = buildHighlights(item, DETAIL_INSIGHT_KEYS);
+  const homeForm = getTeamRecentResults(home, 10, fixtureDate, { leagueId: formLeagueId });
+  const awayForm = getTeamRecentResults(away, 10, fixtureDate, { leagueId: formLeagueId });
+
+  const highlights = buildHighlights(item, DETAIL_INSIGHT_KEYS, formLeagueId);
   const insightsByFamily: Record<string, MatchDetailInsight[]> = {};
   for (const h of highlights) {
     if (!insightsByFamily[h.family]) insightsByFamily[h.family] = [];
     insightsByFamily[h.family].push(toDetailInsight(h));
   }
 
-  const rollingStats = getMatchStats(home, away, fixtureDate);
+  const rollingStats = getMatchStats(home, away, fixtureDate, { venue: "all", leagueId: formLeagueId });
   const supportingStatements = getWhatStandsOut(rollingStats, "L10");
   const derived = derivePrimaryAngle(highlights);
   const hasSupport = supportingStatements.length >= 1;
@@ -411,6 +441,8 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
     awayTeamId: awayId,
     homeTeamName: home,
     awayTeamName: away,
+    leagueId,
+    leagueName,
     homeTeamCode: homeCode,
     awayTeamCode: awayCode,
     homeTeamLogo: item.teams.home.logo,

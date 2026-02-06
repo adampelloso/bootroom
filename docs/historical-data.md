@@ -8,7 +8,7 @@
 - **`--skipPlayers`**: when present, the script will:
   - Fetch fixtures and `/fixtures/statistics` as before.
   - **Skip** `/fixtures/players` calls (no player-level data).
-  - Still write one JSON file per season: `data/epl-<season>-fixtures.json`.
+  - Still write one JSON file per league/season: `data/<leagueId>-<season>-fixtures.json` (e.g. `39-2025-fixtures.json`).
 
 Example (EPL, stats-only):
 
@@ -32,4 +32,6 @@ Once these files exist in `data/`, we can wire the app to:
 
 - Aggregate fixtures across seasons for each team pair.
 - Compute “last 10 H2H” results and summaries using local JSON instead of live API calls.
+
+For **all leagues** (not just EPL), see **[historical-data-plan.md](historical-data-plan.md)** for which seasons and competitions to ingest and how to run the backfill.
 

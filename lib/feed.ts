@@ -87,6 +87,10 @@ export interface FeedMatch {
   providerFixtureId: number;
   homeTeamName: string;
   awayTeamName: string;
+  /** API-Football league id; used for form/stats filter and odds lookup. */
+  leagueId?: number;
+  /** Short label for badge (e.g. EPL, UCL). */
+  leagueName?: string;
   /** 3-letter code for feed display (e.g. ARS, MUN). Falls back to name if missing. */
   homeTeamCode?: string;
   awayTeamCode?: string;
@@ -109,6 +113,20 @@ export interface FeedMatch {
   homeForm?: FormResult[];
   awayForm?: FormResult[];
   h2hSummary?: H2HSummary;
+  /** Model probabilities and EV flags (computed on-demand for feed). */
+  modelProbs?: {
+    home: number;
+    draw: number;
+    away: number;
+    over_2_5?: number;
+    edges?: {
+      home: number;
+      draw: number;
+      away: number;
+      over_2_5?: number;
+    };
+    evFlags?: string[];
+  };
 }
 
 export interface MatchDetailInsight extends FeedInsight {
@@ -123,6 +141,10 @@ export interface MatchDetail {
   awayTeamId: number;
   homeTeamName: string;
   awayTeamName: string;
+  /** API-Football league id; used for form/stats filter and odds lookup. */
+  leagueId?: number;
+  /** Short label for badge (e.g. EPL, UCL). */
+  leagueName?: string;
   /** 3-letter code for feed display (e.g. ARS, MUN). Falls back to name if missing. */
   homeTeamCode?: string;
   awayTeamCode?: string;

@@ -30,10 +30,13 @@ export interface TeamRollingStats {
 interface IngestedFixture {
   fixture: {
     fixture: { date: string };
+    league?: { id: number; name?: string };
     teams: { home: { name: string }; away: { name: string } };
     goals: { home: number | null; away: number | null };
     score?: { halftime?: { home: number | null; away: number | null } };
   };
+  /** Top-level league (when ingest persists it here); else use fixture.league */
+  league?: { id: number; name?: string };
   stats?: Array<{
     team: { name: string };
     statistics: Array<{ type: string; value: number | string | null }>;
@@ -55,6 +58,8 @@ export interface TeamMatchRow {
   sotAgainst: number;
   cornersFor: number;
   cornersAgainst: number;
+  leagueId?: number;
+  leagueName?: string;
 }
 
 function getStatValue(stats: Array<{ type: string; value: number | string | null }>, ...typeCandidates: string[]): number {
@@ -67,19 +72,23 @@ function getStatValue(stats: Array<{ type: string; value: number | string | null
   return 0;
 }
 
-/** Load and merge all epl-*-fixtures.json files so we have history across seasons. */
+/** Load and merge all *-fixtures.json files (e.g. 39-2025-fixtures.json, epl-2020-fixtures.json) so we have history across all ingested competitions. */
 function loadIngestedFixtures(): IngestedFixture[] {
   const dataDir = path.join(process.cwd(), "data");
   if (!fs.existsSync(dataDir)) return [];
   const files = fs.readdirSync(dataDir);
-  const eplFiles = files.filter((f) => f.startsWith("epl-") && f.endsWith("-fixtures.json"));
+  const fixtureFiles = files.filter((f) => f.endsWith("-fixtures.json"));
   const all: IngestedFixture[] = [];
-  for (const file of eplFiles.sort()) {
+  for (const file of fixtureFiles.sort()) {
     const dataPath = path.join(dataDir, file);
     try {
       const raw = fs.readFileSync(dataPath, "utf8");
       const parsed = JSON.parse(raw) as unknown;
-      if (Array.isArray(parsed)) all.push(...(parsed as IngestedFixture[]));
+      if (!Array.isArray(parsed)) continue;
+      for (const el of parsed as unknown[]) {
+        const entry = el as Record<string, unknown>;
+        if (entry && typeof entry.fixture === "object") all.push(el as IngestedFixture);
+      }
     } catch {
       // skip invalid or unreadable files
     }
@@ -105,6 +114,8 @@ function buildTeamMatchHistory(fixtures: IngestedFixture[]): Map<string, TeamMat
     const ga = fixture.goals?.away ?? 0;
     const btts = gh > 0 && ga > 0;
     const dateMs = new Date(date).getTime();
+    const leagueId = entry.league?.id ?? fixture.league?.id;
+    const leagueName = entry.league?.name ?? fixture.league?.name;
 
     const homeStats = stats?.find((s) => s.team?.name === home);
     const awayStats = stats?.find((s) => s.team?.name === away);
@@ -126,6 +137,8 @@ function buildTeamMatchHistory(fixtures: IngestedFixture[]): Map<string, TeamMat
       sotAgainst: getStatValue(awayStatArr, "Shots on Goal", "Shots on target"),
       cornersFor: getStatValue(homeStatArr, "Corner Kicks", "Corner kicks"),
       cornersAgainst: getStatValue(awayStatArr, "Corner Kicks", "Corner kicks"),
+      leagueId,
+      leagueName,
     };
 
     const awayRow: TeamMatchRow = {
@@ -143,6 +156,8 @@ function buildTeamMatchHistory(fixtures: IngestedFixture[]): Map<string, TeamMat
       sotAgainst: getStatValue(homeStatArr, "Shots on Goal", "Shots on target"),
       cornersFor: getStatValue(awayStatArr, "Corner Kicks", "Corner kicks"),
       cornersAgainst: getStatValue(homeStatArr, "Corner Kicks", "Corner kicks"),
+      leagueId,
+      leagueName,
     };
 
     if (!byTeam.has(home)) byTeam.set(home, []);
@@ -200,6 +215,40 @@ function getTeamHistory(): Map<string, TeamMatchRow[]> {
   return built;
 }
 
+export interface LeagueGoalAverages {
+  homeGoals: number;
+  awayGoals: number;
+}
+
+/**
+ * League-wide average goals per match for home and away teams,
+ * computed across all ingested fixtures (multi-season).
+ */
+export function getLeagueGoalAverages(): LeagueGoalAverages {
+  const history = getTeamHistory();
+  let homeGoals = 0;
+  let homeMatches = 0;
+  let awayGoals = 0;
+  let awayMatches = 0;
+
+  for (const [, rows] of history) {
+    for (const row of rows) {
+      if (row.isHome) {
+        homeGoals += row.goalsFor;
+        homeMatches += 1;
+      } else {
+        awayGoals += row.goalsFor;
+        awayMatches += 1;
+      }
+    }
+  }
+
+  return {
+    homeGoals: homeMatches > 0 ? homeGoals / homeMatches : 0,
+    awayGoals: awayMatches > 0 ? awayGoals / awayMatches : 0,
+  };
+}
+
 function findTeamMatches(history: Map<string, TeamMatchRow[]>, teamName: string): TeamMatchRow[] | undefined {
   const trimmed = teamName.trim();
   const exact = history.get(trimmed);
@@ -213,19 +262,30 @@ function findTeamMatches(history: Map<string, TeamMatchRow[]>, teamName: string)
 
 export type VenueFilter = "home" | "away" | "all";
 
+export interface TeamStatsOptions {
+  venue?: VenueFilter;
+  /** When set, only matches from this competition (league id) are included. */
+  leagueId?: number;
+}
+
 function applyVenueFilter(rows: TeamMatchRow[], venue: VenueFilter): TeamMatchRow[] {
   if (venue === "all") return rows;
   return rows.filter((r) => (venue === "home" ? r.isHome : !r.isHome));
 }
 
+function applyLeagueFilter(rows: TeamMatchRow[], leagueId: number | undefined): TeamMatchRow[] {
+  if (leagueId == null) return rows;
+  return rows.filter((r) => r.leagueId === leagueId);
+}
+
 /**
  * Get L5, L10 and season rolling stats for a team as of a given fixture date.
- * Optional venue filter: 'home' | 'away' | 'all' (default 'all').
+ * Optional venue filter and leagueId (same competition only when set).
  */
 export function getTeamStats(
   teamName: string,
   asOfDate?: string,
-  options?: { venue?: VenueFilter }
+  options?: TeamStatsOptions
 ): TeamRollingStats | null {
   const history = getTeamHistory();
   const matches = findTeamMatches(history, teamName);
@@ -237,6 +297,7 @@ export function getTeamStats(
     filtered = matches.filter((m) => m.dateMs < cutoff);
   }
   filtered = applyVenueFilter(filtered, options?.venue ?? "all");
+  filtered = applyLeagueFilter(filtered, options?.leagueId);
   if (filtered.length === 0) return null;
 
   const l5 = computeRolling(filtered, 5);
@@ -248,14 +309,13 @@ export function getTeamStats(
 
 /**
  * Get last N match rows for a team (for trend charts), with opponent names.
- * Optional venue filter: 'home' | 'away' | 'all' (default 'all').
- * Chronological order (oldest first) so index 0 = earliest of the last N.
+ * Optional venue and leagueId filter. Chronological order (oldest first).
  */
 export function getTeamLastNMatchRows(
   teamName: string,
   n: number,
   asOfDate?: string,
-  options?: { venue?: VenueFilter }
+  options?: TeamStatsOptions
 ): TeamMatchRow[] {
   const history = getTeamHistory();
   const matches = findTeamMatches(history, teamName);
@@ -267,6 +327,7 @@ export function getTeamLastNMatchRows(
     filtered = matches.filter((m) => m.dateMs < cutoff);
   }
   filtered = applyVenueFilter(filtered, options?.venue ?? "all");
+  filtered = applyLeagueFilter(filtered, options?.leagueId);
   return filtered.slice(-n);
 }
 
@@ -290,11 +351,12 @@ export function getMatchStats(
   homeTeamName: string,
   awayTeamName: string,
   fixtureDate?: string,
-  options?: { venue?: VenueFilter }
+  options?: TeamStatsOptions
 ): MatchStatsResult | null {
   const venue = options?.venue ?? "all";
-  const home = getTeamStats(homeTeamName, fixtureDate, { venue });
-  const away = getTeamStats(awayTeamName, fixtureDate, { venue });
+  const leagueId = options?.leagueId;
+  const home = getTeamStats(homeTeamName, fixtureDate, { venue, leagueId });
+  const away = getTeamStats(awayTeamName, fixtureDate, { venue, leagueId });
 
   if (!home || !away) return null;
 
@@ -335,15 +397,16 @@ export type FormResult = "W" | "D" | "L";
 
 /**
  * Get last n results (W/D/L) for a team as of a given date.
- * Uses ingested data only; returns empty array if team or data missing.
+ * Uses ingested data only. Optional leagueId restricts to same competition.
  */
 export function getTeamRecentResults(
   teamName: string,
   n: number = 5,
-  asOfDate?: string
+  asOfDate?: string,
+  options?: { leagueId?: number }
 ): FormResult[] {
   const history = getTeamHistory();
-  const matches = history.get(teamName);
+  const matches = findTeamMatches(history, teamName);
   if (!matches || matches.length === 0) return [];
 
   let filtered = matches;
@@ -351,6 +414,7 @@ export function getTeamRecentResults(
     const cutoff = new Date(asOfDate).getTime();
     filtered = matches.filter((m) => m.dateMs < cutoff);
   }
+  filtered = applyLeagueFilter(filtered, options?.leagueId);
   const slice = filtered.slice(-n);
 
   return slice.map((m): FormResult => {

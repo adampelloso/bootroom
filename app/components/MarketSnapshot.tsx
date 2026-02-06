@@ -16,7 +16,7 @@ export function MarketSnapshot({ rows }: Props) {
   return (
     <section
       id="section-snapshot"
-      className="px-5 py-3 border-t border-[var(--border-light)] bg-[var(--bg-surface)] space-y-3"
+      className="px-5 py-3 border-t border-[var(--border-light)] space-y-3"
       style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}
       aria-label="Market snapshot"
     >
@@ -25,16 +25,23 @@ export function MarketSnapshot({ rows }: Props) {
           return (
             <div
               key={`${row.market}-${i}`}
-              className="rounded-xl border border-[var(--border-light)] p-3 bg-[var(--bg-body)]"
+              className="border-b border-[var(--border-light)] pb-3"
             >
               <p className="text-mono text-[11px] uppercase text-tertiary mb-2">BTTS</p>
-              <div className="grid grid-cols-3 gap-2 text-mono text-[12px] text-[var(--text-sec)]">
-                <span>Home {row.homeHits}/5</span>
-                <span>Away {row.awayHits}/5</span>
-                <span>Combined {row.combinedHits}/10</span>
+              <div className="flex items-baseline justify-between gap-4">
+                <div className="grid grid-cols-2 gap-2 text-secondary-data text-tertiary">
+                  <span>Home {row.homeHits}/5</span>
+                  <span>Away {row.awayHits}/5</span>
+                </div>
+                <span
+                  className="text-mono stat-value font-bold shrink-0 text-right"
+                  style={{ fontSize: "18px", color: "var(--text-main)" }}
+                >
+                  {row.combinedHits}/10
+                </span>
               </div>
               {row.avgGoals != null && (
-                <p className="text-mono text-[11px] text-tertiary mt-1">Avg goals: {row.avgGoals.toFixed(1)}</p>
+                <p className="text-primary-data text-tertiary mt-2">Avg goals: {row.avgGoals.toFixed(1)}</p>
               )}
             </div>
           );
@@ -43,31 +50,27 @@ export function MarketSnapshot({ rows }: Props) {
           return (
             <div
               key={`${row.market}-${i}`}
-              className="rounded-xl border border-[var(--border-light)] p-3 bg-[var(--bg-body)]"
+              className="border-b border-[var(--border-light)] pb-3"
             >
               <p className="text-mono text-[11px] uppercase text-tertiary mb-2">O2.5</p>
-              <div className="grid grid-cols-3 gap-2 text-mono text-[12px] text-[var(--text-sec)]">
-                <span>Home {row.homeHits}/5</span>
-                <span>Away {row.awayHits}/5</span>
-                <span>Combined {row.combinedHits}/10</span>
+              <div className="flex items-baseline justify-between gap-4">
+                <div className="grid grid-cols-2 gap-2 text-secondary-data text-tertiary">
+                  <span>Home {row.homeHits}/5</span>
+                  <span>Away {row.awayHits}/5</span>
+                </div>
+                <span
+                  className="text-mono stat-value font-bold shrink-0 text-right"
+                  style={{ fontSize: "18px", color: "var(--text-main)" }}
+                >
+                  {row.combinedHits}/10
+                </span>
               </div>
-              <p className="text-mono text-[11px] text-tertiary mt-1">Avg goals: {row.avgGoals.toFixed(1)}</p>
+              <p className="text-primary-data text-tertiary mt-2">Avg goals: {row.avgGoals.toFixed(1)}</p>
             </div>
           );
         }
-        return (
-          <div
-            key={`${row.market}-${i}`}
-            className="rounded-xl border border-[var(--border-light)] p-3 bg-[var(--bg-body)]"
-          >
-            <p className="text-mono text-[11px] uppercase text-tertiary mb-2">Corners</p>
-            <div className="grid grid-cols-3 gap-2 text-mono text-[12px] text-[var(--text-sec)]">
-              <span>Home avg {row.homeAvg.toFixed(1)}</span>
-              <span>Away avg {row.awayAvg.toFixed(1)}</span>
-              <span>Combined avg {row.combinedAvg.toFixed(1)}</span>
-            </div>
-          </div>
-        );
+        // Skip corners - now handled by dedicated CornersCard component
+        return null;
       })}
     </section>
   );

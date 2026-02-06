@@ -1,5 +1,7 @@
 "use client";
 
+import { getTeamAbbreviation } from "@/lib/teams/abbreviations";
+
 /**
  * Bar chart for one stat over the last 10 games, with average line.
  * X-axis shows opponent (abbreviated); tooltip has full name.
@@ -20,26 +22,23 @@ type Props = {
   leagueAvg?: number;
 };
 
-function abbreviate(name: string, maxLen = 10): string {
-  if (name.length <= maxLen) return name;
-  const parts = name.split(/\s+/);
-  if (parts.length >= 2) {
-    return parts.map((p) => p.slice(0, 2)).join("").slice(0, maxLen);
-  }
-  return name.slice(0, maxLen);
+function getTop3Indices(data: StatTrendPoint[]): Set<number> {
+  const indexed = data.map((d, i) => ({ value: d.value, index: i }));
+  indexed.sort((a, b) => b.value - a.value);
+  return new Set(indexed.slice(0, 3).map((d) => d.index));
 }
 
 export function StatTrendChart({ title, data, average, integerValues, leagueAvg }: Props) {
   if (data.length === 0) {
     return (
       <div
-        className="rounded-xl overflow-hidden"
+        className="overflow-hidden"
         style={{
-          background: "var(--bg-surface)",
+          borderBottom: "1px solid var(--border-light)",
           padding: "var(--space-sm) var(--space-md)",
         }}
       >
-        <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-tertiary mb-3">
+        <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-tertiary mb-3">
           {title}
         </h3>
         <p className="text-[13px] text-tertiary">No data (last 10).</p>
@@ -51,16 +50,17 @@ export function StatTrendChart({ title, data, average, integerValues, leagueAvg 
   const safeAvg = typeof average === "number" && !Number.isNaN(average) ? average : 0;
   const safeLeagueAvg = leagueAvg != null && !Number.isNaN(leagueAvg) ? leagueAvg : null;
   const maxVal = Math.max(...safeValues, safeAvg, safeLeagueAvg ?? 0, 0.5);
+  const top3 = getTop3Indices(data);
 
   return (
     <div
-      className="rounded-xl overflow-hidden"
+      className="overflow-hidden"
       style={{
-        background: "var(--bg-surface)",
+        borderBottom: "1px solid var(--border-light)",
         padding: "var(--space-sm) var(--space-md)",
       }}
     >
-      <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-tertiary mb-3">
+      <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-tertiary mb-3">
         {title}
       </h3>
       <div className="flex flex-col gap-1">
@@ -102,6 +102,7 @@ export function StatTrendChart({ title, data, average, integerValues, leagueAvg 
             const displayVal = String(Math.round(num));
             const minBarH = num > 0 ? 18 : 2;
             const h = Math.max(barHeightPx, minBarH);
+            const barColor = top3.has(i) ? "var(--color-bar-highlight)" : "var(--color-bar-muted)";
             return (
               <div
                 key={i}
@@ -110,20 +111,17 @@ export function StatTrendChart({ title, data, average, integerValues, leagueAvg 
                 title={`${point.opponentName}: ${displayVal}`}
               >
                 <div
-                  className="w-full rounded-t flex-shrink-0 transition-all relative flex items-center justify-center"
+                  className="w-full flex-shrink-0 transition-all relative flex items-center justify-center"
                   style={{
                     height: `${h}px`,
                     minHeight: num === 0 ? "2px" : "18px",
-                    backgroundColor: "var(--bg-accent)",
+                    backgroundColor: barColor,
                   }}
                 >
                   {h >= 14 ? (
                     <span
                       className="font-mono font-medium text-[10px] select-none"
-                      style={{
-                        color: "white",
-                        textShadow: "0 0 1px rgba(0,0,0,0.6), 0 1px 2px rgba(0,0,0,0.4)",
-                      }}
+                      style={{ color: "var(--text-main)" }}
                     >
                       {displayVal}
                     </span>
@@ -142,7 +140,7 @@ export function StatTrendChart({ title, data, average, integerValues, leagueAvg 
               title={point.opponentName}
             >
               <span className="text-[9px] font-mono text-tertiary truncate block w-full leading-tight">
-                {abbreviate(point.opponentName, 8)}
+                {getTeamAbbreviation(point.opponentName)}
               </span>
             </div>
           ))}

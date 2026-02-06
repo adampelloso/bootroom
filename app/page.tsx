@@ -4,7 +4,7 @@ import type { FeedMatch } from "@/lib/feed";
 import { LeagueFilterPill } from "./components/LeagueFilter";
 import { DateScrubber } from "./components/DateScrubber";
 import { ThemeToggle } from "./components/ThemeToggle";
-import { DEFAULT_LEAGUE_ID, SUPPORTED_LEAGUES, type LeagueFilterValue } from "@/lib/leagues";
+import { DEFAULT_LEAGUE_ID, ALL_COMPETITION_IDS, type LeagueFilterValue } from "@/lib/leagues";
 
 function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -23,7 +23,7 @@ export default async function FeedPage({
   const to = from;
   const leagueIds =
     league === "all"
-      ? SUPPORTED_LEAGUES.map((l) => l.id)
+      ? ALL_COMPETITION_IDS
       : [Number(league)];
   const matches = await getFeedMatches(from, to, leagueIds);
 
@@ -34,8 +34,8 @@ export default async function FeedPage({
           style={{ paddingTop: "var(--space-lg)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}
         >
           <h1
-            className="font-medium"
-            style={{ fontSize: "32px", letterSpacing: "-1px", lineHeight: 1.1 }}
+            className="font-bold uppercase"
+            style={{ fontSize: "20px", letterSpacing: "-0.02em", lineHeight: 1.2 }}
           >
             Match Feed
           </h1>
@@ -48,8 +48,8 @@ export default async function FeedPage({
       <DateScrubber currentDate={from} currentLeague={league} />
 
       <section
-        className="flex flex-col gap-5 px-5 border-t border-[var(--border-light)] pt-5 pb-8"
-        style={{ gap: "var(--space-md)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}
+        className="flex flex-col px-5 border-t border-[var(--border-light)] pt-5 pb-8"
+        style={{ gap: "var(--space-lg)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}
       >
         {matches.length === 0 ? (
           <p className="text-[13px] text-secondary">No matches in the feed.</p>

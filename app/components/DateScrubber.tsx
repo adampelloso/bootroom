@@ -83,10 +83,10 @@ export function DateScrubber({
             ref={isSelected ? activeRef : null}
             type="button"
             onClick={() => router.push(buildUrl(iso, currentLeague))}
-            className="rounded-full font-mono text-[11px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0"
+            className="font-mono text-[11px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0"
             style={{
               scrollSnapAlign: "center",
-              padding: "10px 14px",
+              padding: "8px 16px",
               background: isSelected ? "var(--bg-accent)" : "transparent",
               color: isSelected ? "var(--text-on-accent)" : "var(--text-main)",
               border: isSelected ? "none" : "1px solid var(--border-light)",
@@ -94,7 +94,7 @@ export function DateScrubber({
               minWidth: 72,
             }}
           >
-            <div className="text-tertiary" style={{ color: isSelected ? "var(--text-on-accent)/75" : "var(--text-tertiary)" }}>
+            <div className="text-tertiary" style={{ color: isSelected ? "var(--text-on-accent)/75" : "var(--text-tertiary)", opacity: isSelected ? 0.75 : 0.6 }}>
               {label.top}
             </div>
             <div style={{ marginTop: 2 }}>{label.bottom}</div>
@@ -104,4 +104,3 @@ export function DateScrubber({
     </div>
   );
 }
-

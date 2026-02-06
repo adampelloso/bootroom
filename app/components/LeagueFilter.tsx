@@ -4,14 +4,14 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   DEFAULT_LEAGUE_ID,
-  SUPPORTED_LEAGUES,
+  SUPPORTED_COMPETITIONS,
   type LeagueFilterValue,
 } from "@/lib/leagues";
 
 function leagueLabel(value: LeagueFilterValue): string {
-  if (value === "all") return "All leagues";
+  if (value === "all") return "All competitions";
   const id = Number(value);
-  const found = SUPPORTED_LEAGUES.find((l) => l.id === id);
+  const found = SUPPORTED_COMPETITIONS.find((c) => c.id === id);
   return found?.label ?? `League ${value}`;
 }
 
@@ -31,12 +31,15 @@ export function LeagueFilterPill({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const league = currentLeague ?? `${DEFAULT_LEAGUE_ID}` as LeagueFilterValue;
+  const league = currentLeague ?? (`${DEFAULT_LEAGUE_ID}` as LeagueFilterValue);
 
   const items = useMemo(() => {
     const base: Array<{ value: LeagueFilterValue; label: string }> = [
-      { value: "all", label: "All leagues" },
-      ...SUPPORTED_LEAGUES.map((l) => ({ value: `${l.id}` as LeagueFilterValue, label: l.label })),
+      { value: "all", label: "All competitions" },
+      ...SUPPORTED_COMPETITIONS.map((c) => ({
+        value: `${c.id}` as LeagueFilterValue,
+        label: c.label,
+      })),
     ];
     return base;
   }, []);
@@ -48,7 +51,7 @@ export function LeagueFilterPill({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-2 rounded-full border border-[var(--border-light)] px-3 py-2 text-mono font-medium stat-value"
+        className="flex items-center gap-2 border border-[var(--border-light)] px-3 py-2 text-mono font-medium stat-value"
         style={{ fontSize: "14px", background: "var(--bg-body)" }}
       >
         <span className="truncate max-w-[140px]">{leagueLabel(league).toUpperCase()}</span>
@@ -67,7 +70,7 @@ export function LeagueFilterPill({
           />
           <div
             role="menu"
-            className="absolute right-0 mt-2 z-[100] w-56 rounded-2xl border border-[var(--border-light)] bg-[var(--bg-body)] shadow-[0_18px_48px_rgba(0,0,0,0.4)] overflow-hidden"
+            className="absolute right-0 mt-2 z-[100] w-56 border border-[var(--border-light)] bg-[var(--bg-body)] overflow-hidden"
           >
             {items.map((it) => {
               const selected = it.value === league;
@@ -97,4 +100,3 @@ export function LeagueFilterPill({
     </div>
   );
 }
-

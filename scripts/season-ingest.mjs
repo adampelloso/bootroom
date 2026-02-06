@@ -43,14 +43,52 @@ async function fetchJson(baseUrl, key, host, path) {
   return res.json();
 }
 
+// Keep in sync with lib/leagues.ts ALL_COMPETITION_IDS (used when --all)
+const ALL_LEAGUE_IDS = [
+  39, 78, 135, 140, 61, 2, 3, 848, 48, 45, 137, 143, 62, 81,
+];
+
+async function ingestOneLeague(baseUrl, key, host, league, season, delayMs, limit, skipPlayers) {
+  const fixturesRes = await fetchJson(baseUrl, key, host, `/fixtures?league=${league}&season=${season}`);
+  const fixtures = fixturesRes.response ?? [];
+  const finished = fixtures.filter(
+    (f) => f.fixture?.status?.short === "FT" && f.goals?.home != null && f.goals?.away != null,
+  );
+  const selected = limit ? finished.slice(0, limit) : finished;
+
+  const results = [];
+  let index = 0;
+  for (const item of selected) {
+    index += 1;
+    const fixtureId = item.fixture.id;
+    console.log(`  [${index}/${selected.length}] fixture ${fixtureId}`);
+    const stats = await fetchJson(baseUrl, key, host, `/fixtures/statistics?fixture=${fixtureId}`);
+    await delay(delayMs);
+    let players = [];
+    if (!skipPlayers) {
+      const playersRes = await fetchJson(baseUrl, key, host, `/fixtures/players?fixture=${fixtureId}`);
+      players = playersRes.response ?? [];
+      await delay(delayMs);
+    }
+    // Persist full item with league (id, name) for competition-aware form/stats
+    const withLeague = { ...item, league: item.league ?? { id: league } };
+    results.push({
+      fixture: withLeague,
+      stats: stats.response ?? [],
+      players,
+    });
+  }
+  return results;
+}
+
 async function main() {
   const env = readEnv();
   const args = parseArgs();
-  const league = Number(args.league ?? 39);
   const season = Number(args.season ?? 2025);
   const delayMs = Number(args.delay ?? 5000);
   const limit = args.limit ? Number(args.limit) : null;
-   const skipPlayers = Boolean(args.skipPlayers);
+  const skipPlayers = Boolean(args.skipPlayers);
+  const batchAll = Boolean(args.all);
   const baseUrl = env.API_FOOTBALL_BASE_URL ?? "https://v3.football.api-sports.io";
   const host = env.API_FOOTBALL_HOST;
   const key = env.API_FOOTBALL_KEY;
@@ -60,48 +98,20 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`Fetching fixtures for league ${league}, season ${season}...`);
-  const fixturesRes = await fetchJson(baseUrl, key, host, `/fixtures?league=${league}&season=${season}`);
-  const fixtures = fixturesRes.response ?? [];
-  const finished = fixtures.filter(
-    (f) => f.fixture?.status?.short === "FT" && f.goals?.home != null && f.goals?.away != null,
-  );
-
-  const selected = limit ? finished.slice(0, limit) : finished;
-  console.log(`Finished fixtures: ${finished.length}. Processing ${selected.length}...`);
-  if (skipPlayers) {
-    console.log("Player stats will be skipped (stats + fixtures only).");
-  }
+  const leaguesToIngest = batchAll
+    ? ALL_LEAGUE_IDS
+    : [Number(args.league ?? 39)];
 
   const outDir = path.join(process.cwd(), "data");
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir);
-  const outPath = path.join(outDir, `epl-${season}-fixtures.json`);
 
-  const results = [];
-  let index = 0;
-
-  for (const fixture of selected) {
-    index += 1;
-    const fixtureId = fixture.fixture.id;
-    console.log(`[${index}/${selected.length}] fixture ${fixtureId}`);
-    const stats = await fetchJson(baseUrl, key, host, `/fixtures/statistics?fixture=${fixtureId}`);
-    await delay(delayMs);
-    let players = [];
-    if (!skipPlayers) {
-      const playersRes = await fetchJson(baseUrl, key, host, `/fixtures/players?fixture=${fixtureId}`);
-      players = playersRes.response ?? [];
-      await delay(delayMs);
-    }
-
-    results.push({
-      fixture,
-      stats: stats.response ?? [],
-      players,
-    });
+  for (const league of leaguesToIngest) {
+    console.log(`\nFetching fixtures for league ${league}, season ${season}...`);
+    const results = await ingestOneLeague(baseUrl, key, host, league, season, delayMs, limit, skipPlayers);
+    const outPath = path.join(outDir, `${league}-${season}-fixtures.json`);
+    fs.writeFileSync(outPath, JSON.stringify(results, null, 2));
+    console.log(`Saved ${results.length} fixtures to ${outPath}`);
   }
-
-  fs.writeFileSync(outPath, JSON.stringify(results, null, 2));
-  console.log(`Saved ${results.length} fixtures to ${outPath}`);
 }
 
 main().catch((err) => {
