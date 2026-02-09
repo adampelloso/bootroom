@@ -51,13 +51,13 @@ export function getFeedMatchModelProbs(match: FeedMatch): FeedModelProbs | null 
 
   // Fallback: runtime simulation (for dev/local when no pre-computed data)
   const fixtureDate = match.kickoffUtc?.slice(0, 10);
-  const goalLambdas = estimateMatchGoalLambdas(match.homeTeamName, match.awayTeamName, fixtureDate);
+  const goalLambdas = estimateMatchGoalLambdas(match.homeTeamName, match.awayTeamName, fixtureDate, match.leagueId);
 
   if (!goalLambdas) {
     return null;
   }
 
-  const cornerLambdas = estimateMatchCornerLambdas(match.homeTeamName, match.awayTeamName, fixtureDate);
+  const cornerLambdas = estimateMatchCornerLambdas(match.homeTeamName, match.awayTeamName, fixtureDate, match.leagueId);
 
   const sim = simulateMatch({
     lambdaHomeGoals: goalLambdas.lambdaHomeGoals,

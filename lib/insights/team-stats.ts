@@ -29,7 +29,7 @@ export interface TeamRollingStats {
 
 interface IngestedFixture {
   fixture: {
-    fixture: { date: string };
+    fixture: { id?: number; date: string };
     league?: { id: number; name?: string };
     teams: { home: { name: string }; away: { name: string } };
     goals: { home: number | null; away: number | null };
@@ -79,6 +79,9 @@ function loadIngestedFixtures(): IngestedFixture[] {
   const files = fs.readdirSync(dataDir);
   const fixtureFiles = files.filter((f) => f.endsWith("-fixtures.json"));
   const all: IngestedFixture[] = [];
+  const seenFixtureIds = new Set<number>();
+  // Fallback dedup key when fixture ID is missing: date + home + away
+  const seenKeys = new Set<string>();
   for (const file of fixtureFiles.sort()) {
     const dataPath = path.join(dataDir, file);
     try {
@@ -87,7 +90,19 @@ function loadIngestedFixtures(): IngestedFixture[] {
       if (!Array.isArray(parsed)) continue;
       for (const el of parsed as unknown[]) {
         const entry = el as Record<string, unknown>;
-        if (entry && typeof entry.fixture === "object") all.push(el as IngestedFixture);
+        if (!entry || typeof entry.fixture !== "object") continue;
+        const typed = el as IngestedFixture;
+        // Deduplicate by fixture ID (preferred) or date+teams fallback
+        const fixtureId = typed.fixture?.fixture?.id;
+        if (fixtureId != null) {
+          if (seenFixtureIds.has(fixtureId)) continue;
+          seenFixtureIds.add(fixtureId);
+        } else {
+          const key = `${typed.fixture?.fixture?.date}|${typed.fixture?.teams?.home?.name}|${typed.fixture?.teams?.away?.name}`;
+          if (seenKeys.has(key)) continue;
+          seenKeys.add(key);
+        }
+        all.push(typed);
       }
     } catch {
       // skip invalid or unreadable files
@@ -221,10 +236,11 @@ export interface LeagueGoalAverages {
 }
 
 /**
- * League-wide average goals per match for home and away teams,
- * computed across all ingested fixtures (multi-season).
+ * League-wide average goals per match for home and away teams.
+ * When leagueId is provided, only fixtures from that competition are used.
+ * Otherwise falls back to all ingested fixtures (multi-league, multi-season).
  */
-export function getLeagueGoalAverages(): LeagueGoalAverages {
+export function getLeagueGoalAverages(leagueId?: number): LeagueGoalAverages {
   const history = getTeamHistory();
   let homeGoals = 0;
   let homeMatches = 0;
@@ -233,6 +249,7 @@ export function getLeagueGoalAverages(): LeagueGoalAverages {
 
   for (const [, rows] of history) {
     for (const row of rows) {
+      if (leagueId != null && row.leagueId !== leagueId) continue;
       if (row.isHome) {
         homeGoals += row.goalsFor;
         homeMatches += 1;

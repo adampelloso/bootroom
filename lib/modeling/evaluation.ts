@@ -71,7 +71,7 @@ function evaluateBaselineOnSeasonInternal(
     const homeTeam = f.teams.home.name;
     const awayTeam = f.teams.away.name;
 
-    const lambdas = estimateMatchGoalLambdas(homeTeam, awayTeam, fixtureDate);
+    const lambdas = estimateMatchGoalLambdas(homeTeam, awayTeam, fixtureDate, 39 /* EPL */);
     if (!lambdas) continue;
 
     const sim = simulateMatch({

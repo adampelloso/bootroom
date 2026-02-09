@@ -170,16 +170,16 @@ function main() {
     for (const fixture of dateFixtures) {
       const fixtureDate = fixture.date.slice(0, 10);
 
-      // Estimate lambdas
-      const goalLambdas = estimateMatchGoalLambdas(fixture.homeTeam, fixture.awayTeam, fixtureDate);
+      // Estimate lambdas (scoped to the fixture's competition)
+      const goalLambdas = estimateMatchGoalLambdas(fixture.homeTeam, fixture.awayTeam, fixtureDate, fixture.leagueId);
       if (!goalLambdas) {
         console.log(`  [SKIP] ${fixture.homeTeam} v ${fixture.awayTeam} — no goal lambdas`);
         totalSkipped++;
         continue;
       }
 
-      const cornerLambdas = estimateMatchCornerLambdas(fixture.homeTeam, fixture.awayTeam, fixtureDate);
-      const components = debugGoalLambdaComponents(fixture.homeTeam, fixture.awayTeam, fixtureDate);
+      const cornerLambdas = estimateMatchCornerLambdas(fixture.homeTeam, fixture.awayTeam, fixtureDate, fixture.leagueId);
+      const components = debugGoalLambdaComponents(fixture.homeTeam, fixture.awayTeam, fixtureDate, fixture.leagueId);
 
       // Run simulation
       const sim = simulateMatch({

@@ -32,6 +32,17 @@ function clamp(value: number, min: number, max: number): number {
   return value;
 }
 
+/**
+ * Shrink a raw attack/defence multiplier toward 1.0 based on sample size.
+ * With few matches the estimate is noisy, so we trust the league average more.
+ * At 20+ venue-filtered matches we use ~80% of the raw multiplier.
+ */
+function shrinkMultiplier(raw: number, sampleSize: number): number {
+  // Confidence ramps from 0.3 (≤3 matches) to 0.85 (≥20 matches)
+  const confidence = clamp(0.3 + (sampleSize / 20) * 0.55, 0.3, 0.85);
+  return 1 + (raw - 1) * confidence;
+}
+
 export interface MatchGoalLambdas {
   lambdaHomeGoals: number;
   lambdaAwayGoals: number;
@@ -55,10 +66,11 @@ export interface GoalLambdaComponents {
 function computeGoalLambdaComponents(
   homeTeamName: string,
   awayTeamName: string,
-  fixtureDate?: string
+  fixtureDate?: string,
+  leagueId?: number
 ): { components: GoalLambdaComponents; homeStats: GoalsRolling; awayStats: GoalsRolling } | null {
-  const homeStatsAll = getTeamStats(homeTeamName, fixtureDate, { venue: "home" });
-  const awayStatsAll = getTeamStats(awayTeamName, fixtureDate, { venue: "away" });
+  const homeStatsAll = getTeamStats(homeTeamName, fixtureDate, { venue: "home", leagueId });
+  const awayStatsAll = getTeamStats(awayTeamName, fixtureDate, { venue: "away", leagueId });
   const homeStats = safeStats(homeStatsAll);
   const awayStats = safeStats(awayStatsAll);
 
@@ -99,15 +111,24 @@ function computeGoalLambdaComponents(
     awayStats.season.matchCount
   );
 
-  const league = getLeagueGoalAverages();
+  const league = getLeagueGoalAverages(leagueId);
   const leagueHomeGoals = league.homeGoals || 1.4;
   const leagueAwayGoals = league.awayGoals || 1.1;
 
-  // League-normalized attack/defence multipliers.
-  const homeAttackMultiplier = leagueHomeGoals > 0 ? homeAttack / leagueHomeGoals : 1;
-  const awayAttackMultiplier = leagueAwayGoals > 0 ? awayAttack / leagueAwayGoals : 1;
-  const homeDefenceMultiplier = leagueAwayGoals > 0 ? homeDef / leagueAwayGoals : 1;
-  const awayDefenceMultiplier = leagueHomeGoals > 0 ? awayDef / leagueHomeGoals : 1;
+  // League-normalized attack/defence multipliers with regression to the mean.
+  // Shrink extreme multipliers toward 1.0 based on sample size.
+  const homeSeasonN = homeStats.season.matchCount;
+  const awaySeasonN = awayStats.season.matchCount;
+
+  const rawHomeAttack = leagueHomeGoals > 0 ? homeAttack / leagueHomeGoals : 1;
+  const rawAwayAttack = leagueAwayGoals > 0 ? awayAttack / leagueAwayGoals : 1;
+  const rawHomeDef = leagueAwayGoals > 0 ? homeDef / leagueAwayGoals : 1;
+  const rawAwayDef = leagueHomeGoals > 0 ? awayDef / leagueHomeGoals : 1;
+
+  const homeAttackMultiplier = shrinkMultiplier(rawHomeAttack, homeSeasonN);
+  const awayAttackMultiplier = shrinkMultiplier(rawAwayAttack, awaySeasonN);
+  const homeDefenceMultiplier = shrinkMultiplier(rawHomeDef, homeSeasonN);
+  const awayDefenceMultiplier = shrinkMultiplier(rawAwayDef, awaySeasonN);
 
   const components: GoalLambdaComponents = {
     leagueHomeGoals,
@@ -126,13 +147,15 @@ function computeGoalLambdaComponents(
  * Baseline goal rate estimator:
  * - League-normalized home/away attack and defence strengths.
  * - Small recent-form and shot-intensity modifiers.
+ * - leagueId scopes team stats and league averages to a single competition.
  */
 export function estimateMatchGoalLambdas(
   homeTeamName: string,
   awayTeamName: string,
-  fixtureDate?: string
+  fixtureDate?: string,
+  leagueId?: number
 ): MatchGoalLambdas | null {
-  const computed = computeGoalLambdaComponents(homeTeamName, awayTeamName, fixtureDate);
+  const computed = computeGoalLambdaComponents(homeTeamName, awayTeamName, fixtureDate, leagueId);
   if (!computed) return null;
 
   const { components, homeStats, awayStats } = computed;
@@ -184,19 +207,20 @@ export function estimateMatchGoalLambdas(
 export function estimateMatchCornerLambdas(
   homeTeamName: string,
   awayTeamName: string,
-  fixtureDate?: string
+  fixtureDate?: string,
+  leagueId?: number
 ): MatchCornerLambdas | null {
-  const homeStatsAll = getTeamStats(homeTeamName, fixtureDate, { venue: "home" });
-  const awayStatsAll = getTeamStats(awayTeamName, fixtureDate, { venue: "away" });
+  const homeStatsAll = getTeamStats(homeTeamName, fixtureDate, { venue: "home", leagueId });
+  const awayStatsAll = getTeamStats(awayTeamName, fixtureDate, { venue: "away", leagueId });
   const homeStats = safeStats(homeStatsAll);
   const awayStats = safeStats(awayStatsAll);
 
   if (!homeStats || !awayStats) return null;
 
-  const homeCornersRecent = homeStats.l5.cornersFor + homeStats.l5.cornersAgainst;
-  const homeCornersSeason = homeStats.season.cornersFor + homeStats.season.cornersAgainst;
-  const awayCornersRecent = awayStats.l5.cornersFor + awayStats.l5.cornersAgainst;
-  const awayCornersSeason = awayStats.season.cornersFor + awayStats.season.cornersAgainst;
+  const homeCornersRecent = homeStats.l5.cornersFor;
+  const homeCornersSeason = homeStats.season.cornersFor;
+  const awayCornersRecent = awayStats.l5.cornersFor;
+  const awayCornersSeason = awayStats.season.cornersFor;
 
   const homeCorners = blendRecentSeason(
     homeCornersRecent,
@@ -223,9 +247,10 @@ export function estimateMatchCornerLambdas(
 export function debugGoalLambdaComponents(
   homeTeamName: string,
   awayTeamName: string,
-  fixtureDate?: string
+  fixtureDate?: string,
+  leagueId?: number
 ): GoalLambdaComponents | null {
-  const computed = computeGoalLambdaComponents(homeTeamName, awayTeamName, fixtureDate);
+  const computed = computeGoalLambdaComponents(homeTeamName, awayTeamName, fixtureDate, leagueId);
   return computed?.components ?? null;
 }
 
