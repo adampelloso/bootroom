@@ -40,6 +40,19 @@ else
   }
 fi
 
+# Player season stats ingestion
+if [ "$LEAGUE" = "all" ]; then
+  echo "[ingest-daily] player stats ingest for ALL competitions, season=${SEASON}"
+  node "scripts/ingest-players.mjs" --all --season="${SEASON}" || {
+    echo "[ingest-daily] WARNING: player stats ingest failed"
+  }
+else
+  echo "[ingest-daily] player stats ingest for league=${LEAGUE} season=${SEASON}"
+  node "scripts/ingest-players.mjs" --league="${LEAGUE}" --season="${SEASON}" || {
+    echo "[ingest-daily] WARNING: player stats ingest failed"
+  }
+fi
+
 # Odds ingestion: competitions that have The Odds API sport_key (lib/leagues.ts oddsKey; scripts/ingest-odds.py SPORT_MAP).
 # Competitions with oddsKey null (Coppa Italia, Copa del Rey, Coupe de France, DFB-Pokal) are fixtures/stats only.
 # Set ODDS_COMPETITIONS to space-separated list; default below includes all with odds.

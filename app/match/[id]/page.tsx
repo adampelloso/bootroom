@@ -4,6 +4,7 @@ import { getMatchDetail } from "@/lib/build-feed";
 import { resolveProvider } from "@/lib/providers/registry";
 import { isCup } from "@/lib/leagues";
 import { getMatchStats, getTeamLastNMatchRows, getTeamRecentResults } from "@/lib/insights/team-stats";
+import { getTeamPlayerStats } from "@/lib/insights/player-stats";
 import { buildTrendsByStat } from "@/lib/insights/trend-chart-data";
 import { getFeedMarketRows, getDetailScreenshotCharts } from "@/lib/insights/feed-market-stats";
 import { CornersCard } from "@/app/components/CornersCard";
@@ -17,6 +18,7 @@ import { TotalGoalsSection } from "@/app/components/TotalGoalsSection";
 import { TeamTotalsSection } from "@/app/components/TeamTotalsSection";
 import { MoreStatsReveal } from "@/app/components/MoreStatsReveal";
 import type { InsightFamily } from "@/lib/insights/catalog";
+import type { PlayerPropStat } from "@/app/components/PlayerPropsCard";
 
 function formatKickoffTime(iso: string): string {
   const d = new Date(iso);
@@ -32,17 +34,7 @@ async function getMatch(id: string) {
   return getMatchDetail(id);
 }
 
-type PlayerPropStat = {
-  id: number;
-  name: string;
-  teamName: string;
-  shotsTotal: number | null;
-  shotsOn: number | null;
-  goals: number | null;
-  assists: number | null;
-};
-
-async function getPlayerProps(id: string): Promise<PlayerPropStat[]> {
+async function getPlayerPropsFromApi(id: string): Promise<PlayerPropStat[]> {
   const fixtureId = Number(id);
   if (Number.isNaN(fixtureId)) return [];
   const { provider } = resolveProvider("api-football");
@@ -62,6 +54,21 @@ async function getPlayerProps(id: string): Promise<PlayerPropStat[]> {
       };
     })
   );
+}
+
+function getPlayerPropsFromSeason(homeTeamName: string, awayTeamName: string): PlayerPropStat[] {
+  const homeStats = getTeamPlayerStats(homeTeamName);
+  const awayStats = getTeamPlayerStats(awayTeamName);
+  return [...homeStats, ...awayStats].map((p) => ({
+    id: p.playerId,
+    name: p.name,
+    teamName: p.teamName,
+    shotsTotal: p.shotsPerGame,
+    shotsOn: p.sotPerGame,
+    goals: p.goals,
+    assists: p.assists,
+    appearances: p.appearances,
+  }));
 }
 
 type VenueCondition = "Home" | "Away" | "Combined";
@@ -93,7 +100,23 @@ export default async function MatchDetailPage({
   const formParam = search.form;
   const match = await getMatch(id);
   if (!match) notFound();
-  const playerStats = await getPlayerProps(id);
+  const isFinished = match.homeGoals != null && match.awayGoals != null;
+
+  let playerStats: PlayerPropStat[];
+  let isSeasonAverage: boolean;
+  if (isFinished) {
+    const apiStats = await getPlayerPropsFromApi(id);
+    if (apiStats.length > 0) {
+      playerStats = apiStats;
+      isSeasonAverage = false;
+    } else {
+      playerStats = getPlayerPropsFromSeason(match.homeTeamName, match.awayTeamName);
+      isSeasonAverage = true;
+    }
+  } else {
+    playerStats = getPlayerPropsFromSeason(match.homeTeamName, match.awayTeamName);
+    isSeasonAverage = true;
+  }
   const parsed = parseConditions(search);
   const venue = parsed.venue;
   const sample = parsed.sample;
@@ -184,8 +207,6 @@ export default async function MatchDetailPage({
     rollingStats && awayLast10.length > 0
       ? buildTrendsByStat(awayLast10, rollingStats.away.l10)
       : null;
-
-  const isFinished = match.homeGoals != null && match.awayGoals != null;
 
   return (
     <main className="min-h-screen flex flex-col bg-[var(--bg-body)]">
@@ -344,6 +365,7 @@ export default async function MatchDetailPage({
         playerStats={playerStats}
         homeTeamName={match.homeTeamName}
         awayTeamName={match.awayTeamName}
+        isSeasonAverage={isSeasonAverage}
       />
 
       <MoreStatsReveal

@@ -132,6 +132,37 @@ export interface ApiFootballFixturePlayersResponse {
   response: ApiFootballPlayerResponseItem[];
 }
 
+/** Player season stats from /players endpoint (different from /fixtures/players) */
+export interface ApiFootballSeasonPlayerStatistics {
+  team: { id: number; name: string; logo: string };
+  league: { id: number; name: string; country: string; logo: string; flag: string; season: number };
+  games: {
+    appearences: number | null;
+    lineups: number | null;
+    minutes: number | null;
+    position: string;
+    rating: string | null;
+    captain: boolean;
+  };
+  shots: { total: number | null; on: number | null };
+  goals: { total: number | null; conceded: number | null; assists: number | null };
+  passes: { total: number | null; key: number | null; accuracy: number | null };
+}
+
+export interface ApiFootballSeasonPlayerItem {
+  player: { id: number; name: string; firstname: string; lastname: string; age: number; nationality: string; photo: string };
+  statistics: ApiFootballSeasonPlayerStatistics[];
+}
+
+export interface ApiFootballPlayersResponse {
+  get: string;
+  parameters: Record<string, string | number>;
+  errors: Record<string, unknown>;
+  results: number;
+  paging: { current: number; total: number };
+  response: ApiFootballSeasonPlayerItem[];
+}
+
 /** Odds snapshot - simplified for MVP */
 export interface ApiFootballOddsResponse {
   get: string;
