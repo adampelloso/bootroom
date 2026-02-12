@@ -1,8 +1,10 @@
+import Image from "next/image";
 import { SignUpForm } from "./components/SignUpForm";
 
 export default function LandingPage() {
   return (
     <main
+      data-theme="dark"
       style={{
         display: "flex",
         flexDirection: "column",
@@ -10,23 +12,17 @@ export default function LandingPage() {
         justifyContent: "center",
         minHeight: "100vh",
         padding: "24px",
-        gap: "0",
+        background: "#0A0A0A",
       }}
     >
       {/* Logo */}
-      <div
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: "11px",
-          fontWeight: 700,
-          letterSpacing: "0.3em",
-          color: "#525252",
-          textTransform: "uppercase",
-          marginBottom: "20px",
-        }}
-      >
-        Bootroom
-      </div>
+      <Image
+        src="/images/bootroom.svg"
+        alt="Bootroom"
+        width={40}
+        height={50}
+        style={{ marginBottom: "24px" }}
+      />
 
       {/* H1 */}
       <h1
