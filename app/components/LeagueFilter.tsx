@@ -19,7 +19,7 @@ function buildUrl(date: string, league: LeagueFilterValue): string {
   const sp = new URLSearchParams();
   sp.set("date", date);
   sp.set("league", league);
-  return `/?${sp.toString()}`;
+  return `/feed?${sp.toString()}`;
 }
 
 export function LeagueFilterPill({

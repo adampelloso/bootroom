@@ -215,7 +215,7 @@ export default async function MatchDetailPage({
           style={{ paddingTop: "var(--space-lg)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}
         >
           <Link
-            href="/"
+            href="/feed"
             className="font-bold uppercase text-[var(--text-main)] hover:text-[var(--text-sec)] transition-colors"
             style={{ fontSize: "20px", letterSpacing: "-0.02em", lineHeight: 1.2 }}
           >

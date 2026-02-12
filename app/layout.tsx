@@ -24,6 +24,11 @@ export default function RootLayout({
             `,
           }}
         />
+        <script
+          src="https://cdn.visitors.now/v.js"
+          data-token="71d9307d-2856-44aa-8f2b-4946c1789973"
+          async
+        />
       </head>
       <body className="min-h-screen antialiased">{children}</body>
     </html>
