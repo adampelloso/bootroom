@@ -38,9 +38,7 @@ export default function LandingPage() {
           maxWidth: "360px",
         }}
       >
-        Match intelligence,
-        <br />
-        not noise.
+        Bootroom
       </h1>
 
       {/* Subline */}
@@ -55,9 +53,7 @@ export default function LandingPage() {
           maxWidth: "320px",
         }}
       >
-        Stats-driven insights for every fixture.
-        <br />
-        Early access coming soon.
+        Stats-driven insights & advanced simulations for smarter betting.
       </p>
 
       {/* Email capture */}
