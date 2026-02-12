@@ -38,7 +38,7 @@ export default async function ExportPage({
 
   return (
     <main
-      className="min-h-screen bg-[var(--bg-body)]"
+      className="app-shell min-h-screen bg-[var(--bg-body)]"
       style={{ padding: "var(--space-lg) var(--space-md)" }}
     >
       <div

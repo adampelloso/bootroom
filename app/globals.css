@@ -61,16 +61,19 @@ body {
   font-family: var(--font-mono);
   font-size: 14px;
   line-height: 1.5;
+  min-height: 100vh;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* App chrome for inner pages */
+body:has(.app-shell) {
   max-width: 480px;
-  margin: 0 auto;
+  margin: 24px auto;
   border-left: 1px solid var(--border-light);
   border-right: 1px solid var(--border-light);
   border-top: 1px solid var(--border-light);
   border-bottom: 1px solid var(--border-light);
-  min-height: 100vh;
-  margin: 24px auto;
-  position: relative;
-  -webkit-font-smoothing: antialiased;
 }
 
 @layer base {

@@ -30,7 +30,7 @@ export default async function MatchSimPage({ params }: { params: Promise<{ id: s
 
   if (!precomputed) {
     return (
-      <main className="min-h-screen flex flex-col bg-[var(--bg-body)]">
+      <main className="app-shell min-h-screen flex flex-col bg-[var(--bg-body)]">
         <header
           className="flex justify-between items-center px-5 pt-8 pb-3"
           style={{
@@ -142,7 +142,7 @@ export default async function MatchSimPage({ params }: { params: Promise<{ id: s
   }
 
   return (
-    <main className="min-h-screen flex flex-col bg-[var(--bg-body)]">
+    <main className="app-shell min-h-screen flex flex-col bg-[var(--bg-body)]">
       <header
         className="flex justify-between items-center px-5 pt-8 pb-3"
         style={{

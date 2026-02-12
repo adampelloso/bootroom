@@ -209,7 +209,7 @@ export default async function MatchDetailPage({
       : null;
 
   return (
-    <main className="min-h-screen flex flex-col bg-[var(--bg-body)]">
+    <main className="app-shell min-h-screen flex flex-col bg-[var(--bg-body)]">
       <header
           className="flex justify-between items-center px-5 pt-8 pb-3"
           style={{ paddingTop: "var(--space-lg)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}
