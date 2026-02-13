@@ -5,6 +5,7 @@
 
 import fs from "fs";
 import path from "path";
+import { isCup } from "@/lib/leagues";
 
 export interface RollingStats {
   goalsFor: number;
@@ -408,6 +409,44 @@ export function getMatchStats(
 /** Clear cache (e.g. after re-ingest). */
 export function clearTeamStatsCache(): void {
   cachedHistory = null;
+}
+
+/**
+ * Detect a team's primary domestic league (the league type competition where
+ * they have the most matches). Used for cross-league cup adjustments.
+ * Returns the league id, or undefined if no league matches found.
+ */
+export function getTeamPrimaryLeagueId(teamName: string, asOfDate?: string): number | undefined {
+  const history = getTeamHistory();
+  const matches = findTeamMatches(history, teamName);
+  if (!matches || matches.length === 0) return undefined;
+
+  let filtered = matches;
+  if (asOfDate) {
+    const cutoff = new Date(asOfDate).getTime();
+    filtered = matches.filter((m) => m.dateMs < cutoff);
+  }
+
+  // Count matches per leagueId (only league-type competitions, not cups)
+  const counts = new Map<number, number>();
+  for (const m of filtered) {
+    if (m.leagueId == null) continue;
+    if (isCup(m.leagueId)) continue;
+    counts.set(m.leagueId, (counts.get(m.leagueId) ?? 0) + 1);
+  }
+
+  if (counts.size === 0) return undefined;
+
+  // Return the league with the most matches
+  let bestId: number | undefined;
+  let bestCount = 0;
+  for (const [id, count] of counts) {
+    if (count > bestCount) {
+      bestCount = count;
+      bestId = id;
+    }
+  }
+  return bestId;
 }
 
 export type FormResult = "W" | "D" | "L";

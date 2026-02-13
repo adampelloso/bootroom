@@ -45,7 +45,10 @@ async function fetchJson(baseUrl, key, host, path) {
 
 // Keep in sync with lib/leagues.ts ALL_COMPETITION_IDS (used when --all)
 const ALL_LEAGUE_IDS = [
-  39, 78, 135, 140, 61, 2, 3, 848, 48, 45, 137, 143, 62, 81,
+  39, 78, 135, 140, 61,           // Big 5
+  40, 41, 42, 136, 79, 141, 62,   // Second-tier leagues
+  2, 3, 848,                       // European cups
+  48, 45, 137, 143, 66, 81,       // Domestic cups
 ];
 
 async function ingestOneLeague(baseUrl, key, host, league, season, delayMs, limit, skipPlayers) {

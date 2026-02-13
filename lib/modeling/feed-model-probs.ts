@@ -20,6 +20,8 @@ export interface FeedModelProbs {
   draw: number;
   away: number;
   over_2_5?: number;
+  /** Raw MC simulation probability for O2.5 (before calibration/blending). */
+  mcOver25?: number;
   edges?: {
     home: number;
     draw: number;
@@ -123,6 +125,7 @@ export function getFeedMatchModelProbs(match: FeedMatch): FeedModelProbs | null 
     draw: blendedProbs.draw,
     away: blendedProbs.away,
     over_2_5: blendedProbs.over_2_5,
+    mcOver25: sim.pO25,
     edges,
     evFlags: evFlags.length > 0 ? evFlags : undefined,
     expectedHomeGoals: sim.expectedHomeGoals,

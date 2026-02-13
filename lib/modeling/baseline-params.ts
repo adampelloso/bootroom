@@ -1,5 +1,6 @@
-import { getTeamStats, getLeagueGoalAverages } from "@/lib/insights/team-stats";
+import { getTeamStats, getLeagueGoalAverages, getTeamPrimaryLeagueId } from "@/lib/insights/team-stats";
 import type { TeamRollingStats } from "@/lib/insights/team-stats";
+import { isCup, getLeagueStrength } from "@/lib/leagues";
 
 type GoalsRolling = Pick<TeamRollingStats, "l5" | "season">;
 
@@ -69,10 +70,22 @@ function computeGoalLambdaComponents(
   fixtureDate?: string,
   leagueId?: number
 ): { components: GoalLambdaComponents; homeStats: GoalsRolling; awayStats: GoalsRolling } | null {
-  const homeStatsAll = getTeamStats(homeTeamName, fixtureDate, { venue: "home", leagueId });
-  const awayStatsAll = getTeamStats(awayTeamName, fixtureDate, { venue: "away", leagueId });
-  const homeStats = safeStats(homeStatsAll);
-  const awayStats = safeStats(awayStatsAll);
+  // For cup matches, pull stats from each team's primary domestic league
+  // so we're comparing like-for-like within their usual competition.
+  const cupMatch = leagueId != null && isCup(leagueId);
+  const homeLeagueId = cupMatch
+    ? getTeamPrimaryLeagueId(homeTeamName, fixtureDate) ?? leagueId
+    : leagueId;
+  const awayLeagueId = cupMatch
+    ? getTeamPrimaryLeagueId(awayTeamName, fixtureDate) ?? leagueId
+    : leagueId;
+
+  let homeStats = safeStats(getTeamStats(homeTeamName, fixtureDate, { venue: "home", leagueId: homeLeagueId }));
+  let awayStats = safeStats(getTeamStats(awayTeamName, fixtureDate, { venue: "away", leagueId: awayLeagueId }));
+
+  // Fall back to all-competition stats if primary league returns nothing
+  if (!homeStats) homeStats = safeStats(getTeamStats(homeTeamName, fixtureDate, { venue: "home" }));
+  if (!awayStats) awayStats = safeStats(getTeamStats(awayTeamName, fixtureDate, { venue: "away" }));
 
   if (!homeStats || !awayStats) return null;
 
@@ -111,24 +124,60 @@ function computeGoalLambdaComponents(
     awayStats.season.matchCount
   );
 
-  const league = getLeagueGoalAverages(leagueId);
+  // For cup matches, use a neutral top-flight baseline so both teams are
+  // evaluated against the same yardstick before the strength adjustment.
+  const baselineLeagueId = cupMatch ? undefined : leagueId;
+  const league = getLeagueGoalAverages(baselineLeagueId);
   const leagueHomeGoals = league.homeGoals || 1.4;
   const leagueAwayGoals = league.awayGoals || 1.1;
+
+  // Normalize each team's stats against their own league averages so
+  // multipliers represent "how good are they relative to their league".
+  const homeLeagueAvg = cupMatch ? getLeagueGoalAverages(homeLeagueId) : league;
+  const awayLeagueAvg = cupMatch ? getLeagueGoalAverages(awayLeagueId) : league;
+  const hlHome = homeLeagueAvg.homeGoals || leagueHomeGoals;
+  const hlAway = homeLeagueAvg.awayGoals || leagueAwayGoals;
+  const alHome = awayLeagueAvg.homeGoals || leagueHomeGoals;
+  const alAway = awayLeagueAvg.awayGoals || leagueAwayGoals;
 
   // League-normalized attack/defence multipliers with regression to the mean.
   // Shrink extreme multipliers toward 1.0 based on sample size.
   const homeSeasonN = homeStats.season.matchCount;
   const awaySeasonN = awayStats.season.matchCount;
 
-  const rawHomeAttack = leagueHomeGoals > 0 ? homeAttack / leagueHomeGoals : 1;
-  const rawAwayAttack = leagueAwayGoals > 0 ? awayAttack / leagueAwayGoals : 1;
-  const rawHomeDef = leagueAwayGoals > 0 ? homeDef / leagueAwayGoals : 1;
-  const rawAwayDef = leagueHomeGoals > 0 ? awayDef / leagueHomeGoals : 1;
+  const rawHomeAttack = hlHome > 0 ? homeAttack / hlHome : 1;
+  const rawAwayAttack = alAway > 0 ? awayAttack / alAway : 1;
+  const rawHomeDef = hlAway > 0 ? homeDef / hlAway : 1;
+  const rawAwayDef = alHome > 0 ? awayDef / alHome : 1;
 
-  const homeAttackMultiplier = shrinkMultiplier(rawHomeAttack, homeSeasonN);
-  const awayAttackMultiplier = shrinkMultiplier(rawAwayAttack, awaySeasonN);
-  const homeDefenceMultiplier = shrinkMultiplier(rawHomeDef, homeSeasonN);
-  const awayDefenceMultiplier = shrinkMultiplier(rawAwayDef, awaySeasonN);
+  let homeAttackMultiplier = shrinkMultiplier(rawHomeAttack, homeSeasonN);
+  let awayAttackMultiplier = shrinkMultiplier(rawAwayAttack, awaySeasonN);
+  let homeDefenceMultiplier = shrinkMultiplier(rawHomeDef, homeSeasonN);
+  let awayDefenceMultiplier = shrinkMultiplier(rawAwayDef, awaySeasonN);
+
+  // Cross-league strength adjustment for cup matches.
+  // If teams come from different-strength leagues, scale their multipliers
+  // so a top-flight team's "average" performance beats a lower-league team's.
+  if (cupMatch) {
+    const homeStrength = getLeagueStrength(homeLeagueId!);
+    const awayStrength = getLeagueStrength(awayLeagueId!);
+
+    // Scale attack up and defence down for the stronger-league team (and vice versa).
+    // The ratio captures the gap: e.g. EPL (1.0) vs Championship (0.78) → 1.28x edge.
+    if (homeStrength !== awayStrength) {
+      const homeEdge = homeStrength / awayStrength; // >1 if home team from stronger league
+      const awayEdge = awayStrength / homeStrength;
+
+      // Apply as a moderate scaling (sqrt to avoid extreme swings)
+      const homeScale = Math.sqrt(homeEdge);
+      const awayScale = Math.sqrt(awayEdge);
+
+      homeAttackMultiplier *= homeScale;
+      homeDefenceMultiplier *= awayScale; // opponent's attack scaled up → more goals conceded
+      awayAttackMultiplier *= awayScale;
+      awayDefenceMultiplier *= homeScale;
+    }
+  }
 
   const components: GoalLambdaComponents = {
     leagueHomeGoals,
@@ -210,10 +259,29 @@ export function estimateMatchCornerLambdas(
   fixtureDate?: string,
   leagueId?: number
 ): MatchCornerLambdas | null {
-  const homeStatsAll = getTeamStats(homeTeamName, fixtureDate, { venue: "home", leagueId });
-  const awayStatsAll = getTeamStats(awayTeamName, fixtureDate, { venue: "away", leagueId });
-  const homeStats = safeStats(homeStatsAll);
-  const awayStats = safeStats(awayStatsAll);
+  // Try league-scoped stats first, fall back to all-competition stats when
+  // corner data is missing or near-zero (common for cup competitions where
+  // lower-league teams lack stats in the cup's league ID).
+  let homeStats = safeStats(getTeamStats(homeTeamName, fixtureDate, { venue: "home", leagueId }));
+  let awayStats = safeStats(getTeamStats(awayTeamName, fixtureDate, { venue: "away", leagueId }));
+
+  // If league-scoped stats have no meaningful corner data, broaden to all competitions.
+  const MIN_CORNER_AVG = 1.0; // real teams average 4–7 corners; < 1 means data is missing
+  if (homeStats && homeStats.season.cornersFor < MIN_CORNER_AVG && leagueId != null) {
+    const broader = safeStats(getTeamStats(homeTeamName, fixtureDate, { venue: "home" }));
+    if (broader && broader.season.cornersFor >= MIN_CORNER_AVG) homeStats = broader;
+  }
+  if (awayStats && awayStats.season.cornersFor < MIN_CORNER_AVG && leagueId != null) {
+    const broader = safeStats(getTeamStats(awayTeamName, fixtureDate, { venue: "away" }));
+    if (broader && broader.season.cornersFor >= MIN_CORNER_AVG) awayStats = broader;
+  }
+  // Also handle case where league-scoped stats returned null entirely
+  if (!homeStats && leagueId != null) {
+    homeStats = safeStats(getTeamStats(homeTeamName, fixtureDate, { venue: "home" }));
+  }
+  if (!awayStats && leagueId != null) {
+    awayStats = safeStats(getTeamStats(awayTeamName, fixtureDate, { venue: "away" }));
+  }
 
   if (!homeStats || !awayStats) return null;
 

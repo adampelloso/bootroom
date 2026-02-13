@@ -35,6 +35,15 @@ export function MatchCard({ match }: { match: FeedMatch }) {
       ? mp.expectedHomeCorners + mp.expectedAwayCorners
       : null;
 
+  // Use raw MC probability for Over 2.5 display, fall back to calibrated
+  const over25Display = mp?.mcOver25 ?? mp?.over_2_5;
+
+  const buttonStyle = {
+    border: "2px solid var(--text-main)",
+    color: "var(--text-main)",
+    background: "transparent",
+  };
+
   return (
     <Link
       href={`/match/${match.providerFixtureId}`}
@@ -46,7 +55,7 @@ export function MatchCard({ match }: { match: FeedMatch }) {
       }}
       aria-label={`${match.homeTeamName} v ${match.awayTeamName} – match detail`}
     >
-      {/* Header row: league + kickoff left, SIM button right */}
+      {/* Header row: league + kickoff left, H2H + SIM buttons right */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2 text-mono text-[11px] uppercase" style={{ color: "var(--text-tertiary)" }}>
           {match.leagueName && (
@@ -56,19 +65,26 @@ export function MatchCard({ match }: { match: FeedMatch }) {
           )}
           <span>{formatKickoffTime(match.kickoffUtc)}</span>
         </div>
-        <Link
-          href={`/match/${match.providerFixtureId}/sim`}
-          onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center px-3 py-1 text-mono text-[11px] uppercase font-bold tracking-wide transition-colors"
-          style={{
-            border: "2px solid var(--text-main)",
-            color: "var(--text-main)",
-            background: "transparent",
-          }}
-          aria-label="Open Monte Carlo simulation view"
-        >
-          SIM
-        </Link>
+        <div className="flex items-center gap-1.5">
+          <Link
+            href={`/match/${match.providerFixtureId}`}
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center px-3 py-1 text-mono text-[11px] uppercase font-bold tracking-wide transition-colors"
+            style={buttonStyle}
+            aria-label="View head-to-head analysis"
+          >
+            H2H
+          </Link>
+          <Link
+            href={`/match/${match.providerFixtureId}/sim`}
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center px-3 py-1 text-mono text-[11px] uppercase font-bold tracking-wide transition-colors"
+            style={buttonStyle}
+            aria-label="Open Monte Carlo simulation view"
+          >
+            SIM
+          </Link>
+        </div>
       </div>
 
       {/* Teams */}
@@ -97,33 +113,34 @@ export function MatchCard({ match }: { match: FeedMatch }) {
       {hasMcData ? (
         <table
           className="w-full text-mono"
-          style={{
-            borderCollapse: "collapse",
-            borderTop: "1px solid var(--text-main)",
-          }}
+          style={{ borderCollapse: "collapse" }}
         >
           <thead>
-            <tr style={{ borderBottom: "1px solid var(--text-main)" }}>
+            <tr
+              style={{
+                background: "var(--bg-surface)",
+              }}
+            >
               <th
-                className="text-left uppercase font-bold py-1.5 text-[10px] tracking-wider"
+                className="text-left uppercase font-bold py-1.5 px-1.5 text-[10px] tracking-wider"
                 style={{ color: "var(--text-tertiary)", width: "40%" }}
               >
                 Stat
               </th>
               <th
-                className="text-center uppercase font-bold py-1.5 text-[10px] tracking-wider"
+                className="text-center uppercase font-bold py-1.5 px-1.5 text-[10px] tracking-wider"
                 style={{ color: "var(--text-tertiary)", width: "20%" }}
               >
                 Home
               </th>
               <th
-                className="text-center uppercase font-bold py-1.5 text-[10px] tracking-wider"
+                className="text-center uppercase font-bold py-1.5 px-1.5 text-[10px] tracking-wider"
                 style={{ color: "var(--text-tertiary)", width: "20%" }}
               >
                 Away
               </th>
               <th
-                className="text-right uppercase font-bold py-1.5 text-[10px] tracking-wider"
+                className="text-right uppercase font-bold py-1.5 px-1.5 text-[10px] tracking-wider"
                 style={{ color: "var(--text-tertiary)", width: "20%" }}
               >
                 Total
@@ -133,7 +150,7 @@ export function MatchCard({ match }: { match: FeedMatch }) {
           <tbody>
             <tr style={{ borderBottom: "1px solid var(--border-light)" }}>
               <td className="py-1.5 text-[12px] uppercase font-semibold" style={{ color: "var(--text-sec)" }}>
-                Exp. Goals
+                xG
               </td>
               <td className="py-1.5 text-center text-[13px] font-bold" style={{ color: "var(--text-main)" }}>
                 {mp!.expectedHomeGoals!.toFixed(1)}
@@ -148,7 +165,7 @@ export function MatchCard({ match }: { match: FeedMatch }) {
             {totalCorners != null && (
               <tr style={{ borderBottom: "1px solid var(--border-light)" }}>
                 <td className="py-1.5 text-[12px] uppercase font-semibold" style={{ color: "var(--text-sec)" }}>
-                  Exp. Corners
+                  xCorners
                 </td>
                 <td className="py-1.5 text-center text-[13px] font-bold" style={{ color: "var(--text-main)" }}>
                   {mp!.expectedHomeCorners!.toFixed(1)}
@@ -161,13 +178,13 @@ export function MatchCard({ match }: { match: FeedMatch }) {
                 </td>
               </tr>
             )}
-            {mp!.over_2_5 != null && (
-              <tr style={{ borderBottom: "1px solid var(--border-light)" }}>
+            {over25Display != null && (
+              <tr>
                 <td className="py-1.5 text-[12px] uppercase font-semibold" style={{ color: "var(--text-sec)" }}>
                   Over 2.5
                 </td>
                 <td colSpan={3} className="py-1.5 text-right text-[13px] font-bold" style={{ color: "var(--text-main)" }}>
-                  {Math.round(mp!.over_2_5! * 100)}%
+                  {Math.round(over25Display * 100)}%
                 </td>
               </tr>
             )}
@@ -188,18 +205,23 @@ export function MatchCard({ match }: { match: FeedMatch }) {
       {/* Top scorelines */}
       {hasMcData && mp!.topScorelines && mp!.topScorelines.length > 0 && (
         <div
-          className="flex items-center gap-3 pt-2 mt-1 text-mono text-[11px] uppercase"
-          style={{
-            borderTop: "1px solid var(--border-light)",
-            color: "var(--text-tertiary)",
-          }}
+          className="flex items-stretch gap-2 pt-2 mt-1 text-mono uppercase"
         >
-          <span className="font-semibold" style={{ color: "var(--text-sec)" }}>Likely</span>
           {mp!.topScorelines.map((s) => (
-            <span key={s.score}>
-              {s.score}{" "}
-              <span style={{ color: "var(--text-main)" }}>{Math.round(s.prob * 100)}%</span>
-            </span>
+            <div
+              key={s.score}
+              className="flex-1 flex flex-col items-center justify-center py-2"
+              style={{
+                background: "var(--bg-surface)",
+              }}
+            >
+              <span className="text-[15px] font-bold" style={{ color: "var(--text-main)" }}>
+                {s.score}
+              </span>
+              <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+                {Math.round(s.prob * 100)}%
+              </span>
+            </div>
           ))}
         </div>
       )}
