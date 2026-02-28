@@ -1,6 +1,6 @@
 "use client";
 
-import { getTeamAbbreviation } from "@/lib/teams/abbreviations";
+function abbrev(name: string) { return name.slice(0, 3).toUpperCase(); }
 
 /**
  * Bar chart for one stat over the last 10 games, with average line.
@@ -140,7 +140,7 @@ export function StatTrendChart({ title, data, average, integerValues, leagueAvg 
               title={point.opponentName}
             >
               <span className="text-[9px] font-mono text-tertiary truncate block w-full leading-tight">
-                {getTeamAbbreviation(point.opponentName)}
+                {abbrev(point.opponentName)}
               </span>
             </div>
           ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { getTeamAbbreviation } from "@/lib/teams/abbreviations";
+function abbrev(name: string) { return name.slice(0, 3).toUpperCase(); }
 
 type CornersData = {
   homeCornersFor: number;
@@ -47,7 +47,7 @@ export function CornersCard({ homeTeamName, awayTeamName, data }: Props) {
       {/* Home team */}
       <div className="pb-3 border-b border-[var(--border-light)]">
         <p className="text-mono text-[11px] uppercase text-tertiary mb-3">
-          {getTeamAbbreviation(homeTeamName)} (last 5 home)
+          {abbrev(homeTeamName)} (last 5 home)
         </p>
         <div className="grid grid-cols-3 gap-3 text-secondary-data">
           <div>
@@ -73,7 +73,7 @@ export function CornersCard({ homeTeamName, awayTeamName, data }: Props) {
       {/* Away team */}
       <div className="py-3 border-b border-[var(--border-light)]">
         <p className="text-mono text-[11px] uppercase text-tertiary mb-3">
-          {getTeamAbbreviation(awayTeamName)} (last 5 away)
+          {abbrev(awayTeamName)} (last 5 away)
         </p>
         <div className="grid grid-cols-3 gap-3 text-secondary-data">
           <div>
@@ -110,7 +110,7 @@ export function CornersCard({ homeTeamName, awayTeamName, data }: Props) {
         <div className="grid grid-cols-2 gap-3 pt-2 border-t border-[var(--border-light)] text-secondary-data">
           <div>
             <span className="text-tertiary block mb-1 text-[10px] uppercase">
-              {getTeamAbbreviation(homeTeamName)} edge
+              {abbrev(homeTeamName)} edge
             </span>
             <span className="text-primary-data font-semibold" style={{ color: "var(--text-main)" }}>
               {homeEdge > 0 ? "+" : ""}
@@ -119,7 +119,7 @@ export function CornersCard({ homeTeamName, awayTeamName, data }: Props) {
           </div>
           <div>
             <span className="text-tertiary block mb-1 text-[10px] uppercase">
-              {getTeamAbbreviation(awayTeamName)} edge
+              {abbrev(awayTeamName)} edge
             </span>
             <span className="text-primary-data font-semibold" style={{ color: "var(--text-main)" }}>
               {awayEdge > 0 ? "+" : ""}

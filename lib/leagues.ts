@@ -85,16 +85,52 @@ const LEAGUE_STRENGTH: Record<number, number> = {
   135: 1.0,  // Serie A
   140: 1.0,  // La Liga
   61: 1.0,   // Ligue 1
+  // Tier 1.5 — Strong European leagues
+  94: 0.90,  // Liga Portugal
+  88: 0.90,  // Eredivisie
+  203: 0.85, // Turkey Süper Lig
+  144: 0.85, // Belgium Pro League
+  179: 0.82, // Scottish Premiership
+  218: 0.82, // Austria Bundesliga
+  197: 0.80, // Greece Super League
+  345: 0.80, // Czech First League
+  207: 0.80, // Switzerland Super League
+  119: 0.80, // Denmark Superliga
+  103: 0.75, // Norway Eliteserien
+  210: 0.78, // Croatia HNL
   // Tier 2 — Second divisions
   40: 0.78,  // Championship
   136: 0.78, // Serie B
   79: 0.78,  // 2. Bundesliga
   141: 0.78, // Segunda División
   62: 0.78,  // Ligue 2
+  // Tier 2.5 — Smaller European leagues
+  106: 0.72, // Poland Ekstraklasa
+  283: 0.70, // Romania Liga I
+  286: 0.72, // Serbia Super Liga
+  271: 0.68, // Hungary NB I
+  113: 0.75, // Sweden Allsvenskan
+  332: 0.68, // Slovakia Super Liga
+  172: 0.68, // Bulgaria First League
+  244: 0.65, // Finland Veikkausliiga
+  318: 0.65, // Cyprus First Division
+  383: 0.68, // Israel Ligat Ha'al
+  419: 0.60, // Azerbaijan Premyer Liqa
   // Tier 3
   41: 0.62,  // League One
   // Tier 4
   42: 0.50,  // League Two
+  // European cups
+  2: 1.0,    // UCL
+  3: 0.92,   // UEL
+  848: 0.85, // UECL
+  // Domestic cups (rank with parent league)
+  48: 0.95,  // FA Cup
+  45: 0.90,  // EFL Cup
+  137: 0.95, // Coppa Italia
+  143: 0.95, // Copa del Rey
+  66: 0.90,  // Coupe de France
+  81: 0.95,  // DFB-Pokal
 };
 
 /** Get relative strength for a league (1.0 = top-5 baseline, lower = weaker). */

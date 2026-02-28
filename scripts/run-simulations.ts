@@ -12,10 +12,12 @@ import { simulateMatch } from "@/lib/modeling/mc-engine";
 import type { MatchSimulationResult } from "@/lib/modeling/mc-engine";
 import { applyCalibration } from "@/lib/modeling/calibration";
 import { blendModelAndMarket } from "@/lib/modeling/odds-blend";
-import { getOddsKeyForLeagueId } from "@/lib/leagues";
+import { getOddsKeyForLeagueId, isCup } from "@/lib/leagues";
 import { getMarketProbsForMatch } from "@/lib/odds/the-odds-api";
 import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import type { GoalLambdaComponents, MatchGoalLambdas, MatchCornerLambdas } from "@/lib/modeling/baseline-params";
+import { findFirstLegResult } from "@/lib/modeling/first-leg-lookup";
+import type { FirstLegResult } from "@/lib/modeling/first-leg-lookup";
 
 const EV_THRESHOLD = 0.03;
 const SIMULATIONS = 100_000;
@@ -29,6 +31,7 @@ interface UpcomingFixture {
   awayTeamId: number;
   leagueId: number;
   leagueName?: string;
+  round?: string;
   season: number;
   venue: string | null;
 }
@@ -122,6 +125,7 @@ function computeFeedProbs(
     away: blendedProbs.away,
     over_2_5: blendedProbs.over_2_5,
     mcOver25: sim.pO25,
+    mcBtts: sim.pBTTS,
     edges,
     evFlags: evFlags.length > 0 ? evFlags : undefined,
     expectedHomeGoals: sim.expectedHomeGoals,
@@ -171,8 +175,17 @@ function main() {
     for (const fixture of dateFixtures) {
       const fixtureDate = fixture.date.slice(0, 10);
 
+      // Look up first-leg result for cup 2nd legs
+      let firstLegResult: FirstLegResult | undefined;
+      if (isCup(fixture.leagueId) && fixture.round) {
+        firstLegResult = findFirstLegResult(
+          fixture.leagueId, fixture.season, fixture.round,
+          fixture.homeTeam, fixture.awayTeam, fixture.date
+        ) ?? undefined;
+      }
+
       // Estimate lambdas (scoped to the fixture's competition)
-      const goalLambdas = estimateMatchGoalLambdas(fixture.homeTeam, fixture.awayTeam, fixtureDate, fixture.leagueId);
+      const goalLambdas = estimateMatchGoalLambdas(fixture.homeTeam, fixture.awayTeam, fixtureDate, fixture.leagueId, firstLegResult);
       if (!goalLambdas) {
         console.log(`  [SKIP] ${fixture.homeTeam} v ${fixture.awayTeam} — no goal lambdas`);
         totalSkipped++;
@@ -180,7 +193,17 @@ function main() {
       }
 
       const cornerLambdas = estimateMatchCornerLambdas(fixture.homeTeam, fixture.awayTeam, fixtureDate, fixture.leagueId);
-      const components = debugGoalLambdaComponents(fixture.homeTeam, fixture.awayTeam, fixtureDate, fixture.leagueId);
+      const components = debugGoalLambdaComponents(fixture.homeTeam, fixture.awayTeam, fixtureDate, fixture.leagueId, firstLegResult);
+
+      if (firstLegResult) {
+        const { leg2HomeGoalsInLeg1, leg2AwayGoalsInLeg1, aggregateDeficit } = firstLegResult;
+        const trailing = aggregateDeficit > 0 ? fixture.homeTeam : fixture.awayTeam;
+        console.log(
+          `  [2-LEG] ${fixture.homeTeam} v ${fixture.awayTeam} — ` +
+            `1st leg: ${leg2AwayGoalsInLeg1}-${leg2HomeGoalsInLeg1}, ` +
+            `${trailing} trails by ${Math.abs(aggregateDeficit)}`
+        );
+      }
 
       // Run simulation
       const sim = simulateMatch({

@@ -58,20 +58,20 @@ export function PlayerPropsCard({ playerStats, homeTeamName, awayTeamName, isSea
       <div className="border-b border-[var(--border-light)] pb-3">
         <p className="text-mono text-[11px] uppercase text-tertiary mb-3">{teamLabel}</p>
         <div className="overflow-x-auto">
-          <table className="w-full text-[12px] text-primary-data">
+          <table className="w-full text-[10px] font-mono">
             <thead>
               <tr className="text-left text-tertiary border-b border-[var(--border-light)]">
-                <th className="py-1.5 font-medium">Player</th>
+                <th className="py-1 pr-2 font-medium">Player</th>
                 {isSeasonAverage && (
-                  <th className="py-1.5 font-medium text-right w-12">Apps</th>
+                  <th className="py-1 px-2 font-medium text-right w-10">Apps</th>
                 )}
-                <th className="py-1.5 font-medium text-right w-16">
-                  {isSeasonAverage ? "Shots/G" : "Shots"}
+                <th className="py-1 px-2 font-medium text-right w-12">
+                  {isSeasonAverage ? "Sh/G" : "Shots"}
                 </th>
-                <th className="py-1.5 font-medium text-right w-16">
+                <th className="py-1 px-2 font-medium text-right w-12">
                   {isSeasonAverage ? "SOT/G" : "SOT"}
                 </th>
-                <th className="py-1.5 font-medium text-right w-12">
+                <th className="py-1 pl-2 font-medium text-right w-10">
                   {isSeasonAverage ? "Goals" : "G"}
                 </th>
               </tr>
@@ -79,19 +79,19 @@ export function PlayerPropsCard({ playerStats, homeTeamName, awayTeamName, isSea
             <tbody>
               {players.map((p) => (
                 <tr key={p.id} className="border-b border-[var(--border-light)]/50 last:border-0">
-                  <td className="py-1.5 truncate max-w-[140px]">{p.name}</td>
+                  <td className="py-1 pr-2 truncate max-w-[120px]">{p.name}</td>
                   {isSeasonAverage && (
-                    <td className="py-1.5 text-right font-mono text-tertiary">
+                    <td className="py-1 px-2 text-right text-tertiary">
                       {p.appearances ?? "—"}
                     </td>
                   )}
-                  <td className="py-1.5 text-right font-mono">
+                  <td className="py-1 px-2 text-right">
                     {isSeasonAverage ? p.shots.toFixed(1) : p.shots}
                   </td>
-                  <td className="py-1.5 text-right font-mono">
+                  <td className="py-1 px-2 text-right">
                     {isSeasonAverage ? p.sot.toFixed(1) : p.sot}
                   </td>
-                  <td className="py-1.5 text-right font-mono text-tertiary">
+                  <td className="py-1 pl-2 text-right text-tertiary">
                     {p.goals ?? "—"}
                   </td>
                 </tr>

@@ -67,6 +67,7 @@ function flattenPlayer(item) {
     assists: stats.goals?.assists ?? 0,
     keyPasses: stats.passes?.key ?? 0,
     rating: stats.games?.rating ? parseFloat(stats.games.rating) : null,
+    lineups: stats.games?.lineups ?? 0,
   };
 }
 

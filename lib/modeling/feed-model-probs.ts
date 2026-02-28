@@ -6,8 +6,10 @@
 
 import type { FeedMatch } from "@/lib/feed";
 import { getFeedModelProbsFromDisk } from "@/lib/modeling/sim-reader";
-import { getOddsKeyForLeagueId } from "@/lib/leagues";
+import { getOddsKeyForLeagueId, isCup, getCompetitionByLeagueId } from "@/lib/leagues";
 import { estimateMatchGoalLambdas, estimateMatchCornerLambdas } from "@/lib/modeling/baseline-params";
+import { findFirstLegResult } from "@/lib/modeling/first-leg-lookup";
+import type { FirstLegResult } from "@/lib/modeling/first-leg-lookup";
 import { simulateMatch } from "@/lib/modeling/mc-engine";
 import { applyCalibration } from "@/lib/modeling/calibration";
 import { blendModelAndMarket } from "@/lib/modeling/odds-blend";
@@ -22,6 +24,8 @@ export interface FeedModelProbs {
   over_2_5?: number;
   /** Raw MC simulation probability for O2.5 (before calibration/blending). */
   mcOver25?: number;
+  /** Raw MC simulation probability for BTTS. */
+  mcBtts?: number;
   edges?: {
     home: number;
     draw: number;
@@ -53,7 +57,19 @@ export function getFeedMatchModelProbs(match: FeedMatch): FeedModelProbs | null 
 
   // Fallback: runtime simulation (for dev/local when no pre-computed data)
   const fixtureDate = match.kickoffUtc?.slice(0, 10);
-  const goalLambdas = estimateMatchGoalLambdas(match.homeTeamName, match.awayTeamName, fixtureDate, match.leagueId);
+
+  // Look up first-leg result for cup 2nd legs
+  let firstLegResult: FirstLegResult | undefined;
+  if (match.leagueId != null && isCup(match.leagueId) && match.round) {
+    const comp = getCompetitionByLeagueId(match.leagueId);
+    const season = comp?.season ?? new Date(match.kickoffUtc).getFullYear();
+    firstLegResult = findFirstLegResult(
+      match.leagueId, season, match.round,
+      match.homeTeamName, match.awayTeamName, match.kickoffUtc
+    ) ?? undefined;
+  }
+
+  const goalLambdas = estimateMatchGoalLambdas(match.homeTeamName, match.awayTeamName, fixtureDate, match.leagueId, firstLegResult);
 
   if (!goalLambdas) {
     return null;
@@ -126,6 +142,7 @@ export function getFeedMatchModelProbs(match: FeedMatch): FeedModelProbs | null 
     away: blendedProbs.away,
     over_2_5: blendedProbs.over_2_5,
     mcOver25: sim.pO25,
+    mcBtts: sim.pBTTS,
     edges,
     evFlags: evFlags.length > 0 ? evFlags : undefined,
     expectedHomeGoals: sim.expectedHomeGoals,

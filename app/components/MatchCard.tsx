@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { FeedMatch } from "@/lib/feed";
+import { percentPill } from "@/lib/percent-color";
 
 function formatKickoffTime(iso: string): string {
   const d = new Date(iso);
@@ -13,6 +14,15 @@ function formatKickoffTime(iso: string): string {
   });
 }
 
+function getBttsPercent(match: FeedMatch): number | null {
+  // Prefer MC simulation probability
+  if (match.modelProbs?.mcBtts != null) return match.modelProbs.mcBtts;
+  // Fall back to combined hit rate from market rows (hits out of 10 combined matches)
+  const bttsRow = match.marketRows.find((r) => r.market === "BTTS");
+  if (bttsRow && bttsRow.market === "BTTS") return bttsRow.combinedHits / 10;
+  return null;
+}
+
 export function MatchCard({ match }: { match: FeedMatch }) {
   const mp = match.modelProbs;
   const hasMcData = mp?.expectedHomeGoals != null && mp?.expectedAwayGoals != null;
@@ -21,10 +31,8 @@ export function MatchCard({ match }: { match: FeedMatch }) {
   let statParts: string[] = [];
   if (!hasMcData) {
     const o25Row = match.marketRows.find((r) => r.market === "O2.5");
-    const bttsRow = match.marketRows.find((r) => r.market === "BTTS");
     const cornersRow = match.marketRows.find((r) => r.market === "Corners");
     if (o25Row) statParts.push(`O2.5 ${o25Row.combinedHits}/10`);
-    if (bttsRow) statParts.push(`BTTS ${bttsRow.combinedHits}/10`);
     if (o25Row) statParts.push(`AVG ${o25Row.avgGoals.toFixed(1)}`);
     if (cornersRow) statParts.push(`CORNERS ${cornersRow.combinedAvg.toFixed(1)}`);
   }
@@ -37,6 +45,7 @@ export function MatchCard({ match }: { match: FeedMatch }) {
 
   // Use raw MC probability for Over 2.5 display, fall back to calibrated
   const over25Display = mp?.mcOver25 ?? mp?.over_2_5;
+  const bttsDisplay = getBttsPercent(match);
 
   const buttonStyle = {
     border: "2px solid var(--text-main)",
@@ -47,11 +56,10 @@ export function MatchCard({ match }: { match: FeedMatch }) {
   return (
     <Link
       href={`/match/${match.providerFixtureId}`}
-      className="block cursor-pointer transition-colors"
+      className="block cursor-pointer transition-colors hover:bg-[var(--bg-surface)]"
       style={{
         border: "2px solid var(--text-main)",
         padding: "var(--space-sm)",
-        marginBottom: "var(--space-sm)",
       }}
       aria-label={`${match.homeTeamName} v ${match.awayTeamName} – match detail`}
     >
@@ -69,7 +77,7 @@ export function MatchCard({ match }: { match: FeedMatch }) {
           <Link
             href={`/match/${match.providerFixtureId}`}
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center px-3 py-1 text-mono text-[11px] uppercase font-bold tracking-wide transition-colors"
+            className="inline-flex items-center px-3 py-1 text-mono text-[11px] uppercase font-bold tracking-wide transition-colors hover:bg-[var(--text-main)] hover:text-[var(--bg-body)]"
             style={buttonStyle}
             aria-label="View head-to-head analysis"
           >
@@ -78,7 +86,7 @@ export function MatchCard({ match }: { match: FeedMatch }) {
           <Link
             href={`/match/${match.providerFixtureId}/sim`}
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center px-3 py-1 text-mono text-[11px] uppercase font-bold tracking-wide transition-colors"
+            className="inline-flex items-center px-3 py-1 text-mono text-[11px] uppercase font-bold tracking-wide transition-colors hover:bg-[var(--text-main)] hover:text-[var(--bg-body)]"
             style={buttonStyle}
             aria-label="Open Monte Carlo simulation view"
           >
@@ -179,28 +187,48 @@ export function MatchCard({ match }: { match: FeedMatch }) {
               </tr>
             )}
             {over25Display != null && (
-              <tr>
+              <tr style={{ borderBottom: "1px solid var(--border-light)" }}>
                 <td className="py-1.5 text-[12px] uppercase font-semibold" style={{ color: "var(--text-sec)" }}>
                   Over 2.5
                 </td>
-                <td colSpan={3} className="py-1.5 text-right text-[13px] font-bold" style={{ color: "var(--text-main)" }}>
-                  {Math.round(over25Display * 100)}%
+                <td colSpan={3} className="py-1.5 text-right text-[13px] font-bold">
+                  <span className="inline-block px-2 py-0.5 rounded text-[12px]" style={{ background: percentPill(Math.round(over25Display * 100)).bg, color: percentPill(Math.round(over25Display * 100)).text }}>{Math.round(over25Display * 100)}%</span>
+                </td>
+              </tr>
+            )}
+            {bttsDisplay != null && (
+              <tr>
+                <td className="py-1.5 text-[12px] uppercase font-semibold" style={{ color: "var(--text-sec)" }}>
+                  BTTS
+                </td>
+                <td colSpan={3} className="py-1.5 text-right text-[13px] font-bold">
+                  <span className="inline-block px-2 py-0.5 rounded text-[12px]" style={{ background: percentPill(Math.round(bttsDisplay * 100)).bg, color: percentPill(Math.round(bttsDisplay * 100)).text }}>{Math.round(bttsDisplay * 100)}%</span>
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-      ) : statParts.length > 0 ? (
-        <div
-          className="text-mono text-[12px] uppercase pt-2"
-          style={{
-            borderTop: "1px solid var(--text-main)",
-            color: "var(--text-tertiary)",
-          }}
-        >
-          {statParts.join(" · ")}
-        </div>
-      ) : null}
+      ) : (
+        <>
+          {statParts.length > 0 && (
+            <div
+              className="text-mono text-[12px] uppercase pt-2"
+              style={{
+                borderTop: "1px solid var(--text-main)",
+                color: "var(--text-tertiary)",
+              }}
+            >
+              {statParts.join(" · ")}
+            </div>
+          )}
+          {bttsDisplay != null && (
+            <div className="text-mono text-[12px] uppercase pt-1">
+              <span style={{ color: "var(--text-tertiary)" }}>BTTS </span>
+              <span className="inline-block px-2 py-0.5 rounded text-[11px]" style={{ background: percentPill(Math.round(bttsDisplay * 100)).bg, color: percentPill(Math.round(bttsDisplay * 100)).text }}>{Math.round(bttsDisplay * 100)}%</span>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Top scorelines */}
       {hasMcData && mp!.topScorelines && mp!.topScorelines.length > 0 && (

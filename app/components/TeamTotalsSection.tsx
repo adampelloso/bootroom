@@ -1,6 +1,6 @@
 "use client";
 
-import { getTeamAbbreviation } from "@/lib/teams/abbreviations";
+function abbrev(name: string) { return name.slice(0, 3).toUpperCase(); }
 
 type Props = {
   homeTeamName: string;
@@ -38,7 +38,7 @@ export function TeamTotalsSection({
       <div className="grid grid-cols-2 gap-4">
         <div className="border-b border-[var(--border-light)] pb-3">
           <p className="text-mono text-[11px] uppercase text-tertiary mb-2">
-            {getTeamAbbreviation(homeTeamName)} (home)
+            {abbrev(homeTeamName)} (home)
           </p>
           <div className="flex items-baseline gap-2">
             <span className="text-primary-data font-semibold">{homeGoalsFor.toFixed(1)}</span>
@@ -53,7 +53,7 @@ export function TeamTotalsSection({
         </div>
         <div className="border-b border-[var(--border-light)] pb-3">
           <p className="text-mono text-[11px] uppercase text-tertiary mb-2">
-            {getTeamAbbreviation(awayTeamName)} (away)
+            {abbrev(awayTeamName)} (away)
           </p>
           <div className="flex items-baseline gap-2">
             <span className="text-primary-data font-semibold">{awayGoalsFor.toFixed(1)}</span>

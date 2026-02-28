@@ -47,6 +47,10 @@ async function fetchJson(baseUrl, key, host, path) {
 const ALL_LEAGUE_IDS = [
   39, 78, 135, 140, 61,           // Big 5
   40, 41, 42, 136, 79, 141, 62,   // Second-tier leagues
+  94, 88, 203, 144, 179, 218,     // European leagues (tier 1.5)
+  197, 345, 207, 119, 103, 210,   // European leagues (tier 1.5 cont.)
+  106, 283, 286, 271, 113, 332,   // European leagues (tier 2.5)
+  172, 244, 318, 383, 419,        // European leagues (tier 2.5 cont.)
   2, 3, 848,                       // European cups
   48, 45, 137, 143, 66, 81,       // Domestic cups
 ];

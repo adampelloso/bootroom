@@ -1,6 +1,7 @@
 import { getTeamStats, getLeagueGoalAverages, getTeamPrimaryLeagueId } from "@/lib/insights/team-stats";
 import type { TeamRollingStats } from "@/lib/insights/team-stats";
 import { isCup, getLeagueStrength } from "@/lib/leagues";
+import type { FirstLegResult } from "@/lib/modeling/first-leg-lookup";
 
 type GoalsRolling = Pick<TeamRollingStats, "l5" | "season">;
 
@@ -68,7 +69,8 @@ function computeGoalLambdaComponents(
   homeTeamName: string,
   awayTeamName: string,
   fixtureDate?: string,
-  leagueId?: number
+  leagueId?: number,
+  firstLegResult?: FirstLegResult,
 ): { components: GoalLambdaComponents; homeStats: GoalsRolling; awayStats: GoalsRolling } | null {
   // For cup matches, pull stats from each team's primary domestic league
   // so we're comparing like-for-like within their usual competition.
@@ -179,6 +181,32 @@ function computeGoalLambdaComponents(
     }
   }
 
+  // Two-leg cup tie adjustment: trailing team attacks more, leading team sits deeper.
+  if (cupMatch && firstLegResult && firstLegResult.aggregateDeficit !== 0) {
+    const deficit = firstLegResult.aggregateDeficit;
+    const capped = Math.min(Math.abs(deficit), 3);
+
+    // Per-goal: ~6% attack boost for trailing team, ~4% defence weakening
+    const atkBoost = 1 + capped * 0.06;      // max 1.18
+    const defWeaken = 1 + capped * 0.04;      // max 1.12
+    const atkReduce = 1 - capped * 0.04;      // min 0.88
+    const defStrengthen = 1 - capped * 0.03;  // min 0.91
+
+    if (deficit > 0) {
+      // Home team (leg 2) is trailing → attacks more, defends worse
+      homeAttackMultiplier *= atkBoost;
+      homeDefenceMultiplier *= defWeaken;
+      awayAttackMultiplier *= atkReduce;
+      awayDefenceMultiplier *= defStrengthen;
+    } else {
+      // Away team (leg 2) is trailing → they attack more
+      awayAttackMultiplier *= atkBoost;
+      awayDefenceMultiplier *= defWeaken;
+      homeAttackMultiplier *= atkReduce;
+      homeDefenceMultiplier *= defStrengthen;
+    }
+  }
+
   const components: GoalLambdaComponents = {
     leagueHomeGoals,
     leagueAwayGoals,
@@ -202,9 +230,10 @@ export function estimateMatchGoalLambdas(
   homeTeamName: string,
   awayTeamName: string,
   fixtureDate?: string,
-  leagueId?: number
+  leagueId?: number,
+  firstLegResult?: FirstLegResult,
 ): MatchGoalLambdas | null {
-  const computed = computeGoalLambdaComponents(homeTeamName, awayTeamName, fixtureDate, leagueId);
+  const computed = computeGoalLambdaComponents(homeTeamName, awayTeamName, fixtureDate, leagueId, firstLegResult);
   if (!computed) return null;
 
   const { components, homeStats, awayStats } = computed;
@@ -316,9 +345,10 @@ export function debugGoalLambdaComponents(
   homeTeamName: string,
   awayTeamName: string,
   fixtureDate?: string,
-  leagueId?: number
+  leagueId?: number,
+  firstLegResult?: FirstLegResult,
 ): GoalLambdaComponents | null {
-  const computed = computeGoalLambdaComponents(homeTeamName, awayTeamName, fixtureDate, leagueId);
+  const computed = computeGoalLambdaComponents(homeTeamName, awayTeamName, fixtureDate, leagueId, firstLegResult);
   return computed?.components ?? null;
 }
 

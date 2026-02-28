@@ -14,9 +14,17 @@ import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { FormDisplay } from "@/app/components/FormDisplay";
 import { FormFilterLinks } from "@/app/components/FormFilterLinks";
 import { PlayerPropsCard } from "@/app/components/PlayerPropsCard";
+import { PredictedLineupCard } from "@/app/components/PredictedLineupCard";
+import { PlayerProjectionsCard } from "@/app/components/PlayerProjectionsCard";
 import { TotalGoalsSection } from "@/app/components/TotalGoalsSection";
 import { TeamTotalsSection } from "@/app/components/TeamTotalsSection";
 import { MoreStatsReveal } from "@/app/components/MoreStatsReveal";
+import { predictLineup } from "@/lib/modeling/predicted-lineup";
+import { getMatchPlayerSim } from "@/lib/modeling/player-sim";
+import { estimateMatchGoalLambdas } from "@/lib/modeling/baseline-params";
+import type { FeedPredictedLineup, FeedPlayerSim, FeedPlayerSimEntry } from "@/lib/feed";
+import type { PredictedLineup } from "@/lib/modeling/predicted-lineup";
+import type { PlayerSimResult } from "@/lib/modeling/player-sim";
 import type { InsightFamily } from "@/lib/insights/catalog";
 import type { PlayerPropStat } from "@/app/components/PlayerPropsCard";
 
@@ -208,6 +216,49 @@ export default async function MatchDetailPage({
       ? buildTrendsByStat(awayLast10, rollingStats.away.l10)
       : null;
 
+  // Predicted lineups + player sim (upcoming matches only)
+  let predictedHomeLineup: FeedPredictedLineup | undefined;
+  let predictedAwayLineup: FeedPredictedLineup | undefined;
+  let playerSimData: FeedPlayerSim | undefined;
+
+  if (!isFinished) {
+    const homeLineupRaw = predictLineup(match.homeTeamName, match.leagueId, fixtureDate);
+    const awayLineupRaw = predictLineup(match.awayTeamName, match.leagueId, fixtureDate);
+
+    const toFeedLineup = (l: PredictedLineup): FeedPredictedLineup => ({
+      starters: l.starters.map((s) => ({
+        playerId: s.playerId,
+        name: s.name,
+        position: s.position,
+        startRate: s.startRate,
+        confidence: s.confidence,
+      })),
+      teamMatchesPlayed: l.teamMatchesPlayed,
+    });
+
+    if (homeLineupRaw) predictedHomeLineup = toFeedLineup(homeLineupRaw);
+    if (awayLineupRaw) predictedAwayLineup = toFeedLineup(awayLineupRaw);
+
+    if (homeLineupRaw && awayLineupRaw) {
+      const lambdas = estimateMatchGoalLambdas(match.homeTeamName, match.awayTeamName, fixtureDate, match.leagueId);
+      if (lambdas) {
+        const sim = getMatchPlayerSim(homeLineupRaw, awayLineupRaw, lambdas.lambdaHomeGoals, lambdas.lambdaAwayGoals, fixtureDate, match.leagueId);
+        const convert = (r: PlayerSimResult): FeedPlayerSimEntry => ({
+          playerId: r.playerId,
+          name: r.name,
+          position: r.position,
+          confidence: r.confidence,
+          anytimeScorerProb: r.anytimeScorerProb,
+          expectedGoals: r.expectedGoals,
+          expectedShots: r.expectedShots,
+          expectedSOT: r.expectedSOT,
+          expectedAssists: r.expectedAssists,
+        });
+        playerSimData = { home: sim.home.map(convert), away: sim.away.map(convert) };
+      }
+    }
+  }
+
   return (
     <main className="app-shell min-h-screen flex flex-col bg-[var(--bg-body)]">
       <header
@@ -360,6 +411,24 @@ export default async function MatchDetailPage({
           )}
         </section>
       </details>
+
+      {!isFinished && (predictedHomeLineup || predictedAwayLineup) && (
+        <PredictedLineupCard
+          homeTeamName={match.homeTeamName}
+          awayTeamName={match.awayTeamName}
+          homeLineup={predictedHomeLineup}
+          awayLineup={predictedAwayLineup}
+          playerSim={playerSimData}
+        />
+      )}
+
+      {!isFinished && playerSimData && (
+        <PlayerProjectionsCard
+          homeTeamName={match.homeTeamName}
+          awayTeamName={match.awayTeamName}
+          playerSim={playerSimData}
+        />
+      )}
 
       <PlayerPropsCard
         playerStats={playerStats}

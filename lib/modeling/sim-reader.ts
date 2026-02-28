@@ -76,9 +76,12 @@ export function getFeedModelProbsFromDisk(
 
   const entry = simFile.fixtures[String(fixtureId)];
   if (!entry) return null;
-  // Backfill mcOver25 from raw sim data if not already in feedProbs
+  // Backfill mcOver25/mcBtts from raw sim data if not already in feedProbs
   if (entry.feedProbs.mcOver25 == null && entry.sim?.pO25 != null) {
     entry.feedProbs.mcOver25 = entry.sim.pO25;
+  }
+  if (entry.feedProbs.mcBtts == null && entry.sim?.pBTTS != null) {
+    entry.feedProbs.mcBtts = entry.sim.pBTTS;
   }
   return entry.feedProbs;
 }

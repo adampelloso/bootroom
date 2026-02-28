@@ -97,6 +97,7 @@ async function main() {
         awayTeamId: item.teams.away.id,
         leagueId: item.league?.id ?? league,
         leagueName: item.league?.name,
+        round: item.league?.round ?? null,
         season,
         venue: item.fixture.venue?.name ?? null,
       });

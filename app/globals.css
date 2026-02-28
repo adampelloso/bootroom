@@ -66,14 +66,22 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* App chrome for inner pages */
-body:has(.app-shell) {
+/* App chrome — narrow (match detail, sim, export) */
+body:has(.app-shell):not(:has(.app-shell--wide)) {
   max-width: 480px;
   margin: 24px auto;
   border-left: 1px solid var(--border-light);
   border-right: 1px solid var(--border-light);
   border-top: 1px solid var(--border-light);
   border-bottom: 1px solid var(--border-light);
+}
+
+/* App chrome — wide (feed page) */
+body:has(.app-shell--wide) {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-left: var(--space-md);
+  padding-right: var(--space-md);
 }
 
 @layer base {

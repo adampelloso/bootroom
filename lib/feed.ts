@@ -82,6 +82,38 @@ export type FeedMarketRow =
       seasonAwayAvg?: number;
     };
 
+/* ── Predicted lineup + player sim feed types ──────────────────────── */
+
+export interface FeedPredictedStarter {
+  playerId: number;
+  name: string;
+  position: string | null;
+  startRate: number;
+  confidence: "locked" | "likely" | "rotation";
+}
+
+export interface FeedPredictedLineup {
+  starters: FeedPredictedStarter[];
+  teamMatchesPlayed: number;
+}
+
+export interface FeedPlayerSimEntry {
+  playerId: number;
+  name: string;
+  position: string | null;
+  confidence: "locked" | "likely" | "rotation";
+  anytimeScorerProb: number;
+  expectedGoals: number;
+  expectedShots: number;
+  expectedSOT: number;
+  expectedAssists: number;
+}
+
+export interface FeedPlayerSim {
+  home: FeedPlayerSimEntry[];
+  away: FeedPlayerSimEntry[];
+}
+
 export interface FeedMatch {
   id: string;
   providerFixtureId: number;
@@ -91,6 +123,8 @@ export interface FeedMatch {
   leagueId?: number;
   /** Short label for badge (e.g. EPL, UCL). */
   leagueName?: string;
+  /** Round name from the competition (e.g. "Round of 16", "Quarter-finals"). */
+  round?: string;
   /** 3-letter code for feed display (e.g. ARS, MUN). Falls back to name if missing. */
   homeTeamCode?: string;
   awayTeamCode?: string;
@@ -113,6 +147,11 @@ export interface FeedMatch {
   homeForm?: FormResult[];
   awayForm?: FormResult[];
   h2hSummary?: H2HSummary;
+  /** Predicted lineups for upcoming matches. */
+  predictedHomeLineup?: FeedPredictedLineup;
+  predictedAwayLineup?: FeedPredictedLineup;
+  /** Player-level simulation results. */
+  playerSim?: FeedPlayerSim;
   /** Model probabilities and EV flags (computed on-demand for feed). */
   modelProbs?: {
     home: number;
@@ -120,6 +159,7 @@ export interface FeedMatch {
     away: number;
     over_2_5?: number;
     mcOver25?: number;
+    mcBtts?: number;
     edges?: {
       home: number;
       draw: number;

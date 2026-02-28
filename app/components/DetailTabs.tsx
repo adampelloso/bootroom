@@ -3,6 +3,7 @@
 const TABS = [
   { id: "goals", label: "GOALS", targetId: "section-total-goals" },
   { id: "corners", label: "CORNERS", targetId: "section-total-corners" },
+  { id: "projections", label: "PROJECTIONS", targetId: "section-player-projections" },
   { id: "player-props", label: "PLAYER PROPS", targetId: "section-player-props" },
 ] as const;
 

@@ -14,6 +14,8 @@ export interface PlayerSeasonStat {
   position: string | null;
   appearances: number;
   minutes: number;
+  lineups: number;
+  startRate: number;
   shotsPerGame: number;
   sotPerGame: number;
   goalsPerGame: number;
@@ -36,6 +38,7 @@ interface RawPlayerEntry {
   assists: number;
   keyPasses: number;
   rating: number | null;
+  lineups: number;
 }
 
 let cachedPlayers: RawPlayerEntry[] | null = null;
@@ -45,8 +48,7 @@ function loadIngestedPlayers(): RawPlayerEntry[] {
   if (!fs.existsSync(dataDir)) return [];
   const files = fs.readdirSync(dataDir);
   const playerFiles = files.filter((f) => f.endsWith("-players.json"));
-  const all: RawPlayerEntry[] = [];
-  const seen = new Set<string>();
+  const byKey = new Map<string, RawPlayerEntry>();
 
   for (const file of playerFiles.sort()) {
     const dataPath = path.join(dataDir, file);
@@ -57,17 +59,19 @@ function loadIngestedPlayers(): RawPlayerEntry[] {
       for (const el of parsed as unknown[]) {
         const entry = el as RawPlayerEntry;
         if (!entry || !entry.playerId || !entry.teamName) continue;
-        // Deduplicate by playerId + teamName (player may appear in multiple league files)
+        // Deduplicate by playerId + teamName — keep entry with most appearances
+        // (domestic league stats are more reliable than cup stats)
         const key = `${entry.playerId}|${entry.teamName}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        all.push(entry);
+        const existing = byKey.get(key);
+        if (!existing || entry.appearances > existing.appearances) {
+          byKey.set(key, entry);
+        }
       }
     } catch {
       // skip invalid or unreadable files
     }
   }
-  return all;
+  return Array.from(byKey.values());
 }
 
 function getAllPlayers(): RawPlayerEntry[] {
@@ -98,6 +102,7 @@ export function getTeamPlayerStats(
     .filter((p) => p.position !== "Goalkeeper" && p.appearances >= minAppearances)
     .map((p): PlayerSeasonStat => {
       const apps = p.appearances;
+      const lineups = p.lineups ?? apps; // fallback to appearances for old data
       return {
         playerId: p.playerId,
         name: p.name,
@@ -106,6 +111,8 @@ export function getTeamPlayerStats(
         position: p.position,
         appearances: apps,
         minutes: p.minutes,
+        lineups,
+        startRate: 0, // computed externally when teamMatchesPlayed is known
         shotsPerGame: apps > 0 ? p.shotsTotal / apps : 0,
         sotPerGame: apps > 0 ? p.shotsOn / apps : 0,
         goalsPerGame: apps > 0 ? p.goals / apps : 0,
@@ -115,6 +122,44 @@ export function getTeamPlayerStats(
       };
     })
     .sort((a, b) => b.shotsPerGame - a.shotsPerGame || b.sotPerGame - a.sotPerGame);
+}
+
+/**
+ * Get ALL players for a team (including goalkeepers).
+ * No min-appearances filter. Needed for lineup prediction.
+ */
+export function getTeamAllPlayers(
+  teamName: string
+): PlayerSeasonStat[] {
+  const all = getAllPlayers();
+  const lower = teamName.trim().toLowerCase();
+
+  const teamPlayers = all.filter((p) => {
+    if (!p.teamName) return false;
+    return p.teamName.toLowerCase() === lower;
+  });
+
+  return teamPlayers.map((p): PlayerSeasonStat => {
+    const apps = p.appearances;
+    const lineups = p.lineups ?? apps;
+    return {
+      playerId: p.playerId,
+      name: p.name,
+      teamId: p.teamId,
+      teamName: p.teamName ?? teamName,
+      position: p.position,
+      appearances: apps,
+      minutes: p.minutes,
+      lineups,
+      startRate: 0,
+      shotsPerGame: apps > 0 ? p.shotsTotal / apps : 0,
+      sotPerGame: apps > 0 ? p.shotsOn / apps : 0,
+      goalsPerGame: apps > 0 ? p.goals / apps : 0,
+      goals: p.goals,
+      assists: p.assists,
+      rating: p.rating,
+    };
+  });
 }
 
 /** Clear cache (e.g. after re-ingest). */

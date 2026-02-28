@@ -3,6 +3,8 @@
  * Uses api-football when API_FOOTBALL_KEY is set; otherwise mock.
  * Insights use real L5/L10 data from ingested fixtures when available; otherwise stub.
  */
+import fs from "fs";
+import path from "path";
 import type { ApiFootballFixtureResponseItem } from "@/lib/api-football-types";
 import type { FeedMatch, FeedInsight, MatchDetail, MatchDetailInsight } from "./feed";
 import { resolveProvider } from "@/lib/providers/registry";
@@ -32,8 +34,54 @@ import {
   getCompetitionByLeagueId,
   isCup,
 } from "@/lib/leagues";
+import { predictLineup } from "@/lib/modeling/predicted-lineup";
+import { getMatchPlayerSim } from "@/lib/modeling/player-sim";
+import type { FeedPredictedLineup, FeedPlayerSim, FeedPlayerSimEntry } from "./feed";
+import type { PredictedLineup } from "@/lib/modeling/predicted-lineup";
+import type { PlayerSimResult } from "@/lib/modeling/player-sim";
 
 const DEFAULT_SEASON = 2025;
+
+/* ── Feed cache: in-memory (L1) + disk (L2) ──────────────────────── */
+// L1: module-level Map — shared across all requests in the same server
+//     process. In serverless, this survives across warm invocations.
+// L2: disk files in data/feed-cache/ — survives server restarts in dev.
+const memCache = new Map<string, unknown>();
+const FEED_CACHE_DIR = path.join(process.cwd(), "data", "feed-cache");
+
+function isPastDate(dateStr: string): boolean {
+  const today = new Date().toISOString().slice(0, 10);
+  return dateStr < today;
+}
+
+function readCache<T>(key: string): T | null {
+  // L1: in-memory
+  if (memCache.has(key)) return memCache.get(key) as T;
+  // L2: disk
+  const fp = path.join(FEED_CACHE_DIR, key);
+  if (!fs.existsSync(fp)) return null;
+  try {
+    const data = JSON.parse(fs.readFileSync(fp, "utf-8")) as T;
+    memCache.set(key, data); // promote to L1
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache<T>(key: string, data: T): void {
+  // L1
+  memCache.set(key, data);
+  // L2
+  try {
+    if (!fs.existsSync(FEED_CACHE_DIR)) {
+      fs.mkdirSync(FEED_CACHE_DIR, { recursive: true });
+    }
+    fs.writeFileSync(path.join(FEED_CACHE_DIR, key), JSON.stringify(data));
+  } catch {
+    // Disk write may fail in read-only serverless envs — L1 still works
+  }
+}
 
 /** Short labels for feed pills from catalog marketKey. */
 const MARKET_KEY_TO_LABEL: Record<string, string> = {
@@ -273,6 +321,37 @@ function teamCodeFallback(name: string): string {
   return name.slice(0, 3).toUpperCase() || name;
 }
 
+function toFeedLineup(lineup: PredictedLineup): FeedPredictedLineup {
+  return {
+    starters: lineup.starters.map((s) => ({
+      playerId: s.playerId,
+      name: s.name,
+      position: s.position,
+      startRate: s.startRate,
+      confidence: s.confidence,
+    })),
+    teamMatchesPlayed: lineup.teamMatchesPlayed,
+  };
+}
+
+function toFeedPlayerSim(sim: { home: PlayerSimResult[]; away: PlayerSimResult[] }): FeedPlayerSim {
+  const convert = (r: PlayerSimResult): FeedPlayerSimEntry => ({
+    playerId: r.playerId,
+    name: r.name,
+    position: r.position,
+    confidence: r.confidence,
+    anytimeScorerProb: r.anytimeScorerProb,
+    expectedGoals: r.expectedGoals,
+    expectedShots: r.expectedShots,
+    expectedSOT: r.expectedSOT,
+    expectedAssists: r.expectedAssists,
+  });
+  return {
+    home: sim.home.map(convert),
+    away: sim.away.map(convert),
+  };
+}
+
 async function buildFeedMatch(
   item: ApiFootballFixtureResponseItem,
   provider: FootballProvider,
@@ -306,6 +385,8 @@ async function buildFeedMatch(
   const homeL5 = getTeamStats(home, fixtureDate, { venue: "home", leagueId: formLeagueId });
   const awayL5 = getTeamStats(away, fixtureDate, { venue: "away", leagueId: formLeagueId });
 
+  const round = item.league?.round;
+
   const match: FeedMatch = {
     id: `match-${item.fixture.id}`,
     providerFixtureId: item.fixture.id,
@@ -313,6 +394,7 @@ async function buildFeedMatch(
     awayTeamName: away,
     leagueId,
     leagueName,
+    round: round ?? undefined,
     homeTeamCode: homeCode,
     awayTeamCode: awayCode,
     homeTeamLogo: item.teams.home.logo,
@@ -339,49 +421,105 @@ async function buildFeedMatch(
     match.modelProbs = modelProbs;
   }
 
+  // Predicted lineups + player-level sim (upcoming matches only)
+  const isUpcoming = match.homeGoals == null && match.awayGoals == null;
+  if (isUpcoming) {
+    const homeLineup = predictLineup(home, leagueId, fixtureDate);
+    const awayLineup = predictLineup(away, leagueId, fixtureDate);
+    if (homeLineup) match.predictedHomeLineup = toFeedLineup(homeLineup);
+    if (awayLineup) match.predictedAwayLineup = toFeedLineup(awayLineup);
+    if (homeLineup && awayLineup && modelProbs?.expectedHomeGoals != null && modelProbs?.expectedAwayGoals != null) {
+      const playerSim = getMatchPlayerSim(
+        homeLineup,
+        awayLineup,
+        modelProbs.expectedHomeGoals,
+        modelProbs.expectedAwayGoals,
+        fixtureDate,
+        leagueId
+      );
+      match.playerSim = toFeedPlayerSim(playerSim);
+    }
+  }
+
   return match;
 }
 
+/**
+ * Build full feed matches. Cached per date+league to disk.
+ * A match's stats don't change within a day, so fetch once and reuse.
+ */
 export async function getFeedMatches(
   from?: string,
   to?: string,
   leagueIds?: number[],
 ): Promise<FeedMatch[]> {
-  const { provider } = resolveProvider("api-football");
   const ids =
     leagueIds && leagueIds.length > 0
       ? leagueIds
       : [DEFAULT_LEAGUE_ID];
 
-  const seasonByLeague = new Map(SUPPORTED_COMPETITIONS.map((c) => [c.id, c.season]));
+  const date = from ?? new Date().toISOString().slice(0, 10);
 
-  const fixturesResponses = await Promise.all(
-    ids.map((leagueId) =>
-      provider.getFixtures(
-        leagueId,
-        seasonByLeague.get(leagueId) ?? DEFAULT_SEASON,
-        from,
-        to,
+  // Check per-league caches, split into cached vs uncached
+  const allMatches: FeedMatch[] = [];
+  const uncachedIds: number[] = [];
+
+  for (const id of ids) {
+    const cached = readCache<FeedMatch[]>(`${date}-league-${id}.json`);
+    if (cached) {
+      allMatches.push(...cached);
+    } else {
+      uncachedIds.push(id);
+    }
+  }
+
+  // Fetch only uncached leagues
+  if (uncachedIds.length > 0) {
+    const { provider } = resolveProvider("api-football");
+    const seasonByLeague = new Map(SUPPORTED_COMPETITIONS.map((c) => [c.id, c.season]));
+
+    const fixturesResponses = await Promise.all(
+      uncachedIds.map((leagueId) =>
+        provider.getFixtures(
+          leagueId,
+          seasonByLeague.get(leagueId) ?? DEFAULT_SEASON,
+          from,
+          to,
+        ),
       ),
-    ),
-  );
+    );
 
-  const list = fixturesResponses.flatMap((r) => r.response ?? []);
-  list.sort((a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime());
+    const list = fixturesResponses.flatMap((r) => r.response ?? []);
+    list.sort((a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime());
 
-  const teamIdToCode = new Map<number, string>();
-  await Promise.all(
-    ids.map(async (leagueId) => {
-      const res = await provider.getTeams(leagueId, seasonByLeague.get(leagueId) ?? DEFAULT_SEASON);
-      for (const { team } of res.response ?? []) {
-        if (team.code) teamIdToCode.set(team.id, team.code);
+    const teamIdToCode = new Map<number, string>();
+    await Promise.all(
+      uncachedIds.map(async (leagueId) => {
+        const res = await provider.getTeams(leagueId, seasonByLeague.get(leagueId) ?? DEFAULT_SEASON);
+        for (const { team } of res.response ?? []) {
+          if (team.code) teamIdToCode.set(team.id, team.code);
+        }
+      }),
+    );
+
+    const freshMatches = await Promise.all(list.map((item) => buildFeedMatch(item, provider, teamIdToCode)));
+
+    // Write per-league caches. For today, only cache leagues that
+    // returned matches — empty results may mean "not published yet".
+    // Past dates cache everything (including empty) permanently.
+    const past = isPastDate(date);
+    for (const id of uncachedIds) {
+      const leagueMatches = freshMatches.filter((m) => m.leagueId === id);
+      if (leagueMatches.length > 0 || past) {
+        writeCache(`${date}-league-${id}.json`, leagueMatches);
       }
-    }),
-  );
+    }
 
-  const matches = await Promise.all(list.map((item) => buildFeedMatch(item, provider, teamIdToCode)));
-  matches.sort((a, b) => feedMatchScore(b.marketRows) - feedMatchScore(a.marketRows));
-  return matches;
+    allMatches.push(...freshMatches);
+  }
+
+  allMatches.sort((a, b) => feedMatchScore(b.marketRows) - feedMatchScore(a.marketRows));
+  return allMatches;
 }
 
 export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | null> {

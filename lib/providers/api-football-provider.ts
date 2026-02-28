@@ -26,19 +26,36 @@ export function resolveApiFootballConfig(): ApiFootballConfig | null {
 
 async function fetchJson<T>(config: ApiFootballConfig, path: string): Promise<T> {
   const url = `${config.baseUrl}${path}`;
-  const res = await fetch(url, {
-    headers: {
-      "x-apisports-key": config.key,
-      ...(config.host ? { "x-rapidapi-host": config.host } : {}),
-    },
-    cache: "no-store",
-  });
+  const maxRetries = 2;
 
-  if (!res.ok) {
-    throw new Error(`API-Football request failed (${res.status})`);
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await fetch(url, {
+      headers: {
+        "x-apisports-key": config.key,
+        ...(config.host ? { "x-rapidapi-host": config.host } : {}),
+      },
+      cache: "no-store",
+    });
+
+    if (res.status === 429) {
+      if (attempt < maxRetries) {
+        const wait = (attempt + 1) * 5000; // 5s, 10s
+        console.warn(`API-Football 429 rate limit on ${path}, retrying in ${wait / 1000}s...`);
+        await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
+      console.warn(`API-Football 429 rate limit on ${path}, returning empty response`);
+      return { response: [] } as T;
+    }
+
+    if (!res.ok) {
+      throw new Error(`API-Football request failed (${res.status})`);
+    }
+
+    return (await res.json()) as T;
   }
 
-  return (await res.json()) as T;
+  return { response: [] } as T;
 }
 
 export function buildApiFootballProvider(config: ApiFootballConfig): FootballProvider {
