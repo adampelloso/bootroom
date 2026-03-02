@@ -1,0 +1,83 @@
+name: Daily Ingest & KV Push
+
+on:
+  schedule:
+    # Run daily at 6 AM UTC (before European fixtures are published)
+    - cron: "0 6 * * *"
+  workflow_dispatch: # Manual trigger
+
+env:
+  API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+  API_FOOTBALL_HOST: ${{ secrets.API_FOOTBALL_HOST }}
+  API_FOOTBALL_BASE_URL: ${{ secrets.API_FOOTBALL_BASE_URL }}
+  ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          pip install requests
+
+      # ── Data Ingest ──────────────────────────────────────
+
+      - name: Ingest season fixtures (all leagues)
+        run: node scripts/season-ingest.mjs --all --season=2025
+
+      - name: Ingest player stats (all leagues)
+        run: node scripts/ingest-players.mjs --all --season=2025
+
+      - name: Ingest upcoming fixtures
+        run: node scripts/ingest-upcoming-fixtures.mjs --season=2025
+
+      - name: Ingest odds
+        run: |
+          for comp in epl laliga seriea bundesliga ligue1 ucl uel uecl fa_cup efl_cup; do
+            python scripts/ingest-odds.py --competition "$comp" || echo "WARNING: odds ingest failed for $comp"
+          done
+
+      # ── Simulations ──────────────────────────────────────
+
+      - name: Run Monte Carlo simulations
+        run: npx tsx scripts/run-simulations.mts
+
+      # ── Pre-build & KV Push ──────────────────────────────
+
+      - name: Pre-build team stats + KV staging
+        run: node scripts/prebuild-stats.mjs
+
+      - name: Push to Cloudflare KV
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          KV_NAMESPACE_ID: ${{ secrets.KV_NAMESPACE_ID }}
+        run: node scripts/push-to-kv.mjs
+
+      # ── Cleanup ──────────────────────────────────────────
+
+      - name: Summary
+        run: |
+          echo "## Ingest Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Fixture files: $(ls data/*-fixtures.json 2>/dev/null | wc -l)" >> $GITHUB_STEP_SUMMARY
+          echo "- KV staging files: $(ls data/kv-staging/*.json 2>/dev/null | wc -l)" >> $GITHUB_STEP_SUMMARY
+          echo "- Simulation files: $(ls data/simulations/*.json 2>/dev/null | wc -l)" >> $GITHUB_STEP_SUMMARY

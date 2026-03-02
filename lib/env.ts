@@ -7,8 +7,10 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 export function getEnvVar(name: string): string | undefined {
   try {
     const { env } = getCloudflareContext();
-    return (env as Record<string, string>)[name];
+    const val = (env as Record<string, string>)[name];
+    if (val !== undefined) return val;
   } catch {
-    return process.env[name];
+    // getCloudflareContext() not available — fall through to process.env
   }
+  return process.env[name];
 }

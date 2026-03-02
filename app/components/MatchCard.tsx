@@ -39,20 +39,10 @@ export function MatchCard({ match }: { match: FeedMatch }) {
   }
 
   const totalXg = hasMcData ? mp!.expectedHomeGoals! + mp!.expectedAwayGoals! : null;
-  const totalCorners =
-    mp?.expectedHomeCorners != null && mp?.expectedAwayCorners != null
-      ? mp.expectedHomeCorners + mp.expectedAwayCorners
-      : null;
 
   // Use raw MC probability for Over 2.5 display, fall back to calibrated
   const over25Display = mp?.mcOver25 ?? mp?.over_2_5;
   const bttsDisplay = getBttsPercent(match);
-
-  const buttonStyle = {
-    border: "2px solid var(--text-main)",
-    color: "var(--text-main)",
-    background: "transparent",
-  };
 
   return (
     <Link
@@ -64,41 +54,23 @@ export function MatchCard({ match }: { match: FeedMatch }) {
       }}
       aria-label={`${match.homeTeamName} v ${match.awayTeamName} – match detail`}
     >
-      {/* Header row: league + kickoff left, H2H + SIM buttons right */}
+      {/* Header row: league left, time right */}
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2 text-mono text-[11px] uppercase" style={{ color: "var(--text-tertiary)" }}>
+        <div className="text-mono text-[11px] uppercase" style={{ color: "var(--text-tertiary)" }}>
           {match.leagueName && (
             <span className="font-semibold" style={{ color: "var(--text-sec)" }}>
               {match.leagueName}
             </span>
           )}
-          <span>{formatKickoffTime(match.kickoffUtc)}</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Link
-            href={`/match/${match.providerFixtureId}`}
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center px-3 py-1 text-mono text-[11px] uppercase font-bold tracking-wide transition-colors hover:bg-[var(--text-main)] hover:text-[var(--bg-body)]"
-            style={buttonStyle}
-            aria-label="View head-to-head analysis"
-          >
-            H2H
-          </Link>
-          <Link
-            href={`/match/${match.providerFixtureId}/sim`}
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center px-3 py-1 text-mono text-[11px] uppercase font-bold tracking-wide transition-colors hover:bg-[var(--text-main)] hover:text-[var(--bg-body)]"
-            style={buttonStyle}
-            aria-label="Open Monte Carlo simulation view"
-          >
-            SIM
-          </Link>
-        </div>
+        <span className="text-mono text-[11px] uppercase" style={{ color: "var(--text-tertiary)" }}>
+          {formatKickoffTime(match.kickoffUtc)}
+        </span>
       </div>
 
-      {/* Teams */}
-      <div className="flex flex-col gap-1.5 mb-3">
-        <div className="flex items-center gap-2">
+      {/* Teams row: home — H2H — away */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 min-w-0">
           <img src={match.homeTeamLogo} alt="" className="w-6 h-6 object-contain shrink-0" width={24} height={24} />
           <span
             className="font-bold uppercase truncate text-headline"
@@ -107,14 +79,19 @@ export function MatchCard({ match }: { match: FeedMatch }) {
             {match.homeTeamCode ?? match.homeTeamName}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <img src={match.awayTeamLogo} alt="" className="w-6 h-6 object-contain shrink-0" width={24} height={24} />
+        {match.h2hSummary && (
+          <span className="text-mono text-[11px] uppercase shrink-0 px-2" style={{ color: "var(--text-tertiary)" }}>
+            {match.h2hSummary.homeWins}-{match.h2hSummary.draws}-{match.h2hSummary.awayWins}
+          </span>
+        )}
+        <div className="flex items-center gap-2 min-w-0 justify-end">
           <span
             className="font-bold uppercase truncate text-headline"
             style={{ fontSize: "18px", letterSpacing: "-0.02em", lineHeight: 1.2 }}
           >
             {match.awayTeamCode ?? match.awayTeamName}
           </span>
+          <img src={match.awayTeamLogo} alt="" className="w-6 h-6 object-contain shrink-0" width={24} height={24} />
         </div>
       </div>
 
@@ -171,22 +148,6 @@ export function MatchCard({ match }: { match: FeedMatch }) {
                 {totalXg!.toFixed(1)}
               </td>
             </tr>
-            {totalCorners != null && (
-              <tr style={{ borderBottom: "1px solid var(--border-light)" }}>
-                <td className="py-1.5 text-[12px] uppercase font-semibold" style={{ color: "var(--text-sec)" }}>
-                  xCorners
-                </td>
-                <td className="py-1.5 text-center text-[13px] font-bold" style={{ color: "var(--text-main)" }}>
-                  {mp!.expectedHomeCorners!.toFixed(1)}
-                </td>
-                <td className="py-1.5 text-center text-[13px] font-bold" style={{ color: "var(--text-main)" }}>
-                  {mp!.expectedAwayCorners!.toFixed(1)}
-                </td>
-                <td className="py-1.5 text-right text-[13px] font-bold" style={{ color: "var(--text-main)" }}>
-                  {totalCorners.toFixed(1)}
-                </td>
-              </tr>
-            )}
             {over25Display != null && (
               <tr style={{ borderBottom: "1px solid var(--border-light)" }}>
                 <td className="py-1.5 text-[12px] uppercase font-semibold" style={{ color: "var(--text-sec)" }}>
@@ -234,7 +195,7 @@ export function MatchCard({ match }: { match: FeedMatch }) {
       {/* Top scorelines */}
       {hasMcData && mp!.topScorelines && mp!.topScorelines.length > 0 && (
         <div
-          className="flex items-stretch gap-2 pt-2 mt-1 text-mono uppercase"
+          className="flex items-stretch gap-2 pt-2 text-mono uppercase"
         >
           {mp!.topScorelines.map((s) => (
             <div
@@ -255,19 +216,6 @@ export function MatchCard({ match }: { match: FeedMatch }) {
         </div>
       )}
 
-      {/* H2H teaser */}
-      {match.h2hSummary && (
-        <div
-          className="pt-2 mt-1 text-mono text-[11px] uppercase"
-          style={{
-            borderTop: "1px solid var(--border-light)",
-            color: "var(--text-tertiary)",
-          }}
-        >
-          H2H: {match.h2hSummary.homeWins}-{match.h2hSummary.draws}-{match.h2hSummary.awayWins}
-          {match.h2hSummary.lastWinner ? ` (${match.h2hSummary.lastWinner})` : ""}
-        </div>
-      )}
     </Link>
   );
 }

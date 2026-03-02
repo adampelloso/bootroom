@@ -20,7 +20,7 @@ import type { SignalConfidence, SignalDirection } from "./feed";
 import { buildStubContext } from "@/lib/insights/stub-context";
 import { buildRealContext } from "@/lib/insights/real-context";
 import { fillInsightTemplate } from "@/lib/insights/fill-template";
-import { getMatchStats, getTeamRecentResults } from "@/lib/insights/team-stats";
+import { getMatchStats, getTeamRecentResults, preloadTeamStats, preloadLeagueAverages } from "@/lib/insights/team-stats";
 import { getTeamStats } from "@/lib/insights/team-stats";
 import { getFeedMarketRows, feedMatchScore } from "@/lib/insights/feed-market-stats";
 import { getWhatStandsOut } from "@/lib/insights/what-stands-out";
@@ -487,6 +487,17 @@ export async function getFeedMatches(
     const list = fixturesResponses.flatMap((r) => r.response ?? []);
     list.sort((a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime());
 
+    // Preload team stats + league averages from KV (no-op on local dev)
+    const allTeamNames = new Set<string>();
+    for (const item of list) {
+      allTeamNames.add(item.teams.home.name);
+      allTeamNames.add(item.teams.away.name);
+    }
+    await Promise.all([
+      preloadTeamStats([...allTeamNames]),
+      preloadLeagueAverages(uncachedIds),
+    ]);
+
     const teamIdToCode = new Map<number, string>();
     await Promise.all(
       uncachedIds.map(async (leagueId) => {
@@ -583,6 +594,12 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
   const away = item.teams.away.name;
   const homeId = item.teams.home.id;
   const awayId = item.teams.away.id;
+
+  // Preload team stats + league averages from KV (no-op on local dev)
+  await Promise.all([
+    preloadTeamStats([home, away]),
+    preloadLeagueAverages(leagueId != null ? [leagueId] : []),
+  ]);
 
   let teamIdToCode = new Map<number, string>();
   if (leagueId) {

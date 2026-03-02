@@ -6,6 +6,7 @@
 import fs from "fs";
 import path from "path";
 import { isCup } from "@/lib/leagues";
+import { kvGetMany } from "@/lib/kv";
 
 export interface RollingStats {
   goalsFor: number;
@@ -252,6 +253,48 @@ function computeRolling(matches: TeamMatchRow[], n: number): RollingStats {
 
 let cachedHistory: Map<string, TeamMatchRow[]> | null = null;
 
+/** Pre-loaded league averages from KV (keyed by leagueId or "all"). */
+let cachedLeagueAverages: Map<string, LeagueGoalAverages> | null = null;
+
+/**
+ * Preload team match history from Cloudflare KV into the module cache.
+ * On local dev (no KV), this is a no-op — existing fs code runs unchanged.
+ */
+export async function preloadTeamStats(teamNames: string[]): Promise<void> {
+  if (cachedHistory && teamNames.every((n) => cachedHistory!.has(n))) return;
+
+  const keys = teamNames.map((name) => `team:${name}`);
+  const results = await kvGetMany<TeamMatchRow[]>(keys);
+  if (results.size === 0) return; // no KV (local dev) or no data
+
+  if (!cachedHistory) cachedHistory = new Map();
+  for (const [key, rows] of results) {
+    const teamName = key.slice("team:".length);
+    cachedHistory.set(teamName, rows);
+  }
+}
+
+/**
+ * Preload league goal averages from Cloudflare KV.
+ * On local dev, this is a no-op — getLeagueGoalAverages computes from fs data.
+ */
+export async function preloadLeagueAverages(leagueIds: number[]): Promise<void> {
+  if (cachedLeagueAverages) return;
+
+  const keys = [
+    ...leagueIds.map((id) => `league-averages:${id}`),
+    "league-averages:all",
+  ];
+  const results = await kvGetMany<LeagueGoalAverages>(keys);
+  if (results.size === 0) return;
+
+  cachedLeagueAverages = new Map();
+  for (const [key, avg] of results) {
+    const suffix = key.slice("league-averages:".length);
+    cachedLeagueAverages.set(suffix, avg);
+  }
+}
+
 function getTeamHistory(): Map<string, TeamMatchRow[]> {
   if (cachedHistory) return cachedHistory;
   const fixtures = loadIngestedFixtures();
@@ -269,8 +312,16 @@ export interface LeagueGoalAverages {
  * League-wide average goals per match for home and away teams.
  * When leagueId is provided, only fixtures from that competition are used.
  * Otherwise falls back to all ingested fixtures (multi-league, multi-season).
+ * Checks preloaded KV cache first (Workers); falls back to computation (local dev).
  */
 export function getLeagueGoalAverages(leagueId?: number): LeagueGoalAverages {
+  // Check preloaded KV cache first (populated by preloadLeagueAverages on Workers)
+  if (cachedLeagueAverages) {
+    const key = leagueId != null ? String(leagueId) : "all";
+    const cached = cachedLeagueAverages.get(key);
+    if (cached) return cached;
+  }
+
   const history = getTeamHistory();
   let homeGoals = 0;
   let homeMatches = 0;
@@ -438,6 +489,7 @@ export function getMatchStats(
 /** Clear cache (e.g. after re-ingest). */
 export function clearTeamStatsCache(): void {
   cachedHistory = null;
+  cachedLeagueAverages = null;
 }
 
 /**

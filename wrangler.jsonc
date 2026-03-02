@@ -10,5 +10,14 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  // Create with: npx wrangler kv namespace create BOOTROOM_DATA
+  // Then replace the id/preview_id below with the real values.
+  "kv_namespaces": [
+    {
+      "binding": "BOOTROOM_DATA",
+      "id": "64769fc1b7d64e36b0a2491f6a55f105",
+      "preview_id": "570418307c7c421792f52f8beb5ce840"
+    }
+  ]
 }

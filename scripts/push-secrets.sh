@@ -6,14 +6,14 @@
 
 set -euo pipefail
 
-ENV_FILE=".env"
+ENV_FILE=".env.production"
 
 if [ ! -f "$ENV_FILE" ]; then
   echo "Error: $ENV_FILE not found"
   exit 1
 fi
 
-echo "Pushing secrets from $ENV_FILE to Cloudflare Worker 'bootroom'..."
+echo "Pushing secrets from $ENV_FILE to Cloudflare Worker 'bootroom' (encrypted)..."
 echo ""
 
 count=0
