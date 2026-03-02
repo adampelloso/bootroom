@@ -6,6 +6,7 @@
 
 import type { FeedMatch } from "@/lib/feed";
 import { getFeedModelProbsFromDisk } from "@/lib/modeling/sim-reader";
+import { isWorkersRuntime } from "@/lib/kv";
 import { getOddsKeyForLeagueId, isCup, getCompetitionByLeagueId } from "@/lib/leagues";
 import { estimateMatchGoalLambdas, estimateMatchCornerLambdas } from "@/lib/modeling/baseline-params";
 import { findFirstLegResult } from "@/lib/modeling/first-leg-lookup";
@@ -55,6 +56,12 @@ export function getFeedMatchModelProbs(match: FeedMatch): FeedModelProbs | null 
   if (fromDisk) {
     cache.set(cacheKey, fromDisk);
     return fromDisk;
+  }
+
+  // On Workers, skip runtime simulation — it exceeds the CPU time limit.
+  // Pre-computed sims are loaded from disk (local) or KV (Phase 2).
+  if (isWorkersRuntime()) {
+    return null;
   }
 
   // Fallback: runtime simulation (for dev/local when no pre-computed data)
