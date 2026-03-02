@@ -19,10 +19,13 @@ export async function POST(request: Request) {
 
     let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(
+      const cryptoProvider = Stripe.createSubtleCryptoProvider();
+      event = await stripe.webhooks.constructEventAsync(
         body,
         signature,
-        getEnvVar("STRIPE_WEBHOOK_SECRET")!
+        getEnvVar("STRIPE_WEBHOOK_SECRET")!,
+        undefined,
+        cryptoProvider
       );
     } catch (err) {
       console.error("[stripe webhook] Signature failed:", err);
