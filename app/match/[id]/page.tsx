@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMatchDetail } from "@/lib/build-feed";
+import { requireActiveSubscription } from "@/lib/auth-guard";
 import { resolveProvider } from "@/lib/providers/registry";
 import { isCup } from "@/lib/leagues";
 import { getMatchStats, getTeamLastNMatchRows, getTeamRecentResults } from "@/lib/insights/team-stats";
@@ -101,6 +102,8 @@ export default async function MatchDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ category?: string; venue?: string; sample?: string; debug?: string; form?: string }>;
 }) {
+  await requireActiveSubscription();
+
   const { id } = await params;
   const search = (await searchParams) as { category?: string; venue?: string; sample?: string; debug?: string; form?: string };
   const category = search.category;

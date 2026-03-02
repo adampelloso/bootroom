@@ -2,11 +2,9 @@ import { getFeedMatches } from "@/lib/build-feed";
 import { FeedView } from "@/app/components/FeedView";
 import { DatePickerButton } from "@/app/components/DatePickerButton";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
+import { AccountButton } from "@/app/components/AccountButton";
 import { ALL_COMPETITION_IDS, SUPPORTED_COMPETITIONS, getLeagueStrength, type LeagueFilterValue } from "@/lib/leagues";
-
-// ISR: cache rendered page at CDN, shared across all users.
-// Pre-match stats don't change, so 10 min is conservative.
-export const revalidate = 600;
+import { requireActiveSubscription } from "@/lib/auth-guard";
 
 function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -17,6 +15,8 @@ export default async function FeedPage({
 }: {
   searchParams: Promise<{ date?: string; league?: LeagueFilterValue }>;
 }) {
+  await requireActiveSubscription();
+
   const params = await searchParams;
   const dateStr = params.date;
   const league = params.league ?? "all";
@@ -62,6 +62,7 @@ export default async function FeedPage({
         <div className="flex items-center gap-2">
           <DatePickerButton currentDate={from} currentLeague={league} />
           <ThemeToggle />
+          <AccountButton />
         </div>
       </header>
 

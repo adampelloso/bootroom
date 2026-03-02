@@ -158,6 +158,7 @@ export interface FeedMatch {
     draw: number;
     away: number;
     over_2_5?: number;
+    btts?: number;
     mcOver25?: number;
     mcBtts?: number;
     edges?: {

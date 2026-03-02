@@ -124,6 +124,7 @@ function computeFeedProbs(
     draw: blendedProbs.draw,
     away: blendedProbs.away,
     over_2_5: blendedProbs.over_2_5,
+    btts: applyCalibration("BTTS", "Yes", sim.pBTTS),
     mcOver25: sim.pO25,
     mcBtts: sim.pBTTS,
     edges,

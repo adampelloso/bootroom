@@ -22,6 +22,8 @@ export interface FeedModelProbs {
   draw: number;
   away: number;
   over_2_5?: number;
+  /** Calibrated BTTS probability. */
+  btts?: number;
   /** Raw MC simulation probability for O2.5 (before calibration/blending). */
   mcOver25?: number;
   /** Raw MC simulation probability for BTTS. */
@@ -82,7 +84,7 @@ export function getFeedMatchModelProbs(match: FeedMatch): FeedModelProbs | null 
     lambdaAwayGoals: goalLambdas.lambdaAwayGoals,
     lambdaHomeCorners: cornerLambdas?.lambdaHomeCorners,
     lambdaAwayCorners: cornerLambdas?.lambdaAwayCorners,
-    simulations: 10000,
+    simulations: 100000,
     tempoStd: 0.15,
   });
 
@@ -141,6 +143,7 @@ export function getFeedMatchModelProbs(match: FeedMatch): FeedModelProbs | null 
     draw: blendedProbs.draw,
     away: blendedProbs.away,
     over_2_5: blendedProbs.over_2_5,
+    btts: applyCalibration("BTTS", "Yes", sim.pBTTS),
     mcOver25: sim.pO25,
     mcBtts: sim.pBTTS,
     edges,

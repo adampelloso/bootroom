@@ -45,6 +45,42 @@ function shrinkMultiplier(raw: number, sampleSize: number): number {
   return 1 + (raw - 1) * confidence;
 }
 
+/**
+ * Shrink extreme total lambdas toward the league average.
+ * When λ_total deviates far from the league mean, the model is over-trusting
+ * small-sample extreme form. Backtest data shows: λ_total > 3.5 → predicted 3.98,
+ * actual 3.08; λ_total < 2.0 → predicted 1.77, actual 2.60.
+ *
+ * Uses a smooth sigmoid that progressively shrinks extremes:
+ * - Within ±0.5 of league avg: minimal adjustment
+ * - 1.5+ away from league avg: ~40% shrinkage toward mean
+ */
+function shrinkExtremeLambdas(
+  lambdaHome: number,
+  lambdaAway: number,
+  leagueMean: number,
+): { lambdaHome: number; lambdaAway: number } {
+  const total = lambdaHome + lambdaAway;
+  const deviation = total - leagueMean;
+  const absDeviation = Math.abs(deviation);
+
+  // No shrinkage for deviations under 0.3 goals from league average
+  if (absDeviation < 0.3) return { lambdaHome, lambdaAway };
+
+  // Sigmoid shrinkage: ramps from 0 (at 0.3 deviation) to ~0.4 (at large deviations)
+  const maxShrink = 0.4;
+  const shrinkFraction = maxShrink * (1 - Math.exp(-(absDeviation - 0.3) / 1.0));
+
+  // Shrink total toward league mean, preserving home/away ratio
+  const adjustedTotal = total - deviation * shrinkFraction;
+  const ratio = total > 0 ? adjustedTotal / total : 1;
+
+  return {
+    lambdaHome: lambdaHome * ratio,
+    lambdaAway: lambdaAway * ratio,
+  };
+}
+
 export interface MatchGoalLambdas {
   lambdaHomeGoals: number;
   lambdaAwayGoals: number;
@@ -91,15 +127,22 @@ function computeGoalLambdaComponents(
 
   if (!homeStats || !awayStats) return null;
 
-  const homeAttackRecent = homeStats.l5.goalsFor;
-  const homeAttackSeason = homeStats.season.goalsFor;
-  const homeDefRecent = homeStats.l5.goalsAgainst;
-  const homeDefSeason = homeStats.season.goalsAgainst;
+  // Prefer xG over raw goals when available (xG is far less noisy).
+  // Fall back to raw goals when xG coverage is insufficient (< 3 matches in window).
+  const useXgL5Home = homeStats.l5.xgMatchCount >= 3;
+  const useXgSeasonHome = homeStats.season.xgMatchCount >= 5;
+  const useXgL5Away = awayStats.l5.xgMatchCount >= 3;
+  const useXgSeasonAway = awayStats.season.xgMatchCount >= 5;
 
-  const awayAttackRecent = awayStats.l5.goalsFor;
-  const awayAttackSeason = awayStats.season.goalsFor;
-  const awayDefRecent = awayStats.l5.goalsAgainst;
-  const awayDefSeason = awayStats.season.goalsAgainst;
+  const homeAttackRecent = useXgL5Home ? homeStats.l5.xgFor : homeStats.l5.goalsFor;
+  const homeAttackSeason = useXgSeasonHome ? homeStats.season.xgFor : homeStats.season.goalsFor;
+  const homeDefRecent = useXgL5Home ? homeStats.l5.xgAgainst : homeStats.l5.goalsAgainst;
+  const homeDefSeason = useXgSeasonHome ? homeStats.season.xgAgainst : homeStats.season.goalsAgainst;
+
+  const awayAttackRecent = useXgL5Away ? awayStats.l5.xgFor : awayStats.l5.goalsFor;
+  const awayAttackSeason = useXgSeasonAway ? awayStats.season.xgFor : awayStats.season.goalsFor;
+  const awayDefRecent = useXgL5Away ? awayStats.l5.xgAgainst : awayStats.l5.goalsAgainst;
+  const awayDefSeason = useXgSeasonAway ? awayStats.season.xgAgainst : awayStats.season.goalsAgainst;
 
   const homeAttack = blendRecentSeason(
     homeAttackRecent,
@@ -214,7 +257,7 @@ function computeGoalLambdaComponents(
     homeDefenceMultiplier,
     awayAttackMultiplier,
     awayDefenceMultiplier,
-    homeAdvantageFactor: 1.1, // ~10% home edge
+    homeAdvantageFactor: 1.02, // ~2% residual home edge (venue effect already in team stats)
   };
 
   return { components, homeStats, awayStats };
@@ -269,8 +312,14 @@ export function estimateMatchGoalLambdas(
     leagueHomeGoals * homeAttackMultiplier * awayDefenceMultiplier * homeAdvantageFactor;
   const lambdaAwayBase = leagueAwayGoals * awayAttackMultiplier * homeDefenceMultiplier;
 
-  const lambdaHomeGoals = clamp(lambdaHomeBase * homeFormFactor, 0.1, 5.0);
-  const lambdaAwayGoals = clamp(lambdaAwayBase * awayFormFactor, 0.1, 5.0);
+  let lambdaHomeGoals = clamp(lambdaHomeBase * homeFormFactor, 0.1, 5.0);
+  let lambdaAwayGoals = clamp(lambdaAwayBase * awayFormFactor, 0.1, 5.0);
+
+  // Shrink extreme total lambdas toward league average
+  const leagueMean = leagueHomeGoals + leagueAwayGoals;
+  const shrunk = shrinkExtremeLambdas(lambdaHomeGoals, lambdaAwayGoals, leagueMean);
+  lambdaHomeGoals = shrunk.lambdaHome;
+  lambdaAwayGoals = shrunk.lambdaAway;
 
   return {
     lambdaHomeGoals,

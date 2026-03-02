@@ -10,6 +10,8 @@ import { isCup } from "@/lib/leagues";
 export interface RollingStats {
   goalsFor: number;
   goalsAgainst: number;
+  xgFor: number;
+  xgAgainst: number;
   shotsFor: number;
   shotsAgainst: number;
   sotFor: number;
@@ -20,6 +22,8 @@ export interface RollingStats {
   o25Count: number;
   cleanSheets: number;
   matchCount: number;
+  /** Number of matches in this window that have xG data. */
+  xgMatchCount: number;
 }
 
 export interface TeamRollingStats {
@@ -51,6 +55,10 @@ export interface TeamMatchRow {
   opponentName: string;
   goalsFor: number;
   goalsAgainst: number;
+  /** Expected goals for (from provider stats). null if unavailable. */
+  xgFor: number | null;
+  /** Expected goals against (from provider stats). null if unavailable. */
+  xgAgainst: number | null;
   btts: boolean;
   cleanSheet: boolean;
   shotsFor: number;
@@ -138,6 +146,12 @@ function buildTeamMatchHistory(fixtures: IngestedFixture[]): Map<string, TeamMat
     const homeStatArr = homeStats?.statistics ?? [];
     const awayStatArr = awayStats?.statistics ?? [];
 
+    // Extract expected goals (xG) — returns 0 when missing, so check if stat exists
+    const homeXgRaw = getStatValue(homeStatArr, "expected_goals");
+    const awayXgRaw = getStatValue(awayStatArr, "expected_goals");
+    const homeHasXg = homeStatArr.some((s) => s.type === "expected_goals" && s.value != null);
+    const awayHasXg = awayStatArr.some((s) => s.type === "expected_goals" && s.value != null);
+
     const homeRow: TeamMatchRow = {
       date,
       dateMs,
@@ -145,6 +159,8 @@ function buildTeamMatchHistory(fixtures: IngestedFixture[]): Map<string, TeamMat
       opponentName: away,
       goalsFor: gh,
       goalsAgainst: ga,
+      xgFor: homeHasXg ? homeXgRaw : null,
+      xgAgainst: awayHasXg ? awayXgRaw : null,
       btts,
       cleanSheet: ga === 0,
       shotsFor: getStatValue(homeStatArr, "Total Shots"),
@@ -164,6 +180,8 @@ function buildTeamMatchHistory(fixtures: IngestedFixture[]): Map<string, TeamMat
       opponentName: home,
       goalsFor: ga,
       goalsAgainst: gh,
+      xgFor: awayHasXg ? awayXgRaw : null,
+      xgAgainst: homeHasXg ? homeXgRaw : null,
       btts,
       cleanSheet: gh === 0,
       shotsFor: getStatValue(awayStatArr, "Total Shots"),
@@ -191,6 +209,8 @@ function computeRolling(matches: TeamMatchRow[], n: number): RollingStats {
     return {
       goalsFor: 0,
       goalsAgainst: 0,
+      xgFor: 0,
+      xgAgainst: 0,
       shotsFor: 0,
       shotsAgainst: 0,
       sotFor: 0,
@@ -201,13 +221,21 @@ function computeRolling(matches: TeamMatchRow[], n: number): RollingStats {
       o25Count: 0,
       cleanSheets: 0,
       matchCount: 0,
+      xgMatchCount: 0,
     };
   }
   const count = slice.length;
   const sum = (fn: (r: TeamMatchRow) => number) => slice.reduce((a, r) => a + fn(r), 0);
+
+  // xG: only average over matches that have xG data
+  const xgSlice = slice.filter((r) => r.xgFor != null && r.xgAgainst != null);
+  const xgCount = xgSlice.length;
+
   return {
     goalsFor: sum((r) => r.goalsFor) / count,
     goalsAgainst: sum((r) => r.goalsAgainst) / count,
+    xgFor: xgCount > 0 ? xgSlice.reduce((a, r) => a + r.xgFor!, 0) / xgCount : 0,
+    xgAgainst: xgCount > 0 ? xgSlice.reduce((a, r) => a + r.xgAgainst!, 0) / xgCount : 0,
     shotsFor: sum((r) => r.shotsFor) / count,
     shotsAgainst: sum((r) => r.shotsAgainst) / count,
     sotFor: sum((r) => r.sotFor) / count,
@@ -218,6 +246,7 @@ function computeRolling(matches: TeamMatchRow[], n: number): RollingStats {
     o25Count: slice.filter((r) => r.goalsFor + r.goalsAgainst >= 3).length,
     cleanSheets: slice.filter((r) => r.cleanSheet).length,
     matchCount: count,
+    xgMatchCount: xgCount,
   };
 }
 

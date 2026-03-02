@@ -143,12 +143,12 @@ function deriveH2HSummary(
     teams: { home: { id: number }; away: { id: number } };
     goals: { home: number | null; away: number | null };
   }>;
-  if (fixtures.length === 0) return null;
+  if (fixtures.length === 0) return { homeWins: 0, draws: 0, awayWins: 0 };
   let homeWins = 0;
   let awayWins = 0;
   let draws = 0;
   let lastWinner: string | undefined;
-  for (const f of fixtures.slice(0, 5)) {
+  for (const f of fixtures) {
     const gh = f.goals?.home ?? 0;
     const ga = f.goals?.away ?? 0;
     const isHomeFirst = f.teams.home.id === homeTeamId && f.teams.away.id === awayTeamId;
@@ -356,6 +356,7 @@ async function buildFeedMatch(
   item: ApiFootballFixtureResponseItem,
   provider: FootballProvider,
   teamIdToCode: Map<number, string>,
+  h2hSummary?: H2HSummary | null,
 ): Promise<FeedMatch> {
   const fixtureDate = item.fixture.date?.slice(0, 10);
   const home = item.teams.home.name;
@@ -368,14 +369,8 @@ async function buildFeedMatch(
   const useSameCompetitionForm = leagueId != null && isCup(leagueId);
   const formLeagueId = useSameCompetitionForm ? leagueId : undefined;
 
-  const h2hRes = await provider.getH2HFixtures(homeId, awayId, {
-    last: 5,
-    league: typeof leagueId === "number" ? leagueId : undefined,
-  });
-
   const homeForm = getTeamRecentResults(home, 10, fixtureDate, { leagueId: formLeagueId });
   const awayForm = getTeamRecentResults(away, 10, fixtureDate, { leagueId: formLeagueId });
-  const h2hSummary = deriveH2HSummary(h2hRes, homeId, awayId, home, away);
 
   const homeCode = teamIdToCode.get(homeId) ?? teamCodeFallback(home);
   const awayCode = teamIdToCode.get(awayId) ?? teamCodeFallback(away);
@@ -502,7 +497,58 @@ export async function getFeedMatches(
       }),
     );
 
-    const freshMatches = await Promise.all(list.map((item) => buildFeedMatch(item, provider, teamIdToCode)));
+    // ── Pre-fetch H2H with caching + concurrency limit ──────────
+    // H2H between two clubs doesn't change within a day (only after they
+    // play), so we cache per sorted team-pair and skip API calls on hits.
+    const h2hMap = new Map<string, H2HSummary | null>();
+
+    // Collect unique team pairs
+    const pairsToFetch: { key: string; homeId: number; awayId: number; homeName: string; awayName: string }[] = [];
+    for (const item of list) {
+      const hId = item.teams.home.id;
+      const aId = item.teams.away.id;
+      const cacheKey = `h2h-${Math.min(hId, aId)}-${Math.max(hId, aId)}.json`;
+      if (h2hMap.has(cacheKey)) continue; // already queued or resolved
+      const cached = readCache<H2HSummary | null>(cacheKey);
+      if (cached !== null) {
+        h2hMap.set(cacheKey, cached);
+      } else {
+        h2hMap.set(cacheKey, null); // mark as queued
+        pairsToFetch.push({ key: cacheKey, homeId: hId, awayId: aId, homeName: item.teams.home.name, awayName: item.teams.away.name });
+      }
+    }
+
+    // Fetch uncached pairs with concurrency limit of 3
+    const H2H_CONCURRENCY = 3;
+    for (let i = 0; i < pairsToFetch.length; i += H2H_CONCURRENCY) {
+      const batch = pairsToFetch.slice(i, i + H2H_CONCURRENCY);
+      const results = await Promise.all(
+        batch.map(async (p) => {
+          let h2hRes: { response?: unknown[] } = {};
+          try {
+            h2hRes = await provider.getH2HFixtures(p.homeId, p.awayId, { last: 20 });
+          } catch {
+            // H2H fetch failed — continue with empty result
+          }
+          return { ...p, h2hRes };
+        }),
+      );
+      for (const r of results) {
+        const summary = deriveH2HSummary(r.h2hRes, r.homeId, r.awayId, r.homeName, r.awayName);
+        h2hMap.set(r.key, summary);
+        writeCache(r.key, summary);
+      }
+    }
+
+    // Build feed matches (H2H already resolved, no more API calls inside)
+    const freshMatches = await Promise.all(
+      list.map((item) => {
+        const hId = item.teams.home.id;
+        const aId = item.teams.away.id;
+        const cacheKey = `h2h-${Math.min(hId, aId)}-${Math.max(hId, aId)}.json`;
+        return buildFeedMatch(item, provider, teamIdToCode, h2hMap.get(cacheKey));
+      }),
+    );
 
     // Write per-league caches. For today, only cache leagues that
     // returned matches — empty results may mean "not published yet".

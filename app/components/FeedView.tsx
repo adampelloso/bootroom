@@ -11,6 +11,7 @@ import { MatchCard } from "./MatchCard";
 type ViewMode = "cards" | "table";
 
 function getBttsPercent(match: FeedMatch): number | null {
+  if (match.modelProbs?.btts != null) return match.modelProbs.btts;
   if (match.modelProbs?.mcBtts != null) return match.modelProbs.mcBtts;
   const bttsRow = match.marketRows.find((r) => r.market === "BTTS");
   if (bttsRow && bttsRow.market === "BTTS") return bttsRow.combinedHits / 10;

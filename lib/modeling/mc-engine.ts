@@ -7,6 +7,8 @@ export interface MatchSimulationRequest {
   randomSeed?: number;
   /** Std dev of shared tempo factor; 0 = independent Poisson. */
   tempoStd?: number;
+  /** Dixon-Coles ρ parameter for low-score correction. Default: -0.04. Set 0 to disable. */
+  dixonColesRho?: number;
 }
 
 export interface ScorelineDistribution {
@@ -50,8 +52,99 @@ function samplePoisson(lambda: number, rng: () => number): number {
   return k - 1;
 }
 
+/**
+ * Dixon-Coles (1997) correction for low-scoring games.
+ * Independent Poisson underestimates draws and low-score outcomes because
+ * real football has tactical dependencies (e.g. teams parking the bus).
+ *
+ * The correction multiplies probabilities for {0-0, 1-0, 0-1, 1-1} by:
+ *   τ(0,0) = 1 - λ·μ·ρ
+ *   τ(1,0) = 1 + μ·ρ
+ *   τ(0,1) = 1 + λ·ρ
+ *   τ(1,1) = 1 - ρ
+ *
+ * ρ (rho) is typically negative (-0.03 to -0.07), which:
+ *   - Increases P(0-0) — fewer goals than independent model expects
+ *   - Increases P(1-1) — more "fair" 1-1 draws
+ *   - Decreases P(1-0) and P(0-1) — adjusts single-goal games
+ */
+function applyDixonColesCorrection(
+  result: MatchSimulationResult,
+  lambdaHome: number,
+  lambdaAway: number,
+  rho: number = -0.04,
+): MatchSimulationResult {
+  if (rho === 0) return result;
+
+  const n = result.totalSimulations;
+  const adjusted: ScorelineDistribution = { ...result.scorelines };
+
+  // Dixon-Coles τ multipliers for low-scoring outcomes
+  const tau00 = 1 - lambdaHome * lambdaAway * rho;
+  const tau10 = 1 + lambdaAway * rho;
+  const tau01 = 1 + lambdaHome * rho;
+  const tau11 = 1 - rho;
+
+  const corrections: Record<string, number> = {
+    "0-0": tau00,
+    "1-0": tau10,
+    "0-1": tau01,
+    "1-1": tau11,
+  };
+
+  // Apply corrections (multiply raw counts by τ)
+  let totalWeight = 0;
+  for (const [key, count] of Object.entries(adjusted)) {
+    const tau = corrections[key] ?? 1;
+    adjusted[key] = count * tau;
+    totalWeight += adjusted[key];
+  }
+
+  // Renormalize so probabilities sum to 1
+  const scale = n / totalWeight;
+  for (const key of Object.keys(adjusted)) {
+    adjusted[key] *= scale;
+  }
+
+  // Recompute derived metrics from adjusted scoreline distribution
+  let homeWins = 0, draws = 0, awayWins = 0;
+  let btts = 0, o25 = 0, o35 = 0;
+  let sumHG = 0, sumAG = 0;
+
+  for (const [key, weight] of Object.entries(adjusted)) {
+    const [hStr, aStr] = key.split("-");
+    const gh = parseInt(hStr);
+    const ga = parseInt(aStr);
+
+    if (gh > ga) homeWins += weight;
+    else if (gh === ga) draws += weight;
+    else awayWins += weight;
+
+    if (gh > 0 && ga > 0) btts += weight;
+    if (gh + ga >= 3) o25 += weight;
+    if (gh + ga >= 4) o35 += weight;
+    sumHG += gh * weight;
+    sumAG += ga * weight;
+  }
+
+  const inv = 1 / n;
+
+  return {
+    ...result,
+    scorelines: adjusted,
+    pHomeWin: homeWins * inv,
+    pDraw: draws * inv,
+    pAwayWin: awayWins * inv,
+    pBTTS: btts * inv,
+    pO25: o25 * inv,
+    pO35: o35 * inv,
+    expectedHomeGoals: sumHG * inv,
+    expectedAwayGoals: sumAG * inv,
+  };
+}
+
 export function simulateMatch(req: MatchSimulationRequest): MatchSimulationResult {
-  const simulations = req.simulations ?? 50000;
+  const simulations = req.simulations ?? 100000;
   const rng = createRng(req.randomSeed);
   const tempoStd = req.tempoStd ?? 0;
 
@@ -108,7 +201,7 @@ export function simulateMatch(req: MatchSimulationRequest): MatchSimulationResul
 
   const inv = 1 / simulations;
 
-  return {
+  const rawResult: MatchSimulationResult = {
     totalSimulations: simulations,
     scorelines,
     pHomeWin: homeWins * inv,
@@ -124,5 +217,13 @@ export function simulateMatch(req: MatchSimulationRequest): MatchSimulationResul
     expectedAwayCorners:
       req.lambdaAwayCorners != null ? sumAwayCorners * inv : undefined,
   };
+
+  // Apply Dixon-Coles correction for low-scoring games
+  return applyDixonColesCorrection(
+    rawResult,
+    req.lambdaHomeGoals,
+    req.lambdaAwayGoals,
+    req.dixonColesRho ?? -0.04,
+  );
 }
 

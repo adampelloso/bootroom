@@ -1,8 +1,9 @@
 import calibrationData from "@/lib/modeling/calibration-data.json";
 
-type MarketKey = "1X2" | "OU_2.5";
+type MarketKey = "1X2" | "OU_2.5" | "BTTS";
 type OneX2Outcome = "H" | "D" | "A";
 type OuOutcome = "Over" | "Under";
+type BttsOutcome = "Yes" | "No";
 
 type CalibrationTable = {
   markets: {
@@ -55,7 +56,7 @@ function applyTable(raw: number, xs: number[], ys: number[]): number {
 
 export function applyCalibration(
   market: MarketKey,
-  outcome: OneX2Outcome | OuOutcome,
+  outcome: OneX2Outcome | OuOutcome | BttsOutcome,
   rawProb: number,
 ): number {
   const marketTable = CALIBRATION.markets[market];

@@ -6,6 +6,7 @@
 import fs from "fs";
 import path from "path";
 import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
+import { applyCalibration } from "@/lib/modeling/calibration";
 import type { MatchSimulationResult } from "@/lib/modeling/mc-engine";
 import type { GoalLambdaComponents, MatchGoalLambdas, MatchCornerLambdas } from "@/lib/modeling/baseline-params";
 
@@ -82,6 +83,9 @@ export function getFeedModelProbsFromDisk(
   }
   if (entry.feedProbs.mcBtts == null && entry.sim?.pBTTS != null) {
     entry.feedProbs.mcBtts = entry.sim.pBTTS;
+  }
+  if (entry.feedProbs.btts == null && entry.sim?.pBTTS != null) {
+    entry.feedProbs.btts = applyCalibration("BTTS", "Yes", entry.sim.pBTTS);
   }
   return entry.feedProbs;
 }

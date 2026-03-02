@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMatchDetail } from "@/lib/build-feed";
+import { requireActiveSubscription } from "@/lib/auth-guard";
 import { getPrecomputedSim } from "@/lib/modeling/sim-reader";
 import { ScorelineBarChart } from "@/app/components/ScorelineBarChart";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
@@ -22,6 +23,8 @@ type EdgeRow = {
 };
 
 export default async function MatchSimPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireActiveSubscription();
+
   const { id } = await params;
   const match = await getMatch(id);
   if (!match) notFound();

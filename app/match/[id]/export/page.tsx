@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMatchDetail } from "@/lib/build-feed";
+import { requireActiveSubscription } from "@/lib/auth-guard";
 
 function formatKickoff(iso: string): string {
   const d = new Date(iso);
@@ -23,6 +24,8 @@ export default async function ExportPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ ratio?: string }>;
 }) {
+  await requireActiveSubscription();
+
   const { id } = await params;
   const { ratio = "1:1" } = await searchParams;
   const match = await getMatch(id);

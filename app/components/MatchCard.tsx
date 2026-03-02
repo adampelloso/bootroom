@@ -15,7 +15,8 @@ function formatKickoffTime(iso: string): string {
 }
 
 function getBttsPercent(match: FeedMatch): number | null {
-  // Prefer MC simulation probability
+  // Prefer calibrated BTTS, fall back to raw MC
+  if (match.modelProbs?.btts != null) return match.modelProbs.btts;
   if (match.modelProbs?.mcBtts != null) return match.modelProbs.mcBtts;
   // Fall back to combined hit rate from market rows (hits out of 10 combined matches)
   const bttsRow = match.marketRows.find((r) => r.market === "BTTS");
