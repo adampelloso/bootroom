@@ -1,9 +1,9 @@
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { subscription } from "@/lib/db-schema";
 import { eq, sql } from "drizzle-orm";
 
 export async function getSubscription(userId: string) {
-  const rows = await db
+  const rows = await getDb()
     .select()
     .from(subscription)
     .where(eq(subscription.userId, userId))
@@ -30,7 +30,7 @@ export async function upsertSubscription(data: {
 }) {
   const now = Math.floor(Date.now() / 1000);
 
-  await db
+  await getDb()
     .insert(subscription)
     .values({
       id: crypto.randomUUID(),

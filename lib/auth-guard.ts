@@ -1,16 +1,16 @@
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { hasActiveSubscription } from "@/lib/subscription";
+import { getEnvVar } from "@/lib/env";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean);
-
 function isAdmin(email: string): boolean {
-  return ADMIN_EMAILS.includes(email);
+  const adminEmails = (getEnvVar("ADMIN_EMAILS") ?? "").split(",").map((e) => e.trim()).filter(Boolean);
+  return adminEmails.includes(email);
 }
 
 export async function requireSession() {
-  const session = await auth.api.getSession({
+  const session = await getAuth().api.getSession({
     headers: await headers(),
   });
   if (!session) redirect("/login");

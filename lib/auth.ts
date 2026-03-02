@@ -1,27 +1,38 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
+import { getEnvVar } from "@/lib/env";
 import * as schema from "@/lib/db-schema";
 
-export const auth = betterAuth({
-  database: drizzleAdapter(db, { provider: "sqlite", schema }),
-  baseURL: process.env.BETTER_AUTH_URL,
-  secret: process.env.BETTER_AUTH_SECRET,
-  session: {
-    expiresIn: 60 * 60 * 24 * 30, // 30 days
-    updateAge: 60 * 60 * 24,       // refresh session every 24h
-    cookieCache: {
+function createAuth() {
+  return betterAuth({
+    database: drizzleAdapter(getDb(), { provider: "sqlite", schema }),
+    baseURL: getEnvVar("BETTER_AUTH_URL"),
+    secret: getEnvVar("BETTER_AUTH_SECRET"),
+    session: {
+      expiresIn: 60 * 60 * 24 * 30,
+      updateAge: 60 * 60 * 24,
+      cookieCache: {
+        enabled: true,
+        maxAge: 60 * 5,
+      },
+    },
+    emailAndPassword: {
       enabled: true,
-      maxAge: 60 * 5, // 5 min cache to avoid DB lookup every request
     },
-  },
-  emailAndPassword: {
-    enabled: true,
-  },
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    socialProviders: {
+      google: {
+        clientId: getEnvVar("GOOGLE_CLIENT_ID")!,
+        clientSecret: getEnvVar("GOOGLE_CLIENT_SECRET")!,
+      },
     },
-  },
-});
+  });
+}
+
+type AuthInstance = ReturnType<typeof createAuth>;
+let _auth: AuthInstance | undefined;
+
+export function getAuth(): AuthInstance {
+  if (!_auth) _auth = createAuth();
+  return _auth;
+}

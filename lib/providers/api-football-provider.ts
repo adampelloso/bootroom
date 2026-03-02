@@ -6,6 +6,7 @@ import type {
   ApiFootballTeamsResponse,
 } from "@/lib/api-football-types";
 import type { FootballProvider } from "./types";
+import { getEnvVar } from "@/lib/env";
 
 export interface ApiFootballConfig {
   baseUrl: string;
@@ -14,12 +15,12 @@ export interface ApiFootballConfig {
 }
 
 export function resolveApiFootballConfig(): ApiFootballConfig | null {
-  const key = process.env.API_FOOTBALL_KEY;
+  const key = getEnvVar("API_FOOTBALL_KEY");
   if (!key) return null;
 
   return {
-    baseUrl: process.env.API_FOOTBALL_BASE_URL ?? "https://v3.football.api-sports.io",
-    host: process.env.API_FOOTBALL_HOST ?? undefined,
+    baseUrl: getEnvVar("API_FOOTBALL_BASE_URL") ?? "https://v3.football.api-sports.io",
+    host: getEnvVar("API_FOOTBALL_HOST") ?? undefined,
     key,
   };
 }

@@ -1,11 +1,11 @@
 import { getFeedMatches } from "@/lib/build-feed";
 import { DEFAULT_LEAGUE_ID, ALL_COMPETITION_IDS } from "@/lib/leagues";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { headers } from "next/headers";
 
 export async function GET(request: Request) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getAuth().api.getSession({ headers: await headers() });
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { searchParams } = new URL(request.url);
   const from = searchParams.get("from") ?? undefined;

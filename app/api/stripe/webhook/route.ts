@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { upsertSubscription } from "@/lib/subscription";
+import { getEnvVar } from "@/lib/env";
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing signature" }, { status: 400 });
     }
 
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    const stripe = new Stripe(getEnvVar("STRIPE_SECRET_KEY")!, {
       apiVersion: "2025-02-24.acacia",
       typescript: true,
     });
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
       event = stripe.webhooks.constructEvent(
         body,
         signature,
-        process.env.STRIPE_WEBHOOK_SECRET!
+        getEnvVar("STRIPE_WEBHOOK_SECRET")!
       );
     } catch (err) {
       console.error("[stripe webhook] Signature failed:", err);
