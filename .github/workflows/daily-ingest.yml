@@ -59,7 +59,7 @@ jobs:
       # ── Simulations ──────────────────────────────────────
 
       - name: Run Monte Carlo simulations
-        run: npx tsx scripts/run-simulations.mts
+        run: npx tsx scripts/run-simulations.ts
 
       # ── Pre-build & KV Push ──────────────────────────────
 

@@ -86,7 +86,7 @@ node "scripts/ingest-upcoming-fixtures.mjs" --season="${SEASON}" || {
 
 # Pre-compute Monte Carlo simulations
 echo "[ingest-daily] running simulations"
-npx tsx "scripts/run-simulations.mts" || {
+npx tsx "scripts/run-simulations.ts" || {
   echo "[ingest-daily] WARNING: simulation run failed"
 }
 
