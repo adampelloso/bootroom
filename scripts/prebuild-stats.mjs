@@ -207,6 +207,21 @@ function writeKvStaging(history, leagueAverages) {
     fileCount++;
   }
 
+  // Simulation files: sims:{YYYY-MM-DD} → SimulationFile
+  const simsDir = path.join(DATA_DIR, "simulations");
+  if (fs.existsSync(simsDir)) {
+    const simFiles = fs.readdirSync(simsDir).filter((f) => f.endsWith(".json")).sort();
+    for (const file of simFiles) {
+      const date = file.replace(/\.json$/, "");
+      const kvKey = `sims:${date}`;
+      const raw = fs.readFileSync(path.join(simsDir, file), "utf-8");
+      const filePath = path.join(KV_STAGING_DIR, encodeURIComponent(kvKey) + ".json");
+      fs.writeFileSync(filePath, raw);
+      fileCount++;
+    }
+    console.log(`Staged ${simFiles.length} simulation files`);
+  }
+
   return fileCount;
 }
 

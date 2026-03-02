@@ -1,6 +1,7 @@
 /**
- * Read pre-computed MC simulation results from disk.
+ * Read pre-computed MC simulation results from disk or Cloudflare KV.
  * Files are written by scripts/run-simulations.mts to data/simulations/YYYY-MM-DD.json.
+ * On Workers: reads from KV key `sims:{YYYY-MM-DD}`.
  */
 
 import fs from "fs";
@@ -9,6 +10,7 @@ import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import { applyCalibration } from "@/lib/modeling/calibration";
 import type { MatchSimulationResult } from "@/lib/modeling/mc-engine";
 import type { GoalLambdaComponents, MatchGoalLambdas, MatchCornerLambdas } from "@/lib/modeling/baseline-params";
+import { kvGet } from "@/lib/kv";
 
 interface SimInputs {
   goalLambdas: MatchGoalLambdas;
@@ -38,6 +40,25 @@ interface SimulationFile {
 
 // Module-level cache: date string → parsed file
 const fileCache = new Map<string, SimulationFile | null>();
+
+/**
+ * Preload simulation data from KV for given dates.
+ * Call before getFeedModelProbsFromDisk to ensure KV data is in cache.
+ * No-op on local dev (KV returns null).
+ */
+export async function preloadSimulations(dates: string[]): Promise<void> {
+  const missing = dates.filter((d) => !fileCache.has(d));
+  if (missing.length === 0) return;
+
+  await Promise.all(
+    missing.map(async (date) => {
+      const data = await kvGet<SimulationFile>(`sims:${date}`);
+      if (data) {
+        fileCache.set(date, data);
+      }
+    }),
+  );
+}
 
 function loadSimFile(date: string): SimulationFile | null {
   if (fileCache.has(date)) {

@@ -25,6 +25,7 @@ import { getTeamStats } from "@/lib/insights/team-stats";
 import { getFeedMarketRows, feedMatchScore } from "@/lib/insights/feed-market-stats";
 import { getWhatStandsOut } from "@/lib/insights/what-stands-out";
 import { getFeedMatchModelProbs } from "@/lib/modeling/feed-model-probs";
+import { preloadSimulations } from "@/lib/modeling/sim-reader";
 import type { H2HSummary } from "./feed";
 import type { FootballProvider } from "@/lib/providers/types";
 import {
@@ -487,15 +488,19 @@ export async function getFeedMatches(
     const list = fixturesResponses.flatMap((r) => r.response ?? []);
     list.sort((a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime());
 
-    // Preload team stats + league averages from KV (no-op on local dev)
+    // Preload team stats, league averages, and sims from KV (no-op on local dev)
     const allTeamNames = new Set<string>();
+    const allDates = new Set<string>();
     for (const item of list) {
       allTeamNames.add(item.teams.home.name);
       allTeamNames.add(item.teams.away.name);
+      const d = item.fixture.date?.slice(0, 10);
+      if (d) allDates.add(d);
     }
     await Promise.all([
       preloadTeamStats([...allTeamNames]),
       preloadLeagueAverages(uncachedIds),
+      preloadSimulations([...allDates]),
     ]);
 
     const teamIdToCode = new Map<number, string>();
@@ -595,10 +600,11 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
   const homeId = item.teams.home.id;
   const awayId = item.teams.away.id;
 
-  // Preload team stats + league averages from KV (no-op on local dev)
+  // Preload team stats, league averages, and sims from KV (no-op on local dev)
   await Promise.all([
     preloadTeamStats([home, away]),
     preloadLeagueAverages(leagueId != null ? [leagueId] : []),
+    preloadSimulations(fixtureDate ? [fixtureDate] : []),
   ]);
 
   let teamIdToCode = new Map<number, string>();
