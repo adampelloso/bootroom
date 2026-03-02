@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getStripe } from "@/lib/stripe";
 import { getSubscription } from "@/lib/subscription";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -29,6 +29,8 @@ export async function POST(request: Request) {
 
   const origin = new URL(request.url).origin;
 
+  const visitor = (await cookies()).get("visitor")?.value;
+
   const checkoutSession = await getStripe().checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
     subscription_data: { trial_period_days: 7 },
     success_url: `${origin}/feed`,
     cancel_url: `${origin}/subscribe`,
-    metadata: { userId: session.user.id },
+    metadata: { userId: session.user.id, ...(visitor && { visitor }) },
   });
 
   return NextResponse.json({ url: checkoutSession.url });
