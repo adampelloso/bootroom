@@ -148,23 +148,23 @@ export function MatchCard({ match }: { match: FeedMatch }) {
                 {totalXg!.toFixed(1)}
               </td>
             </tr>
-            {over25Display != null && (
-              <tr style={{ borderBottom: "1px solid var(--border-light)" }}>
-                <td className="py-1.5 text-[12px] uppercase font-semibold" style={{ color: "var(--text-sec)" }}>
-                  Over 2.5
-                </td>
-                <td colSpan={3} className="py-1.5 text-right text-[13px] font-bold">
-                  <span className="inline-block px-2 py-0.5 rounded text-[12px]" style={{ background: percentPill(Math.round(over25Display * 100)).bg, color: percentPill(Math.round(over25Display * 100)).text }}>{Math.round(over25Display * 100)}%</span>
-                </td>
-              </tr>
-            )}
-            {bttsDisplay != null && (
+            {(over25Display != null || bttsDisplay != null) && (
               <tr>
-                <td className="py-1.5 text-[12px] uppercase font-semibold" style={{ color: "var(--text-sec)" }}>
-                  BTTS
-                </td>
-                <td colSpan={3} className="py-1.5 text-right text-[13px] font-bold">
-                  <span className="inline-block px-2 py-0.5 rounded text-[12px]" style={{ background: percentPill(Math.round(bttsDisplay * 100)).bg, color: percentPill(Math.round(bttsDisplay * 100)).text }}>{Math.round(bttsDisplay * 100)}%</span>
+                <td colSpan={4} className="py-1.5">
+                  <div className="flex items-center">
+                    <span className="w-1/2 flex items-center gap-1.5 text-[12px] uppercase font-semibold" style={{ color: "var(--text-sec)" }}>
+                      {over25Display != null && (<>
+                        o2.5
+                        <span className="inline-block px-2 py-0.5 rounded text-[12px] font-bold" style={{ background: percentPill(Math.round(over25Display * 100)).bg, color: percentPill(Math.round(over25Display * 100)).text }}>{Math.round(over25Display * 100)}%</span>
+                      </>)}
+                    </span>
+                    <span className="w-1/2 flex items-center justify-end gap-1.5 text-[12px] uppercase font-semibold" style={{ color: "var(--text-sec)" }}>
+                      {bttsDisplay != null && (<>
+                        BTTS
+                        <span className="inline-block px-2 py-0.5 rounded text-[12px] font-bold" style={{ background: percentPill(Math.round(bttsDisplay * 100)).bg, color: percentPill(Math.round(bttsDisplay * 100)).text }}>{Math.round(bttsDisplay * 100)}%</span>
+                      </>)}
+                    </span>
+                  </div>
                 </td>
               </tr>
             )}

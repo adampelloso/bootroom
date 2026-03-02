@@ -143,7 +143,7 @@ function deriveH2HSummary(
     teams: { home: { id: number }; away: { id: number } };
     goals: { home: number | null; away: number | null };
   }>;
-  if (fixtures.length === 0) return { homeWins: 0, draws: 0, awayWins: 0 };
+  if (fixtures.length === 0) return null;
   let homeWins = 0;
   let awayWins = 0;
   let draws = 0;
@@ -547,7 +547,7 @@ export async function getFeedMatches(
       for (const r of results) {
         const summary = deriveH2HSummary(r.h2hRes, r.homeId, r.awayId, r.homeName, r.awayName);
         h2hMap.set(r.key, summary);
-        writeCache(r.key, summary);
+        if (summary !== null) writeCache(r.key, summary);
       }
     }
 
