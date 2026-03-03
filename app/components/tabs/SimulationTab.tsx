@@ -1,6 +1,8 @@
 "use client";
 
 import { ScorelineBarChart } from "@/app/components/ScorelineBarChart";
+import { ScorelineHeatmap } from "@/app/components/ScorelineHeatmap";
+import { WinProbBar } from "@/app/components/WinProbBar";
 import type { MatchSimulationResult } from "@/lib/modeling/mc-engine";
 import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import type { MatchGoalLambdas, MatchCornerLambdas, GoalLambdaComponents } from "@/lib/modeling/baseline-params";
@@ -25,13 +27,15 @@ type Props = {
   sim: MatchSimulationResult | null;
   feedProbs: FeedModelProbs | null;
   inputs: SimInputs | null;
+  homeTeamName?: string;
+  awayTeamName?: string;
 };
 
 function formatPercent(p: number): string {
   return `${(p * 100).toFixed(1)}%`;
 }
 
-export function SimulationTab({ sim, feedProbs, inputs }: Props) {
+export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamName }: Props) {
   const [showInputs, setShowInputs] = useState(false);
 
   if (!sim || !feedProbs) {
@@ -91,10 +95,87 @@ export function SimulationTab({ sim, feedProbs, inputs }: Props) {
     else goalDiffBuckets["Away+2"] += count;
   }
 
+  // Derive expanded markets from scorelines
+  type MarketRow = { label: string; prob: number };
+
+  const deriveFromScorelines = () => {
+    let pO05 = 0, pO15 = 0, pO45 = 0, pO55 = 0;
+    let pHomeO05 = 0, pHomeO15 = 0, pHomeO25 = 0, pHomeO35 = 0;
+    let pAwayO05 = 0, pAwayO15 = 0, pAwayO25 = 0, pAwayO35 = 0;
+
+    for (const [score, count] of Object.entries(sim.scorelines)) {
+      const [hs, as] = score.split("-").map((x) => parseInt(x, 10));
+      if (Number.isNaN(hs) || Number.isNaN(as)) continue;
+      const prob = count / sim.totalSimulations;
+      const total = hs + as;
+
+      if (total >= 1) pO05 += prob;
+      if (total >= 2) pO15 += prob;
+      if (total >= 5) pO45 += prob;
+      if (total >= 6) pO55 += prob;
+
+      if (hs >= 1) pHomeO05 += prob;
+      if (hs >= 2) pHomeO15 += prob;
+      if (hs >= 3) pHomeO25 += prob;
+      if (hs >= 4) pHomeO35 += prob;
+
+      if (as >= 1) pAwayO05 += prob;
+      if (as >= 2) pAwayO15 += prob;
+      if (as >= 3) pAwayO25 += prob;
+      if (as >= 4) pAwayO35 += prob;
+    }
+
+    const totalGoals: MarketRow[] = [
+      { label: "O0.5", prob: pO05 },
+      { label: "O1.5", prob: pO15 },
+      { label: "O2.5", prob: sim.pO25 },
+      { label: "O3.5", prob: sim.pO35 },
+      { label: "O4.5", prob: pO45 },
+      { label: "O5.5", prob: pO55 },
+    ];
+
+    const homeGoals: MarketRow[] = [
+      { label: "Home O0.5", prob: pHomeO05 },
+      { label: "Home O1.5", prob: pHomeO15 },
+      { label: "Home O2.5", prob: pHomeO25 },
+      { label: "Home O3.5", prob: pHomeO35 },
+    ];
+
+    const awayGoals: MarketRow[] = [
+      { label: "Away O0.5", prob: pAwayO05 },
+      { label: "Away O1.5", prob: pAwayO15 },
+      { label: "Away O2.5", prob: pAwayO25 },
+      { label: "Away O3.5", prob: pAwayO35 },
+    ];
+
+    const doubleChance: MarketRow[] = [
+      { label: "1X (Home or Draw)", prob: sim.pHomeWin + sim.pDraw },
+      { label: "X2 (Draw or Away)", prob: sim.pDraw + sim.pAwayWin },
+      { label: "12 (Home or Away)", prob: sim.pHomeWin + sim.pAwayWin },
+    ];
+
+    const drawNoBet: MarketRow[] = [
+      { label: "DNB Home", prob: sim.pDraw > 0 ? sim.pHomeWin / (sim.pHomeWin + sim.pAwayWin) : sim.pHomeWin },
+      { label: "DNB Away", prob: sim.pDraw > 0 ? sim.pAwayWin / (sim.pHomeWin + sim.pAwayWin) : sim.pAwayWin },
+    ];
+
+    return { totalGoals, homeGoals, awayGoals, doubleChance, drawNoBet };
+  };
+
+  const expandedMarkets = deriveFromScorelines();
   const { goalLambdas, cornerLambdas, components } = inputs ?? { goalLambdas: null, cornerLambdas: null, components: null };
 
   return (
     <div className="space-y-0">
+      {/* W/D/L probability bar */}
+      <WinProbBar
+        homeWin={sim.pHomeWin}
+        draw={sim.pDraw}
+        awayWin={sim.pAwayWin}
+        homeTeamName={homeTeamName ?? "Home"}
+        awayTeamName={awayTeamName ?? "Away"}
+      />
+
       <section className="px-5 py-3" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
         <p className="text-secondary-data text-tertiary">
           Monte Carlo snapshot · {sim.totalSimulations.toLocaleString()} runs
@@ -128,49 +209,115 @@ export function SimulationTab({ sim, feedProbs, inputs }: Props) {
         </section>
       )}
 
+      {/* Expanded markets grid */}
+      <section className="px-5 py-4 border-t border-[var(--border-light)]" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
+        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-4">Markets</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Total Goals O/U */}
+          <div>
+            <p className="text-mono text-[10px] uppercase text-tertiary mb-2">Total goals</p>
+            <div className="space-y-1">
+              {expandedMarkets.totalGoals.map((m) => (
+                <div key={m.label} className="flex justify-between text-[11px] font-mono">
+                  <span className="text-[var(--text-sec)]">{m.label}</span>
+                  <span className="text-[var(--text-main)] font-semibold">{formatPercent(m.prob)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between text-[11px] font-mono border-t border-[var(--border-light)] pt-1 mt-1">
+                <span className="text-[var(--text-sec)]">BTTS</span>
+                <span className="text-[var(--text-main)] font-semibold">{formatPercent(sim.pBTTS)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Home/Away Goals */}
+          <div>
+            <p className="text-mono text-[10px] uppercase text-tertiary mb-2">Team goals</p>
+            <div className="space-y-1">
+              {expandedMarkets.homeGoals.map((m) => (
+                <div key={m.label} className="flex justify-between text-[11px] font-mono">
+                  <span className="text-[var(--text-sec)]">{m.label}</span>
+                  <span className="text-[var(--text-main)] font-semibold">{formatPercent(m.prob)}</span>
+                </div>
+              ))}
+              <div className="border-t border-[var(--border-light)] pt-1 mt-1" />
+              {expandedMarkets.awayGoals.map((m) => (
+                <div key={m.label} className="flex justify-between text-[11px] font-mono">
+                  <span className="text-[var(--text-sec)]">{m.label}</span>
+                  <span className="text-[var(--text-main)] font-semibold">{formatPercent(m.prob)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Double Chance + DNB */}
+          <div>
+            <p className="text-mono text-[10px] uppercase text-tertiary mb-2">Double chance</p>
+            <div className="space-y-1">
+              {expandedMarkets.doubleChance.map((m) => (
+                <div key={m.label} className="flex justify-between text-[11px] font-mono">
+                  <span className="text-[var(--text-sec)]">{m.label}</span>
+                  <span className="text-[var(--text-main)] font-semibold">{formatPercent(m.prob)}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-mono text-[10px] uppercase text-tertiary mb-2 mt-3">Draw no bet</p>
+            <div className="space-y-1">
+              {expandedMarkets.drawNoBet.map((m) => (
+                <div key={m.label} className="flex justify-between text-[11px] font-mono">
+                  <span className="text-[var(--text-sec)]">{m.label}</span>
+                  <span className="text-[var(--text-main)] font-semibold">{formatPercent(m.prob)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Expected goals section */}
+      <section className="px-5 py-3 border-t border-[var(--border-light)]" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
+        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-2">Expected values</h2>
+        <div className="grid grid-cols-2 gap-4 text-primary-data">
+          <div>
+            <span className="text-tertiary text-[11px] block mb-1">Home xG</span>
+            <span className="font-bold">{sim.expectedHomeGoals.toFixed(2)}</span>
+          </div>
+          <div>
+            <span className="text-tertiary text-[11px] block mb-1">Away xG</span>
+            <span className="font-bold">{sim.expectedAwayGoals.toFixed(2)}</span>
+          </div>
+          {sim.expectedHomeCorners != null && (
+            <div>
+              <span className="text-tertiary text-[11px] block mb-1">Home corners</span>
+              <span className="font-bold">{sim.expectedHomeCorners.toFixed(1)}</span>
+            </div>
+          )}
+          {sim.expectedAwayCorners != null && (
+            <div>
+              <span className="text-tertiary text-[11px] block mb-1">Away corners</span>
+              <span className="font-bold">{sim.expectedAwayCorners.toFixed(1)}</span>
+            </div>
+          )}
+        </div>
+      </section>
+
       <div className="detail-grid border-t border-[var(--border-light)]">
-        {/* Left: Goals markets + expected */}
+        <div /> {/* empty left */}
+
+        {/* Right: Scoreline heatmap + bar chart */}
         <div className="space-y-0">
           <section className="px-5 py-3" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
-            <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-2">Goals markets</h2>
-            <div className="text-primary-data space-y-1">
-              <p>BTTS: {formatPercent(sim.pBTTS)}</p>
-              <p>O2.5: {formatPercent(sim.pO25)}</p>
-              <p>O3.5: {formatPercent(sim.pO35)}</p>
-            </div>
+            <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-3">Scoreline heatmap</h2>
+            <ScorelineHeatmap scorelines={sim.scorelines} totalSimulations={sim.totalSimulations} />
           </section>
-
           <section className="px-5 py-3 border-t border-[var(--border-light)]" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
-            <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-2">Expected goals</h2>
-            <div className="text-primary-data">
-              <p>
-                Home: <span className="font-bold">{sim.expectedHomeGoals.toFixed(2)}</span> vs Away: <span className="font-bold">{sim.expectedAwayGoals.toFixed(2)}</span>
-                {" · "}
-                <span className="font-bold" style={{ color: "var(--text-main)" }}>
-                  {sim.expectedHomeGoals > sim.expectedAwayGoals ? "+" : ""}{(sim.expectedHomeGoals - sim.expectedAwayGoals).toFixed(2)} home edge
-                </span>
-              </p>
-            </div>
-            {sim.expectedHomeCorners != null && sim.expectedAwayCorners != null && (
-              <div className="text-primary-data mt-2">
-                <p>
-                  Corners: Home <span className="font-bold">{sim.expectedHomeCorners.toFixed(1)}</span> vs Away <span className="font-bold">{sim.expectedAwayCorners.toFixed(1)}</span>
-                </p>
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* Right: Scoreline bar chart */}
-        <div>
-          <section className="px-5 py-3" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
             <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-3">Top scorelines</h2>
-            <ScorelineBarChart scorelines={sortedScorelines} totalSimulations={sim.totalSimulations} />
+            <ScorelineBarChart scorelines={sortedScorelines.slice(0, 5)} totalSimulations={sim.totalSimulations} />
           </section>
         </div>
       </div>
 
-      {/* Collapsible: model inputs */}
+      {/* Collapsible: model transparency */}
       {inputs && goalLambdas && (
         <section className="px-5 py-3 border-t border-[var(--border-light)] text-secondary-data text-tertiary" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
           <button
@@ -178,46 +325,64 @@ export function SimulationTab({ sim, feedProbs, inputs }: Props) {
             onClick={() => setShowInputs((o) => !o)}
             className="w-full flex items-center justify-between py-2 text-left text-mono text-[11px] uppercase text-tertiary hover:text-[var(--text-sec)]"
           >
-            Model inputs
+            Model transparency
             <span aria-hidden>{showInputs ? "\u2212" : "+"}</span>
           </button>
           {showInputs && (
-            <div className="mt-3 grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-secondary-data uppercase mb-1">Goals {"\u03BB"}</p>
-                <p>Home {"\u03BB"}: {goalLambdas.lambdaHomeGoals.toFixed(2)}</p>
-                <p>Away {"\u03BB"}: {goalLambdas.lambdaAwayGoals.toFixed(2)}</p>
-              </div>
-              {components && (
+            <div className="mt-3 space-y-4">
+              {/* Model overview */}
+              <div className="grid grid-cols-3 gap-3 text-[11px] font-mono p-3" style={{ background: "var(--bg-card)", border: "1px solid var(--border-light)" }}>
                 <div>
-                  <p className="text-secondary-data uppercase mb-1">Components</p>
-                  <p>League H/A: {components.leagueHomeGoals.toFixed(2)} / {components.leagueAwayGoals.toFixed(2)}</p>
-                  <p>Home atk/def: {components.homeAttackMultiplier.toFixed(2)} / {components.homeDefenceMultiplier.toFixed(2)}</p>
-                  <p>Away atk/def: {components.awayAttackMultiplier.toFixed(2)} / {components.awayDefenceMultiplier.toFixed(2)}</p>
+                  <span className="text-tertiary block text-[9px] uppercase">Simulations</span>
+                  <span className="text-[var(--text-main)]">{sim.totalSimulations.toLocaleString()}</span>
                 </div>
-              )}
-              {cornerLambdas && (
                 <div>
-                  <p className="text-secondary-data uppercase mb-1">Corners {"\u03BB"}</p>
-                  <p>Home {"\u03BB"}: {cornerLambdas.lambdaHomeCorners.toFixed(2)}</p>
-                  <p>Away {"\u03BB"}: {cornerLambdas.lambdaAwayCorners.toFixed(2)}</p>
+                  <span className="text-tertiary block text-[9px] uppercase">Market data</span>
+                  <span className="text-[var(--text-main)]">{inputs.hasMarketProbs ? "Blended" : "Model only"}</span>
                 </div>
-              )}
-              <div>
-                <p className="text-secondary-data uppercase mb-1">Total goals distribution</p>
-                {Object.entries(totalGoalBuckets).map(([bucket, weight]) => (
-                  <p key={bucket}>
-                    {bucket}: {formatPercent(weight / sim.totalSimulations)}
-                  </p>
-                ))}
+                <div>
+                  <span className="text-tertiary block text-[9px] uppercase">Method</span>
+                  <span className="text-[var(--text-main)]">Poisson MC</span>
+                </div>
               </div>
-              <div>
-                <p className="text-secondary-data uppercase mb-1">Goal difference</p>
-                {Object.entries(goalDiffBuckets).map(([bucket, weight]) => (
-                  <p key={bucket}>
-                    {bucket}: {formatPercent(weight / sim.totalSimulations)}
-                  </p>
-                ))}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] uppercase font-semibold mb-1">Goal rate parameters (λ)</p>
+                  <p>Home λ: {goalLambdas.lambdaHomeGoals.toFixed(3)}</p>
+                  <p>Away λ: {goalLambdas.lambdaAwayGoals.toFixed(3)}</p>
+                </div>
+                {components && (
+                  <div>
+                    <p className="text-[10px] uppercase font-semibold mb-1">Lambda components</p>
+                    <p>League baseline H/A: {components.leagueHomeGoals.toFixed(2)} / {components.leagueAwayGoals.toFixed(2)}</p>
+                    <p>Home attack × {components.homeAttackMultiplier.toFixed(2)} · defence × {components.homeDefenceMultiplier.toFixed(2)}</p>
+                    <p>Away attack × {components.awayAttackMultiplier.toFixed(2)} · defence × {components.awayDefenceMultiplier.toFixed(2)}</p>
+                  </div>
+                )}
+                {cornerLambdas && (
+                  <div>
+                    <p className="text-[10px] uppercase font-semibold mb-1">Corner parameters (λ)</p>
+                    <p>Home λ: {cornerLambdas.lambdaHomeCorners.toFixed(2)}</p>
+                    <p>Away λ: {cornerLambdas.lambdaAwayCorners.toFixed(2)}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-[10px] uppercase font-semibold mb-1">Total goals distribution</p>
+                  {Object.entries(totalGoalBuckets).map(([bucket, weight]) => (
+                    <p key={bucket}>
+                      {bucket} goals: {formatPercent(weight / sim.totalSimulations)}
+                    </p>
+                  ))}
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-semibold mb-1">Goal difference</p>
+                  {Object.entries(goalDiffBuckets).map(([bucket, weight]) => (
+                    <p key={bucket}>
+                      {bucket}: {formatPercent(weight / sim.totalSimulations)}
+                    </p>
+                  ))}
+                </div>
               </div>
             </div>
           )}

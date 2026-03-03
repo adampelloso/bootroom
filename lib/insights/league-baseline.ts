@@ -16,6 +16,10 @@ const STUB_LEAGUE_AVG: Record<TrendStatKey, number> = {
   cornersAgainst: 5.2,
   btts: 5,
   cleanSheet: 4,
+  fouls: 11,
+  yellowCards: 1.8,
+  possession: 50,
+  blockedShots: 3.5,
 };
 
 export function getLeagueAverage(statKey: TrendStatKey): number {

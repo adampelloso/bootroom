@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
+
 function abbrev(name: string) { return name.slice(0, 3).toUpperCase(); }
 
 /**
  * Bar chart for one stat over the last 10 games, with average line.
- * X-axis shows opponent (abbreviated); tooltip has full name.
+ * X-axis shows opponent (abbreviated); hover tooltip shows full name + value.
  */
 
 export type StatTrendPoint = {
@@ -20,6 +22,8 @@ type Props = {
   integerValues?: boolean;
   /** League average (optional); shown as label and reference line */
   leagueAvg?: number;
+  /** Team color differentiation: home = blue, away = gray */
+  teamColor?: "home" | "away";
 };
 
 function getTop3Indices(data: StatTrendPoint[]): Set<number> {
@@ -28,7 +32,9 @@ function getTop3Indices(data: StatTrendPoint[]): Set<number> {
   return new Set(indexed.slice(0, 3).map((d) => d.index));
 }
 
-export function StatTrendChart({ title, data, average, integerValues, leagueAvg }: Props) {
+export function StatTrendChart({ title, data, average, integerValues, leagueAvg, teamColor }: Props) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
   if (data.length === 0) {
     return (
       <div
@@ -71,11 +77,12 @@ export function StatTrendChart({ title, data, average, integerValues, leagueAvg 
             <span>League avg {safeLeagueAvg % 1 === 0 ? String(Math.round(safeLeagueAvg)) : safeLeagueAvg.toFixed(1)}</span>
           ) : null}
         </div>
-        {/* Chart area: bars + average line. Use fixed pixel height so bar % has a defined containing block. */}
+        {/* Chart area */}
         <div
-          className="relative flex gap-0.5"
+          className="relative flex gap-1"
           style={{ height: "96px" }}
           aria-label={`${title}: last ${data.length} games with average ${safeAvg}`}
+          onMouseLeave={() => setHoveredIndex(null)}
         >
           {/* Average line */}
           <div
@@ -95,6 +102,25 @@ export function StatTrendChart({ title, data, average, integerValues, leagueAvg 
               }}
             />
           ) : null}
+
+          {/* Hover tooltip */}
+          {hoveredIndex != null && data[hoveredIndex] && (
+            <div
+              className="absolute z-30 pointer-events-none font-mono text-[10px] whitespace-nowrap px-2 py-1"
+              style={{
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border-light)",
+                color: "var(--text-main)",
+                bottom: "100%",
+                left: `${((hoveredIndex + 0.5) / data.length) * 100}%`,
+                transform: "translateX(-50%)",
+                marginBottom: "4px",
+              }}
+            >
+              vs {data[hoveredIndex].opponentName} · {Math.round(data[hoveredIndex].value)}
+            </div>
+          )}
+
           {data.map((point, i) => {
             const num = typeof point.value === "number" && !Number.isNaN(point.value) ? point.value : 0;
             const pct = maxVal > 0 ? (num / maxVal) * 100 : 0;
@@ -102,13 +128,16 @@ export function StatTrendChart({ title, data, average, integerValues, leagueAvg 
             const displayVal = String(Math.round(num));
             const minBarH = num > 0 ? 18 : 2;
             const h = Math.max(barHeightPx, minBarH);
-            const barColor = top3.has(i) ? "var(--color-bar-highlight)" : "var(--color-bar-muted)";
+            const defaultHighlight = teamColor === "away" ? "var(--color-away)" : "var(--color-bar-highlight)";
+            const defaultMuted = teamColor === "away" ? "var(--color-away-muted)" : teamColor === "home" ? "var(--color-home-muted)" : "var(--color-bar-muted)";
+            const barColor = top3.has(i) ? defaultHighlight : defaultMuted;
+            const isHovered = hoveredIndex === i;
             return (
               <div
                 key={i}
-                className="flex-1 flex flex-col items-center justify-end min-w-0 gap-0.5"
+                className="flex-1 flex flex-col items-center justify-end min-w-0 gap-0.5 cursor-pointer"
                 style={{ height: "96px" }}
-                title={`${point.opponentName}: ${displayVal}`}
+                onMouseEnter={() => setHoveredIndex(i)}
               >
                 <div
                   className="w-full flex-shrink-0 transition-all relative flex items-center justify-center"
@@ -116,6 +145,9 @@ export function StatTrendChart({ title, data, average, integerValues, leagueAvg 
                     height: `${h}px`,
                     minHeight: num === 0 ? "2px" : "18px",
                     backgroundColor: barColor,
+                    opacity: isHovered ? 1 : undefined,
+                    outline: isHovered ? "1px solid var(--text-sec)" : "none",
+                    outlineOffset: "-1px",
                   }}
                 >
                   {h >= 14 ? (
@@ -131,13 +163,12 @@ export function StatTrendChart({ title, data, average, integerValues, leagueAvg 
             );
           })}
         </div>
-        {/* Opponent labels below chart so they don't affect bar height */}
-        <div className="flex gap-0.5 mt-1">
+        {/* Opponent labels below chart */}
+        <div className="flex gap-1 mt-1">
           {data.map((point, i) => (
             <div
               key={i}
               className="flex-1 min-w-0 text-center"
-              title={point.opponentName}
             >
               <span className="text-[9px] font-mono text-tertiary truncate block w-full leading-tight">
                 {abbrev(point.opponentName)}

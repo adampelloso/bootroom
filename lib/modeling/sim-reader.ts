@@ -108,6 +108,9 @@ export function getFeedModelProbsFromDisk(
   if (entry.feedProbs.btts == null && entry.sim?.pBTTS != null) {
     entry.feedProbs.btts = applyCalibration("BTTS", "Yes", entry.sim.pBTTS);
   }
+  if (entry.feedProbs.over_3_5 == null && entry.sim?.pO35 != null) {
+    entry.feedProbs.over_3_5 = entry.sim.pO35;
+  }
   return entry.feedProbs;
 }
 

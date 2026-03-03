@@ -625,6 +625,16 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
   const homeForm = getTeamRecentResults(home, 10, fixtureDate, { leagueId: formLeagueId });
   const awayForm = getTeamRecentResults(away, 10, fixtureDate, { leagueId: formLeagueId });
 
+  // H2H
+  let h2hSummary: H2HSummary | undefined;
+  try {
+    const h2hRes = await provider.getH2HFixtures(homeId, awayId, { last: 20 });
+    const summary = deriveH2HSummary(h2hRes, homeId, awayId, home, away);
+    if (summary) h2hSummary = summary;
+  } catch {
+    // H2H fetch failed — continue without
+  }
+
   const highlights = buildHighlights(item, DETAIL_INSIGHT_KEYS, formLeagueId);
   const insightsByFamily: Record<string, MatchDetailInsight[]> = {};
   for (const h of highlights) {
@@ -666,6 +676,8 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
     supportingStatements: primaryAngle ? angleStatements : undefined,
     homeForm: homeForm.length > 0 ? homeForm : undefined,
     awayForm: awayForm.length > 0 ? awayForm : undefined,
+    referee: item.fixture.referee ?? undefined,
+    h2hSummary,
   };
 }
 

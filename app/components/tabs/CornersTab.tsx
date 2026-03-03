@@ -1,6 +1,8 @@
 import type { ScreenshotChartPoint } from "@/lib/insights/feed-market-stats";
 import { CornersCard } from "@/app/components/CornersCard";
 import { StatTrendChart } from "@/app/components/StatTrendChart";
+import { ThresholdHitRates } from "@/app/components/ThresholdHitRates";
+import type { ThresholdRow } from "@/app/components/ThresholdHitRates";
 
 type CornersData = {
   homeCornersFor: number;
@@ -25,9 +27,10 @@ type Props = {
   awayTeamName: string;
   cornersData: CornersData | null;
   charts: ChartSet;
+  cornerThresholds?: ThresholdRow[];
 };
 
-export function CornersTab({ homeTeamName, awayTeamName, cornersData, charts }: Props) {
+export function CornersTab({ homeTeamName, awayTeamName, cornersData, charts, cornerThresholds }: Props) {
   if (!cornersData && charts.totalCorners.data.length === 0) {
     return (
       <section className="px-5 py-4" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
@@ -38,14 +41,17 @@ export function CornersTab({ homeTeamName, awayTeamName, cornersData, charts }: 
 
   return (
     <div className="detail-grid">
-      {/* Left: Corners card */}
-      <div>
+      {/* Left: Corners card + thresholds */}
+      <div className="space-y-0">
         {cornersData && (
           <CornersCard
             homeTeamName={homeTeamName}
             awayTeamName={awayTeamName}
             data={cornersData}
           />
+        )}
+        {cornerThresholds && cornerThresholds.length > 0 && (
+          <ThresholdHitRates title="Corner thresholds" thresholds={cornerThresholds} />
         )}
       </div>
 

@@ -15,7 +15,9 @@ import { MatchPillNav } from "@/app/components/MatchPillNav";
 import type { TabId } from "@/app/components/MatchPillNav";
 import { OverviewTab } from "@/app/components/tabs/OverviewTab";
 import { GoalsTab } from "@/app/components/tabs/GoalsTab";
+import { ShotsTab } from "@/app/components/tabs/ShotsTab";
 import { CornersTab } from "@/app/components/tabs/CornersTab";
+import { CardsTab } from "@/app/components/tabs/CardsTab";
 import { PlayersTab } from "@/app/components/tabs/PlayersTab";
 import { SimulationTab } from "@/app/components/tabs/SimulationTab";
 import { predictLineup } from "@/lib/modeling/predicted-lineup";
@@ -77,7 +79,7 @@ function getPlayerPropsFromSeason(homeTeamName: string, awayTeamName: string): P
   }));
 }
 
-const VALID_TABS: TabId[] = ["overview", "goals", "corners", "players", "simulation"];
+const VALID_TABS: TabId[] = ["overview", "goals", "shots", "corners", "cards", "players", "simulation"];
 
 export default async function MatchDetailPage({
   params,
@@ -178,6 +180,16 @@ export default async function MatchDetailPage({
         }
       : null;
 
+  // Corner thresholds from combined venue-filtered data
+  const cornersCombined = [...homeHome5, ...awayAway5];
+  const cornerThresholds = cornersCombined.length > 0
+    ? [8.5, 9.5, 10.5, 11.5].map((t) => ({
+        label: `O${t}`,
+        hits: cornersCombined.filter((r) => r.cornersFor + r.cornersAgainst > t).length,
+        total: cornersCombined.length,
+      }))
+    : [];
+
   const homeTrends =
     rollingStats && homeLast10.length > 0
       ? buildTrendsByStat(homeLast10, rollingStats.home.l10)
@@ -235,6 +247,32 @@ export default async function MatchDetailPage({
   const hasSimData = precomputed != null;
 
   const showDebug = debugParam === "1" || debugParam === "true";
+
+  // Shots thresholds
+  const shotsThresholds = homeLast10.length > 0 || awayLast10.length > 0
+    ? [3.5, 4.5, 5.5].map((t) => ({
+        label: `Team Shots O${t}`,
+        hits: [...homeLast10, ...awayLast10].filter((r) => r.shotsFor > t).length,
+        total: homeLast10.length + awayLast10.length,
+      }))
+    : [];
+  const sotThresholds = homeLast10.length > 0 || awayLast10.length > 0
+    ? [1.5, 2.5, 3.5].map((t) => ({
+        label: `Team SOT O${t}`,
+        hits: [...homeLast10, ...awayLast10].filter((r) => r.sotFor > t).length,
+        total: homeLast10.length + awayLast10.length,
+      }))
+    : [];
+
+  // Cards thresholds
+  const cardsCombined = [...homeLast10, ...awayLast10];
+  const cardThresholds = cardsCombined.length > 0
+    ? [2.5, 3.5, 4.5].map((t) => ({
+        label: `Total Cards O${t}`,
+        hits: cardsCombined.filter((r) => r.yellowCards + r.redCards > t).length,
+        total: cardsCombined.length,
+      }))
+    : [];
 
   // Team totals for GoalsTab
   const homeGoalsFor = homeHome5.length > 0 ? homeHome5.reduce((s, r) => s + r.goalsFor, 0) / homeHome5.length : 0;
@@ -316,6 +354,9 @@ export default async function MatchDetailPage({
             awayTeamName={match.awayTeamName}
             sim={precomputed?.sim ?? null}
             feedProbs={precomputed?.feedProbs ?? null}
+            homeLast10={homeLast10}
+            awayLast10={awayLast10}
+            h2hSummary={match.h2hSummary}
           />
         )}
 
@@ -333,6 +374,21 @@ export default async function MatchDetailPage({
             awayMatchCount={awayAway5.length}
             homeTrends={homeTrends}
             awayTrends={awayTrends}
+            homeLast10={homeLast10}
+            awayLast10={awayLast10}
+          />
+        )}
+
+        {activeTab === "shots" && (
+          <ShotsTab
+            homeTeamName={match.homeTeamName}
+            awayTeamName={match.awayTeamName}
+            homeStats={rollingStats?.home.l10 ?? null}
+            awayStats={rollingStats?.away.l10 ?? null}
+            homeTrends={homeTrends}
+            awayTrends={awayTrends}
+            shotsThresholds={shotsThresholds}
+            sotThresholds={sotThresholds}
           />
         )}
 
@@ -346,6 +402,18 @@ export default async function MatchDetailPage({
               homeCornersFor: screenshotCharts.homeCornersFor,
               awayCornersFor: screenshotCharts.awayCornersFor,
             }}
+            cornerThresholds={cornerThresholds}
+          />
+        )}
+
+        {activeTab === "cards" && (
+          <CardsTab
+            homeTeamName={match.homeTeamName}
+            awayTeamName={match.awayTeamName}
+            homeStats={rollingStats?.home.l10 ?? null}
+            awayStats={rollingStats?.away.l10 ?? null}
+            cardThresholds={cardThresholds}
+            referee={match.referee}
           />
         )}
 
@@ -367,6 +435,8 @@ export default async function MatchDetailPage({
             sim={precomputed?.sim ?? null}
             feedProbs={precomputed?.feedProbs ?? null}
             inputs={precomputed?.inputs ?? null}
+            homeTeamName={match.homeTeamName}
+            awayTeamName={match.awayTeamName}
           />
         )}
       </div>

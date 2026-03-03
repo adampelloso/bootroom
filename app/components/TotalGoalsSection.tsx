@@ -30,8 +30,8 @@ export function TotalGoalsSection({ rows, totalGoalsChart }: Props) {
           <p className="text-mono text-[11px] uppercase text-tertiary mb-2">O2.5 (last 10)</p>
           <div className="flex items-baseline justify-between gap-4">
             <div className="grid grid-cols-2 gap-2 text-secondary-data text-tertiary">
-              <span>Home {o25Row.homeHits}/5</span>
-              <span>Away {o25Row.awayHits}/5</span>
+              <span>Home {o25Row.homeHits * 20}%</span>
+              <span>Away {o25Row.awayHits * 20}%</span>
             </div>
             <span
               className="text-mono stat-value font-bold shrink-0 text-right"
@@ -40,15 +40,22 @@ export function TotalGoalsSection({ rows, totalGoalsChart }: Props) {
                 color: "var(--text-main)",
               }}
             >
-              {o25Row.combinedHits}/10
+              {o25Row.combinedHits * 10}%
             </span>
           </div>
+          <div className="pct-bar mt-2"><div className="pct-bar-fill" style={{ width: `${o25Row.combinedHits * 10}%` }} /></div>
           <p className="text-primary-data text-tertiary mt-2">Avg goals: {o25Row.avgGoals.toFixed(1)}</p>
         </div>
       )}
 
       {bttsRow && bttsRow.market === "BTTS" && (
-        <p className="text-mono text-[11px] text-tertiary">BTTS {bttsRow.combinedHits}/10</p>
+        <div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-mono text-[11px] text-tertiary">BTTS</span>
+            <span className="text-mono text-[11px] text-[var(--text-main)]">{bttsRow.combinedHits * 10}%</span>
+          </div>
+          <div className="pct-bar mt-1"><div className="pct-bar-fill" style={{ width: `${bttsRow.combinedHits * 10}%` }} /></div>
+        </div>
       )}
 
       <StatTrendChart

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Space_Mono } from "next/font/google";
+import { Space_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
 const spaceMono = Space_Mono({
@@ -8,6 +8,12 @@ const spaceMono = Space_Mono({
   weight: ["400", "700"],
   display: "swap",
   variable: "--font-mono",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
 });
 
 export const metadata: Metadata = {
@@ -21,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={spaceMono.variable}>
+    <html lang="en" suppressHydrationWarning className={`${spaceMono.variable} ${inter.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{

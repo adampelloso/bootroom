@@ -212,4 +212,7 @@ export interface MatchDetail {
   supportingStatements?: string[];
   homeForm?: FormResult[];
   awayForm?: FormResult[];
+  /** Match referee name, if available. */
+  referee?: string;
+  h2hSummary?: H2HSummary;
 }

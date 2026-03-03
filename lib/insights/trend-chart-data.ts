@@ -20,6 +20,10 @@ export const TREND_STAT_KEYS = [
   "cornersAgainst",
   "btts",
   "cleanSheet",
+  "fouls",
+  "yellowCards",
+  "possession",
+  "blockedShots",
 ] as const;
 
 export type TrendStatKey = (typeof TREND_STAT_KEYS)[number];
@@ -35,6 +39,10 @@ export const TREND_STAT_TITLES: Record<TrendStatKey, string> = {
   cornersAgainst: "Corners against",
   btts: "BTTS (matches)",
   cleanSheet: "Clean sheets",
+  fouls: "Fouls committed",
+  yellowCards: "Yellow cards",
+  possession: "Possession %",
+  blockedShots: "Blocked shots",
 };
 
 export const TREND_STAT_INTEGER: Partial<Record<TrendStatKey, true>> = {
@@ -42,6 +50,9 @@ export const TREND_STAT_INTEGER: Partial<Record<TrendStatKey, true>> = {
   goalsAgainst: true,
   btts: true,
   cleanSheet: true,
+  fouls: true,
+  yellowCards: true,
+  blockedShots: true,
 };
 
 function rowValue(r: TeamMatchRow, key: TrendStatKey): number {
@@ -73,6 +84,14 @@ function l10Value(l10: RollingStats, key: TrendStatKey): number {
       return l10.bttsCount;
     case "cleanSheet":
       return l10.cleanSheets;
+    case "fouls":
+      return l10.fouls;
+    case "yellowCards":
+      return l10.yellowCards;
+    case "possession":
+      return l10.possession;
+    case "blockedShots":
+      return l10.blockedShots;
     default:
       return 0;
   }

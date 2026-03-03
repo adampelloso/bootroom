@@ -25,6 +25,16 @@ export interface RollingStats {
   matchCount: number;
   /** Number of matches in this window that have xG data. */
   xgMatchCount: number;
+  fouls: number;
+  yellowCards: number;
+  redCards: number;
+  possession: number;
+  blockedShots: number;
+  htGoalsFor: number;
+  htGoalsAgainst: number;
+  htO05Count: number;
+  htO15Count: number;
+  htBttsCount: number;
 }
 
 export interface TeamRollingStats {
@@ -68,6 +78,16 @@ export interface TeamMatchRow {
   sotAgainst: number;
   cornersFor: number;
   cornersAgainst: number;
+  /** Half-time goals scored by this team. null if unavailable. */
+  htGoalsFor: number | null;
+  /** Half-time goals conceded by this team. null if unavailable. */
+  htGoalsAgainst: number | null;
+  fouls: number;
+  yellowCards: number;
+  redCards: number;
+  /** Ball possession percentage 0-100. */
+  possession: number;
+  blockedShots: number;
   leagueId?: number;
   leagueName?: string;
 }
@@ -153,6 +173,16 @@ function buildTeamMatchHistory(fixtures: IngestedFixture[]): Map<string, TeamMat
     const homeHasXg = homeStatArr.some((s) => s.type === "expected_goals" && s.value != null);
     const awayHasXg = awayStatArr.some((s) => s.type === "expected_goals" && s.value != null);
 
+    // Half-time scores
+    const htHome = fixture.score?.halftime?.home ?? null;
+    const htAway = fixture.score?.halftime?.away ?? null;
+
+    // Possession: parse "55%" → 55
+    const homePossRaw = homeStatArr.find((s) => s.type === "Ball Possession");
+    const awayPossRaw = awayStatArr.find((s) => s.type === "Ball Possession");
+    const homePoss = homePossRaw?.value != null ? parseFloat(String(homePossRaw.value)) || 0 : 0;
+    const awayPoss = awayPossRaw?.value != null ? parseFloat(String(awayPossRaw.value)) || 0 : 0;
+
     const homeRow: TeamMatchRow = {
       date,
       dateMs,
@@ -170,6 +200,13 @@ function buildTeamMatchHistory(fixtures: IngestedFixture[]): Map<string, TeamMat
       sotAgainst: getStatValue(awayStatArr, "Shots on Goal", "Shots on target"),
       cornersFor: getStatValue(homeStatArr, "Corner Kicks", "Corner kicks"),
       cornersAgainst: getStatValue(awayStatArr, "Corner Kicks", "Corner kicks"),
+      htGoalsFor: htHome,
+      htGoalsAgainst: htAway,
+      fouls: getStatValue(homeStatArr, "Fouls"),
+      yellowCards: getStatValue(homeStatArr, "Yellow Cards"),
+      redCards: getStatValue(homeStatArr, "Red Cards"),
+      possession: homePoss,
+      blockedShots: getStatValue(homeStatArr, "Blocked Shots"),
       leagueId,
       leagueName,
     };
@@ -191,6 +228,13 @@ function buildTeamMatchHistory(fixtures: IngestedFixture[]): Map<string, TeamMat
       sotAgainst: getStatValue(homeStatArr, "Shots on Goal", "Shots on target"),
       cornersFor: getStatValue(awayStatArr, "Corner Kicks", "Corner kicks"),
       cornersAgainst: getStatValue(homeStatArr, "Corner Kicks", "Corner kicks"),
+      htGoalsFor: htAway,
+      htGoalsAgainst: htHome,
+      fouls: getStatValue(awayStatArr, "Fouls"),
+      yellowCards: getStatValue(awayStatArr, "Yellow Cards"),
+      redCards: getStatValue(awayStatArr, "Red Cards"),
+      possession: awayPoss,
+      blockedShots: getStatValue(awayStatArr, "Blocked Shots"),
       leagueId,
       leagueName,
     };
@@ -223,6 +267,16 @@ function computeRolling(matches: TeamMatchRow[], n: number): RollingStats {
       cleanSheets: 0,
       matchCount: 0,
       xgMatchCount: 0,
+      fouls: 0,
+      yellowCards: 0,
+      redCards: 0,
+      possession: 0,
+      blockedShots: 0,
+      htGoalsFor: 0,
+      htGoalsAgainst: 0,
+      htO05Count: 0,
+      htO15Count: 0,
+      htBttsCount: 0,
     };
   }
   const count = slice.length;
@@ -231,6 +285,10 @@ function computeRolling(matches: TeamMatchRow[], n: number): RollingStats {
   // xG: only average over matches that have xG data
   const xgSlice = slice.filter((r) => r.xgFor != null && r.xgAgainst != null);
   const xgCount = xgSlice.length;
+
+  // HT: only average over matches with HT data
+  const htSlice = slice.filter((r) => r.htGoalsFor != null && r.htGoalsAgainst != null);
+  const htCount = htSlice.length;
 
   return {
     goalsFor: sum((r) => r.goalsFor) / count,
@@ -248,6 +306,16 @@ function computeRolling(matches: TeamMatchRow[], n: number): RollingStats {
     cleanSheets: slice.filter((r) => r.cleanSheet).length,
     matchCount: count,
     xgMatchCount: xgCount,
+    fouls: sum((r) => r.fouls) / count,
+    yellowCards: sum((r) => r.yellowCards) / count,
+    redCards: sum((r) => r.redCards) / count,
+    possession: sum((r) => r.possession) / count,
+    blockedShots: sum((r) => r.blockedShots) / count,
+    htGoalsFor: htCount > 0 ? htSlice.reduce((a, r) => a + r.htGoalsFor!, 0) / htCount : 0,
+    htGoalsAgainst: htCount > 0 ? htSlice.reduce((a, r) => a + r.htGoalsAgainst!, 0) / htCount : 0,
+    htO05Count: htSlice.filter((r) => r.htGoalsFor! + r.htGoalsAgainst! >= 1).length,
+    htO15Count: htSlice.filter((r) => r.htGoalsFor! + r.htGoalsAgainst! >= 2).length,
+    htBttsCount: htSlice.filter((r) => r.htGoalsFor! > 0 && r.htGoalsAgainst! > 0).length,
   };
 }
 
