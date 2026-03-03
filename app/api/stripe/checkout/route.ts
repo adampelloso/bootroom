@@ -18,7 +18,17 @@ export async function POST(request: Request) {
 
     // Reuse existing Stripe customer if we have one
     const existing = await getSubscription(session.user.id);
-    let customerId = existing?.stripeCustomerId;
+    let customerId = existing?.stripeCustomerId as string | undefined;
+
+    if (customerId) {
+      // Verify the customer still exists on Stripe
+      try {
+        const cust = await getStripe().customers.retrieve(customerId);
+        if (cust.deleted) customerId = undefined;
+      } catch {
+        customerId = undefined;
+      }
+    }
 
     if (!customerId) {
       const customer = await getStripe().customers.create({
