@@ -1,6 +1,6 @@
 import { getFeedMatches } from "@/lib/build-feed";
 import { FeedView } from "@/app/components/FeedView";
-import { DatePickerButton } from "@/app/components/DatePickerButton";
+import { DateSelector, type DateRange } from "@/app/components/DateSelector";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { AccountButton } from "@/app/components/AccountButton";
 import { ALL_COMPETITION_IDS, SUPPORTED_COMPETITIONS, getLeagueStrength, type LeagueFilterValue } from "@/lib/leagues";
@@ -10,22 +10,41 @@ function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+function getDateRange(range: DateRange): { from: string; to: string } {
+  const now = new Date();
+  const today = toISODate(now);
+
+  if (range === "today") {
+    return { from: today, to: today };
+  }
+
+  if (range === "tomorrow") {
+    const tmrw = new Date(now);
+    tmrw.setDate(tmrw.getDate() + 1);
+    const tmrwStr = toISODate(tmrw);
+    return { from: tmrwStr, to: tmrwStr };
+  }
+
+  // "week" — next 7 days from today
+  const end = new Date(now);
+  end.setDate(end.getDate() + 6);
+  return { from: today, to: toISODate(end) };
+}
+
 export default async function FeedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; league?: LeagueFilterValue }>;
+  searchParams: Promise<{ range?: string; league?: LeagueFilterValue }>;
 }) {
   await requireActiveSubscription();
 
   const params = await searchParams;
-  const dateStr = params.date;
+  const range: DateRange = (["today", "tomorrow", "week"].includes(params.range ?? "") ? params.range : "today") as DateRange;
   const league = params.league ?? "all";
-  const today = toISODate(new Date());
-  const from = dateStr ?? today;
+  const { from, to } = getDateRange(range);
 
   // Always fetch all leagues — per-league cache makes this cheap after first load.
-  // This gives us a single source of truth for both active pills and match display.
-  const allMatches = await getFeedMatches(from, from, ALL_COMPETITION_IDS);
+  const allMatches = await getFeedMatches(from, to, ALL_COMPETITION_IDS);
 
   // Derive active leagues from actual match data, sorted by strength (strongest first)
   const activeLeagueIds = new Set(allMatches.map((m) => m.leagueId).filter(Boolean));
@@ -60,7 +79,7 @@ export default async function FeedPage({
           Match Feed
         </h1>
         <div className="flex items-center gap-2">
-          <DatePickerButton currentDate={from} currentLeague={league} />
+          <DateSelector currentRange={range} currentLeague={league} />
           <ThemeToggle />
           <AccountButton />
         </div>
@@ -68,7 +87,7 @@ export default async function FeedPage({
 
       <FeedView
         matches={matches}
-        currentDate={from}
+        currentRange={range}
         currentLeague={league}
         activeLeagues={activeLeagues}
       />

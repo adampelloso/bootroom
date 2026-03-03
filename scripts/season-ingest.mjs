@@ -55,13 +55,43 @@ const ALL_LEAGUE_IDS = [
   48, 45, 137, 143, 66, 81,       // Domestic cups
 ];
 
-async function ingestOneLeague(baseUrl, key, host, league, season, delayMs, limit, skipPlayers) {
+function loadExistingFixtures(outPath) {
+  if (!fs.existsSync(outPath)) return [];
+  try {
+    const raw = fs.readFileSync(outPath, "utf8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function getFixtureId(entry) {
+  return entry.fixture?.fixture?.id ?? entry.fixture?.id;
+}
+
+async function ingestOneLeague(baseUrl, key, host, league, season, delayMs, limit, skipPlayers, force, outPath) {
+  // Load existing data for incremental mode
+  const existing = force ? [] : loadExistingFixtures(outPath);
+  const existingIds = new Set(existing.map((e) => getFixtureId(e)).filter(Boolean));
+
+  // Fetch full fixture list (1 cheap API call)
   const fixturesRes = await fetchJson(baseUrl, key, host, `/fixtures?league=${league}&season=${season}`);
   const fixtures = fixturesRes.response ?? [];
   const finished = fixtures.filter(
     (f) => f.fixture?.status?.short === "FT" && f.goals?.home != null && f.goals?.away != null,
   );
-  const selected = limit ? finished.slice(0, limit) : finished;
+
+  // Filter to only new fixtures
+  const newFixtures = finished.filter((f) => !existingIds.has(f.fixture.id));
+  const selected = limit ? newFixtures.slice(0, limit) : newFixtures;
+
+  if (selected.length === 0 && !force) {
+    console.log(`  ${finished.length} finished, 0 new (skipping detail fetches)`);
+    return existing;
+  }
+
+  console.log(`  ${finished.length} finished, ${selected.length} new to fetch`);
 
   const results = [];
   let index = 0;
@@ -85,7 +115,16 @@ async function ingestOneLeague(baseUrl, key, host, league, season, delayMs, limi
       players,
     });
   }
-  return results;
+
+  // Merge new + existing, sort by date
+  const merged = [...existing, ...results];
+  merged.sort((a, b) => {
+    const dateA = a.fixture?.fixture?.date ?? a.fixture?.date ?? "";
+    const dateB = b.fixture?.fixture?.date ?? b.fixture?.date ?? "";
+    return new Date(dateA).getTime() - new Date(dateB).getTime();
+  });
+
+  return merged;
 }
 
 async function main() {
@@ -96,6 +135,7 @@ async function main() {
   const limit = args.limit ? Number(args.limit) : null;
   const skipPlayers = Boolean(args.skipPlayers);
   const batchAll = Boolean(args.all);
+  const force = Boolean(args.force);
   const baseUrl = env.API_FOOTBALL_BASE_URL ?? "https://v3.football.api-sports.io";
   const host = env.API_FOOTBALL_HOST;
   const key = env.API_FOOTBALL_KEY;
@@ -112,10 +152,16 @@ async function main() {
   const outDir = path.join(process.cwd(), "data");
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir);
 
+  if (force) {
+    console.log("Running in FORCE mode — full re-fetch, ignoring existing data");
+  } else {
+    console.log("Running in incremental mode — only fetching new fixtures");
+  }
+
   for (const league of leaguesToIngest) {
     console.log(`\nFetching fixtures for league ${league}, season ${season}...`);
-    const results = await ingestOneLeague(baseUrl, key, host, league, season, delayMs, limit, skipPlayers);
     const outPath = path.join(outDir, `${league}-${season}-fixtures.json`);
+    const results = await ingestOneLeague(baseUrl, key, host, league, season, delayMs, limit, skipPlayers, force, outPath);
     fs.writeFileSync(outPath, JSON.stringify(results, null, 2));
     console.log(`Saved ${results.length} fixtures to ${outPath}`);
   }

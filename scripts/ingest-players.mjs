@@ -97,12 +97,21 @@ async function ingestOneLeague(baseUrl, key, host, league, season, delayMs) {
   return allPlayers;
 }
 
+const FRESH_THRESHOLD_MS = 20 * 60 * 60 * 1000; // 20 hours
+
+function isFileFresh(filePath) {
+  if (!fs.existsSync(filePath)) return false;
+  const stat = fs.statSync(filePath);
+  return Date.now() - stat.mtimeMs < FRESH_THRESHOLD_MS;
+}
+
 async function main() {
   const env = readEnv();
   const args = parseArgs();
   const season = Number(args.season ?? 2025);
   const delayMs = Number(args.delay ?? 3000);
   const batchAll = Boolean(args.all);
+  const skipIfFresh = Boolean(args["skip-if-fresh"]);
   const baseUrl =
     env.API_FOOTBALL_BASE_URL ?? "https://v3.football.api-sports.io";
   const host = env.API_FOOTBALL_HOST;
@@ -121,6 +130,13 @@ async function main() {
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir);
 
   for (const league of leaguesToIngest) {
+    const outPath = path.join(outDir, `${league}-${season}-players.json`);
+
+    if (skipIfFresh && isFileFresh(outPath)) {
+      console.log(`\nSkipping league ${league} — player file is fresh (< 20h old)`);
+      continue;
+    }
+
     console.log(
       `\nFetching player stats for league ${league}, season ${season}...`
     );
@@ -132,7 +148,6 @@ async function main() {
       season,
       delayMs
     );
-    const outPath = path.join(outDir, `${league}-${season}-players.json`);
     fs.writeFileSync(outPath, JSON.stringify(players, null, 2));
     console.log(`Saved ${players.length} players to ${outPath}`);
   }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { FeedMatch } from "@/lib/feed";
 import type { LeagueFilterValue } from "@/lib/leagues";
+import type { DateRange } from "./DateSelector";
 import { percentPill } from "@/lib/percent-color";
 import { LeagueScrubber } from "./LeagueScrubber";
 import { MatchCard } from "./MatchCard";
@@ -189,23 +190,65 @@ function MatchTable({ matches }: { matches: FeedMatch[] }) {
   );
 }
 
+function formatDateHeader(dateStr: string): string {
+  const d = new Date(dateStr + "T12:00:00Z");
+  return d
+    .toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
+    })
+    .toUpperCase();
+}
+
+function groupByDate(matches: FeedMatch[]): Array<{ date: string; matches: FeedMatch[] }> {
+  const groups: Map<string, FeedMatch[]> = new Map();
+  for (const m of matches) {
+    const date = m.kickoffUtc.slice(0, 10);
+    if (!groups.has(date)) groups.set(date, []);
+    groups.get(date)!.push(m);
+  }
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, matches]) => ({ date, matches }));
+}
+
+function DateGroupHeader({ date }: { date: string }) {
+  return (
+    <div
+      className="col-span-full font-mono text-[11px] uppercase font-bold tracking-wider"
+      style={{
+        color: "var(--text-tertiary)",
+        paddingTop: "var(--space-md)",
+        paddingBottom: "var(--space-xs)",
+        borderBottom: "1px solid var(--border-light)",
+        marginBottom: "var(--space-sm)",
+      }}
+    >
+      {formatDateHeader(date)}
+    </div>
+  );
+}
+
 export function FeedView({
   matches,
-  currentDate,
+  currentRange,
   currentLeague,
   activeLeagues,
 }: {
   matches: FeedMatch[];
-  currentDate: string;
+  currentRange: DateRange;
   currentLeague: LeagueFilterValue;
   activeLeagues: Array<{ value: LeagueFilterValue; label: string }>;
 }) {
   const [mode, setMode] = useState<ViewMode>("cards");
+  const showDateHeaders = currentRange === "week";
 
   return (
     <>
       <LeagueScrubber
-        currentDate={currentDate}
+        currentRange={currentRange}
         currentLeague={currentLeague}
         activeLeagues={activeLeagues}
       >
@@ -219,6 +262,20 @@ export function FeedView({
         >
           {matches.length === 0 ? (
             <p className="text-[13px] text-secondary">No matches in the feed.</p>
+          ) : showDateHeaders ? (
+            groupByDate(matches).map((group) => (
+              <div key={group.date} className="col-span-full">
+                <DateGroupHeader date={group.date} />
+                <div
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                  style={{ gap: "var(--space-md)" }}
+                >
+                  {group.matches.map((match) => (
+                    <MatchCard key={match.id} match={match} />
+                  ))}
+                </div>
+              </div>
+            ))
           ) : (
             matches.map((match: FeedMatch) => (
               <MatchCard key={match.id} match={match} />
@@ -231,6 +288,22 @@ export function FeedView({
             <p className="text-[13px] text-secondary border-t border-[var(--border-light)] pt-5">
               No matches in the feed.
             </p>
+          ) : showDateHeaders ? (
+            groupByDate(matches).map((group) => (
+              <div key={group.date}>
+                <div
+                  className="font-mono text-[11px] uppercase font-bold tracking-wider"
+                  style={{
+                    color: "var(--text-tertiary)",
+                    paddingTop: "var(--space-md)",
+                    paddingBottom: "var(--space-xs)",
+                  }}
+                >
+                  {formatDateHeader(group.date)}
+                </div>
+                <MatchTable matches={group.matches} />
+              </div>
+            ))
           ) : (
             <MatchTable matches={matches} />
           )}

@@ -3,21 +3,22 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { LeagueFilterValue } from "@/lib/leagues";
+import type { DateRange } from "./DateSelector";
 
-function buildUrl(date: string, league: LeagueFilterValue): string {
+function buildUrl(range: DateRange, league: LeagueFilterValue): string {
   const sp = new URLSearchParams();
-  sp.set("date", date);
+  if (range !== "today") sp.set("range", range);
   sp.set("league", league);
   return `/feed?${sp.toString()}`;
 }
 
 export function LeagueScrubber({
-  currentDate,
+  currentRange,
   currentLeague,
   activeLeagues,
   children,
 }: {
-  currentDate: string;
+  currentRange: DateRange;
   currentLeague: LeagueFilterValue;
   activeLeagues: Array<{ value: LeagueFilterValue; label: string }>;
   children?: ReactNode;
@@ -63,7 +64,7 @@ export function LeagueScrubber({
               key={item.value}
               ref={isSelected ? activeRef : null}
               type="button"
-              onClick={() => router.push(buildUrl(currentDate, item.value))}
+              onClick={() => router.push(buildUrl(currentRange, item.value))}
               className="font-mono text-[11px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0 hover:bg-[var(--bg-surface)]"
               style={{
                 scrollSnapAlign: "center",

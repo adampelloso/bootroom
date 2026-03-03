@@ -40,15 +40,15 @@ else
   }
 fi
 
-# Player season stats ingestion
+# Player season stats ingestion (skip if already fetched within 20h)
 if [ "$LEAGUE" = "all" ]; then
   echo "[ingest-daily] player stats ingest for ALL competitions, season=${SEASON}"
-  node "scripts/ingest-players.mjs" --all --season="${SEASON}" || {
+  node "scripts/ingest-players.mjs" --all --season="${SEASON}" --skip-if-fresh || {
     echo "[ingest-daily] WARNING: player stats ingest failed"
   }
 else
   echo "[ingest-daily] player stats ingest for league=${LEAGUE} season=${SEASON}"
-  node "scripts/ingest-players.mjs" --league="${LEAGUE}" --season="${SEASON}" || {
+  node "scripts/ingest-players.mjs" --league="${LEAGUE}" --season="${SEASON}" --skip-if-fresh || {
     echo "[ingest-daily] WARNING: player stats ingest failed"
   }
 fi
@@ -78,9 +78,9 @@ if [ -n "${INJURY_TEAM_IDS}" ]; then
   done
 fi
 
-# Upcoming fixtures (for simulation pipeline)
+# Upcoming fixtures (for simulation pipeline — 7-day window)
 echo "[ingest-daily] fetching upcoming fixtures"
-node "scripts/ingest-upcoming-fixtures.mjs" --season="${SEASON}" || {
+node "scripts/ingest-upcoming-fixtures.mjs" --season="${SEASON}" --days=7 || {
   echo "[ingest-daily] WARNING: upcoming fixtures ingest failed"
 }
 

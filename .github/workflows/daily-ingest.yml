@@ -39,16 +39,25 @@ jobs:
         run: |
           pip install requests
 
+      # ── Cache data directory for incremental ingestion ──
+      - name: Restore data cache
+        uses: actions/cache@v4
+        with:
+          path: data/
+          key: ingest-data-${{ github.run_id }}
+          restore-keys: |
+            ingest-data-
+
       # ── Data Ingest ──────────────────────────────────────
 
-      - name: Ingest season fixtures (all leagues)
+      - name: Ingest season fixtures (incremental)
         run: node scripts/season-ingest.mjs --all --season=2025
 
-      - name: Ingest player stats (all leagues)
-        run: node scripts/ingest-players.mjs --all --season=2025
+      - name: Ingest player stats (skip if fresh)
+        run: node scripts/ingest-players.mjs --all --season=2025 --skip-if-fresh
 
-      - name: Ingest upcoming fixtures
-        run: node scripts/ingest-upcoming-fixtures.mjs --season=2025
+      - name: Ingest upcoming fixtures (7-day window)
+        run: node scripts/ingest-upcoming-fixtures.mjs --season=2025 --days=7
 
       - name: Ingest odds
         run: |
