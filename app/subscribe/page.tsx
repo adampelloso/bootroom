@@ -99,7 +99,7 @@ export default function SubscribePage() {
             MONTHLY
           </div>
           <div style={{ marginBottom: "20px" }}>
-            <span style={{ fontSize: "28px", fontWeight: 700, color: "#fff" }}>$10</span>
+            <span style={{ fontSize: "28px", fontWeight: 700, color: "#fff" }}>$5</span>
             <span style={{ fontSize: "13px", color: "#737373" }}>/mo</span>
           </div>
           <button
@@ -164,7 +164,7 @@ export default function SubscribePage() {
             </span>
           </div>
           <div style={{ marginBottom: "20px" }}>
-            <span style={{ fontSize: "28px", fontWeight: 700, color: "#fff" }}>$50</span>
+            <span style={{ fontSize: "28px", fontWeight: 700, color: "#fff" }}>$25</span>
             <span style={{ fontSize: "13px", color: "#737373" }}>/yr</span>
           </div>
           <button

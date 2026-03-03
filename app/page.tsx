@@ -203,8 +203,8 @@ export default function LandingPage() {
         </div>
 
         <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
-          <PricingCard label="MONTHLY" price="$10" period="/mo" />
-          <PricingCard label="YEARLY" price="$50" period="/yr" badge="SAVE 60%" featured />
+          <PricingCard label="MONTHLY" price="$5" period="/mo" />
+          <PricingCard label="YEARLY" price="$25" period="/yr" badge="SAVE 60%" featured />
         </div>
 
         <p style={{ fontSize: "12px", color: "#525252", textAlign: "center", marginTop: "20px" }}>
