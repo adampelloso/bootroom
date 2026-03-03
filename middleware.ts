@@ -6,7 +6,7 @@ const PUBLIC_PATHS = ["/", "/login", "/signup", "/subscribe"];
 const PUBLIC_PREFIXES = ["/api/auth", "/api/stripe", "/_next", "/images"];
 
 // Logged-in users hitting these pages should go straight to /feed
-const REDIRECT_IF_AUTHED = ["/", "/login", "/signup"];
+const REDIRECT_IF_AUTHED = ["/login", "/signup"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
