@@ -9,8 +9,10 @@ type Props = {
 
 export function SubscribeForm({ monthlyPriceId, yearlyPriceId }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleCheckout = async (priceId: string) => {
+    setError(null);
     setLoading(priceId);
     try {
       const res = await fetch("/api/stripe/checkout", {
@@ -22,9 +24,11 @@ export function SubscribeForm({ monthlyPriceId, yearlyPriceId }: Props) {
       if (data.url) {
         window.location.href = data.url;
       } else {
+        setError(data.error || `No checkout URL returned (status ${res.status})`);
         setLoading(null);
       }
-    } catch {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error");
       setLoading(null);
     }
   };
@@ -189,6 +193,12 @@ export function SubscribeForm({ monthlyPriceId, yearlyPriceId }: Props) {
           </button>
         </div>
       </div>
+
+      {error && (
+        <p style={{ fontSize: "12px", color: "#EF4444", marginTop: "16px", textAlign: "center", maxWidth: "400px" }}>
+          {error}
+        </p>
+      )}
 
       <p
         style={{
