@@ -1,10 +1,12 @@
 /**
  * Player season stats computed from ingested /players data.
  * Loads *-players.json files and provides per-game averages.
+ * On Cloudflare Workers, reads from KV (preloadPlayers must be called first).
  */
 
 import fs from "fs";
 import path from "path";
+import { kvGet } from "@/lib/kv";
 
 export interface PlayerSeasonStat {
   playerId: number;
@@ -42,6 +44,18 @@ interface RawPlayerEntry {
 }
 
 let cachedPlayers: RawPlayerEntry[] | null = null;
+
+/**
+ * Preload all player data from Cloudflare KV into the module cache.
+ * On local dev (no KV), this is a no-op — existing fs code runs unchanged.
+ */
+export async function preloadPlayers(): Promise<void> {
+  if (cachedPlayers) return;
+  const allPlayers = await kvGet<RawPlayerEntry[]>("players:all");
+  if (allPlayers && allPlayers.length > 0) {
+    cachedPlayers = allPlayers;
+  }
+}
 
 function loadIngestedPlayers(): RawPlayerEntry[] {
   const dataDir = path.join(process.cwd(), "data");

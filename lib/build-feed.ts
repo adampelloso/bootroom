@@ -21,6 +21,7 @@ import { buildStubContext } from "@/lib/insights/stub-context";
 import { buildRealContext } from "@/lib/insights/real-context";
 import { fillInsightTemplate } from "@/lib/insights/fill-template";
 import { getMatchStats, getTeamRecentResults, preloadTeamStats, preloadLeagueAverages } from "@/lib/insights/team-stats";
+import { preloadPlayers } from "@/lib/insights/player-stats";
 import { getTeamStats } from "@/lib/insights/team-stats";
 import { getFeedMarketRows, feedMatchScore } from "@/lib/insights/feed-market-stats";
 import { getWhatStandsOut } from "@/lib/insights/what-stands-out";
@@ -600,11 +601,12 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
   const homeId = item.teams.home.id;
   const awayId = item.teams.away.id;
 
-  // Preload team stats, league averages, and sims from KV (no-op on local dev)
+  // Preload team stats, league averages, sims, and players from KV (no-op on local dev)
   await Promise.all([
     preloadTeamStats([home, away]),
     preloadLeagueAverages(leagueId != null ? [leagueId] : []),
     preloadSimulations(fixtureDate ? [fixtureDate] : []),
+    preloadPlayers(),
   ]);
 
   let teamIdToCode = new Map<number, string>();
