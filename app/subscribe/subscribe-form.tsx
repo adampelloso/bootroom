@@ -20,7 +20,13 @@ export function SubscribeForm({ monthlyPriceId, yearlyPriceId }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ priceId }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      if (!text) {
+        setError(`Empty response from server (status ${res.status})`);
+        setLoading(null);
+        return;
+      }
+      const data = JSON.parse(text);
       if (data.url) {
         window.location.href = data.url;
       } else {
