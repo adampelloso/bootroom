@@ -137,9 +137,6 @@ export default function LandingPage() {
               homeXg="1.9"
               awayXg="1.1"
               totalXg="3.0"
-              homeCorners="6.1"
-              awayCorners="3.9"
-              totalCorners="10.0"
               over25={74}
               btts={66}
               scorelines={[
@@ -160,9 +157,6 @@ export default function LandingPage() {
               homeXg="2.2"
               awayXg="1.4"
               totalXg="3.6"
-              homeCorners="6.8"
-              awayCorners="4.5"
-              totalCorners="11.3"
               over25={79}
               btts={71}
               scorelines={[
@@ -238,64 +232,51 @@ function FeatureCard({ title, bullets }: { title: string; bullets: string[] }) {
 }
 
 function pillColor(pct: number): { bg: string; text: string } {
-  if (pct >= 75) return { bg: "#22c55e", text: "#000" };
-  if (pct >= 60) return { bg: "#84cc16", text: "#000" };
+  if (pct >= 80) return { bg: "#22c55e", text: "#000" };
+  if (pct >= 70) return { bg: "#84cc16", text: "#000" };
+  if (pct >= 60) return { bg: "#a3e635", text: "#000" };
   if (pct >= 50) return { bg: "#eab308", text: "#000" };
   if (pct >= 40) return { bg: "#f97316", text: "#000" };
+  if (pct >= 30) return { bg: "#ea580c", text: "#000" };
   return { bg: "#ef4444", text: "#fff" };
 }
 
 function PreviewCard({
   league, time, homeCode, homeLogo, awayCode, awayLogo,
-  homeXg, awayXg, totalXg, homeCorners, awayCorners, totalCorners,
+  homeXg, awayXg, totalXg,
   over25, btts, scorelines, h2h,
 }: {
   league: string; time: string; homeCode: string; homeLogo: string; awayCode: string; awayLogo: string;
-  homeXg: string; awayXg: string; totalXg: string; homeCorners: string; awayCorners: string; totalCorners: string;
+  homeXg: string; awayXg: string; totalXg: string;
   over25: number; btts: number; scorelines: { score: string; prob: number }[]; h2h: string;
 }) {
-  const btnStyle: React.CSSProperties = {
-    border: "2px solid #E5E5E5", color: "#E5E5E5", background: "transparent",
-    fontSize: "11px", fontWeight: 700, fontFamily: "var(--font-mono)",
-    textTransform: "uppercase", letterSpacing: "0.04em", padding: "2px 8px",
-  };
-  const thStyle: React.CSSProperties = {
-    fontSize: "10px", fontWeight: 700, color: "#525252", padding: "6px 8px",
-    textTransform: "uppercase" as const, letterSpacing: "0.06em",
-  };
-  const labelStyle: React.CSSProperties = {
-    padding: "6px 8px", fontSize: "12px", fontWeight: 600, color: "#A3A3A3",
-    textTransform: "uppercase" as const, textAlign: "left" as const,
-  };
-  const valStyle: React.CSSProperties = {
-    padding: "6px 8px", fontSize: "13px", fontWeight: 700, color: "#E5E5E5",
-  };
   const o25Pill = pillColor(over25);
   const bttsPill = pillColor(btts);
 
   return (
-    <div style={{ border: "2px solid #E5E5E5", padding: "12px 16px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontSize: "11px", fontWeight: 600, color: "#A3A3A3", textTransform: "uppercase" as const }}>{league}</span>
-          <span style={{ fontSize: "11px", color: "#525252" }}>{time}</span>
-        </div>
-        <div style={{ display: "flex", gap: "6px" }}>
-          <span style={btnStyle}>H2H</span>
-          <span style={btnStyle}>SIM</span>
-        </div>
+    <div
+      style={{
+        border: "2px solid #E5E5E5",
+        padding: "16px",
+        fontFamily: "var(--font-mono)",
+      }}
+    >
+      {/* Header row: league left, time right */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+        <span style={{ fontSize: "11px", fontWeight: 600, color: "#A3A3A3", textTransform: "uppercase" as const }}>{league}</span>
+        <span style={{ fontSize: "11px", color: "#525252", textTransform: "uppercase" as const }}>{time}</span>
       </div>
 
-      {/* Teams */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "10px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <img src={homeLogo} alt="" style={{ width: "24px", height: "24px", objectFit: "contain" }} />
+      {/* Teams row: home — H2H — away */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+          <img src={homeLogo} alt="" style={{ width: "24px", height: "24px", objectFit: "contain", flexShrink: 0 }} />
           <span style={{ fontSize: "18px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2, textTransform: "uppercase" as const, color: "#E5E5E5" }}>{homeCode}</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <img src={awayLogo} alt="" style={{ width: "24px", height: "24px", objectFit: "contain" }} />
+        <span style={{ fontSize: "11px", color: "#525252", textTransform: "uppercase" as const, flexShrink: 0, padding: "0 8px" }}>{h2h}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, justifyContent: "flex-end" }}>
           <span style={{ fontSize: "18px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2, textTransform: "uppercase" as const, color: "#E5E5E5" }}>{awayCode}</span>
+          <img src={awayLogo} alt="" style={{ width: "24px", height: "24px", objectFit: "contain", flexShrink: 0 }} />
         </div>
       </div>
 
@@ -303,35 +284,31 @@ function PreviewCard({
       <table style={{ width: "100%", borderCollapse: "collapse" as const, fontFamily: "var(--font-mono)" }}>
         <thead>
           <tr style={{ background: "#141414" }}>
-            <th style={{ ...thStyle, textAlign: "left" as const, width: "40%" }}>Stat</th>
-            <th style={{ ...thStyle, textAlign: "center" as const, width: "20%" }}>Home</th>
-            <th style={{ ...thStyle, textAlign: "center" as const, width: "20%" }}>Away</th>
-            <th style={{ ...thStyle, textAlign: "right" as const, width: "20%" }}>Total</th>
+            <th style={{ fontSize: "10px", fontWeight: 700, color: "#525252", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.06em", textAlign: "left" as const, width: "40%" }}>Stat</th>
+            <th style={{ fontSize: "10px", fontWeight: 700, color: "#525252", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.06em", textAlign: "center" as const, width: "20%" }}>Home</th>
+            <th style={{ fontSize: "10px", fontWeight: 700, color: "#525252", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.06em", textAlign: "center" as const, width: "20%" }}>Away</th>
+            <th style={{ fontSize: "10px", fontWeight: 700, color: "#525252", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.06em", textAlign: "right" as const, width: "20%" }}>Total</th>
           </tr>
         </thead>
         <tbody>
-          <tr style={{ borderBottom: "1px solid #1A1A1A" }}>
-            <td style={labelStyle}>xG</td>
-            <td style={{ ...valStyle, textAlign: "center" as const }}>{homeXg}</td>
-            <td style={{ ...valStyle, textAlign: "center" as const }}>{awayXg}</td>
-            <td style={{ ...valStyle, textAlign: "right" as const }}>{totalXg}</td>
-          </tr>
-          <tr style={{ borderBottom: "1px solid #1A1A1A" }}>
-            <td style={labelStyle}>xCorners</td>
-            <td style={{ ...valStyle, textAlign: "center" as const }}>{homeCorners}</td>
-            <td style={{ ...valStyle, textAlign: "center" as const }}>{awayCorners}</td>
-            <td style={{ ...valStyle, textAlign: "right" as const }}>{totalCorners}</td>
-          </tr>
-          <tr style={{ borderBottom: "1px solid #1A1A1A" }}>
-            <td style={labelStyle}>Over 2.5</td>
-            <td colSpan={3} style={{ padding: "6px 8px", textAlign: "right" as const }}>
-              <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: 700, background: o25Pill.bg, color: o25Pill.text }}>{over25}%</span>
-            </td>
+          <tr style={{ borderBottom: "1px solid #262626" }}>
+            <td style={{ padding: "6px 6px", fontSize: "12px", fontWeight: 600, color: "#A3A3A3", textTransform: "uppercase" as const }}>xG</td>
+            <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#E5E5E5", textAlign: "center" as const }}>{homeXg}</td>
+            <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#E5E5E5", textAlign: "center" as const }}>{awayXg}</td>
+            <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#E5E5E5", textAlign: "right" as const }}>{totalXg}</td>
           </tr>
           <tr>
-            <td style={labelStyle}>BTTS</td>
-            <td colSpan={3} style={{ padding: "6px 8px", textAlign: "right" as const }}>
-              <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: 700, background: bttsPill.bg, color: bttsPill.text }}>{btts}%</span>
+            <td colSpan={4} style={{ padding: "6px 6px" }}>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <span style={{ width: "50%", display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "#A3A3A3", textTransform: "uppercase" as const }}>
+                  o2.5
+                  <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: 700, background: o25Pill.bg, color: o25Pill.text }}>{over25}%</span>
+                </span>
+                <span style={{ width: "50%", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px", fontSize: "12px", fontWeight: 600, color: "#A3A3A3", textTransform: "uppercase" as const }}>
+                  BTTS
+                  <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: 700, background: bttsPill.bg, color: bttsPill.text }}>{btts}%</span>
+                </span>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -341,15 +318,10 @@ function PreviewCard({
       <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
         {scorelines.map((s) => (
           <div key={s.score} style={{ flex: 1, background: "#141414", padding: "8px 0", textAlign: "center" as const }}>
-            <div style={{ fontSize: "15px", fontWeight: 700, color: "#E5E5E5" }}>{s.score}</div>
-            <div style={{ fontSize: "11px", color: "#525252" }}>{s.prob}%</div>
+            <span style={{ fontSize: "15px", fontWeight: 700, color: "#E5E5E5", display: "block" }}>{s.score}</span>
+            <span style={{ fontSize: "11px", color: "#525252" }}>{s.prob}%</span>
           </div>
         ))}
-      </div>
-
-      {/* H2H */}
-      <div style={{ paddingTop: "8px", marginTop: "8px", borderTop: "1px solid #262626", fontSize: "11px", color: "#525252", textTransform: "uppercase" as const }}>
-        H2H: {h2h}
       </div>
     </div>
   );
