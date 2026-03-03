@@ -283,19 +283,17 @@ export default async function MatchDetailPage({
   return (
     <main className="app-shell--detail min-h-screen flex flex-col bg-[var(--bg-body)]">
       <header
-        className="flex flex-col lg:flex-row lg:items-center lg:justify-between px-5 pt-8 pb-3"
+        className="flex items-center justify-between px-5 pt-8 pb-3"
         style={{ paddingTop: "var(--space-lg)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}
       >
-        <div className="flex justify-between items-center lg:flex-none">
-          <Link
-            href="/feed"
-            className="font-bold uppercase text-[var(--text-main)] hover:text-[var(--text-sec)] transition-colors"
-            style={{ fontSize: "20px", letterSpacing: "-0.02em", lineHeight: 1.2 }}
-          >
-            &larr; Match Details
-          </Link>
-          <ThemeToggle />
-        </div>
+        <Link
+          href="/feed"
+          className="uppercase text-[var(--text-sec)] hover:text-[var(--text-main)] transition-colors"
+          style={{ fontSize: "13px", letterSpacing: "0.02em", lineHeight: 1.2 }}
+        >
+          &larr; Match Details
+        </Link>
+        <ThemeToggle />
       </header>
 
       <div className="flex items-center justify-between text-mono text-[11px] uppercase text-tertiary px-5 pb-3" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}>
