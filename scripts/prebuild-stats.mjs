@@ -94,6 +94,9 @@ function buildHistory(fixtures) {
     const homeXg = hArr.some((s) => s.type === "expected_goals" && s.value != null) ? getStatValue(hArr, "expected_goals") : null;
     const awayXg = aArr.some((s) => s.type === "expected_goals" && s.value != null) ? getStatValue(aArr, "expected_goals") : null;
 
+    const htHome = fixture.score?.halftime?.home ?? null;
+    const htAway = fixture.score?.halftime?.away ?? null;
+
     const homeRow = {
       date, dateMs, isHome: true, opponentName: away,
       goalsFor: gh, goalsAgainst: ga,
@@ -105,6 +108,13 @@ function buildHistory(fixtures) {
       sotAgainst: getStatValue(aArr, "Shots on Goal", "Shots on target"),
       cornersFor: getStatValue(hArr, "Corner Kicks", "Corner kicks"),
       cornersAgainst: getStatValue(aArr, "Corner Kicks", "Corner kicks"),
+      fouls: getStatValue(hArr, "Fouls"),
+      yellowCards: getStatValue(hArr, "Yellow Cards"),
+      redCards: getStatValue(hArr, "Red Cards"),
+      possession: parseFloat(String(getStatValue(hArr, "Ball Possession"))) || 0,
+      blockedShots: getStatValue(hArr, "Blocked Shots"),
+      htGoalsFor: htHome,
+      htGoalsAgainst: htAway,
       leagueId, leagueName,
     };
 
@@ -119,6 +129,13 @@ function buildHistory(fixtures) {
       sotAgainst: getStatValue(hArr, "Shots on Goal", "Shots on target"),
       cornersFor: getStatValue(aArr, "Corner Kicks", "Corner kicks"),
       cornersAgainst: getStatValue(hArr, "Corner Kicks", "Corner kicks"),
+      fouls: getStatValue(aArr, "Fouls"),
+      yellowCards: getStatValue(aArr, "Yellow Cards"),
+      redCards: getStatValue(aArr, "Red Cards"),
+      possession: parseFloat(String(getStatValue(aArr, "Ball Possession"))) || 0,
+      blockedShots: getStatValue(aArr, "Blocked Shots"),
+      htGoalsFor: htAway,
+      htGoalsAgainst: htHome,
       leagueId, leagueName,
     };
 
