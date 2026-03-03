@@ -171,9 +171,9 @@ export default function LandingPage() {
           {/* Fade overlay */}
           <div
             style={{
-              height: "80px",
+              height: "40px",
               background: "linear-gradient(to bottom, transparent, #0A0A0A)",
-              marginTop: "-80px",
+              marginTop: "-40px",
               position: "relative",
               zIndex: 1,
             }}
@@ -292,7 +292,7 @@ function PreviewCard({
         </thead>
         <tbody>
           <tr style={{ borderBottom: "1px solid #262626" }}>
-            <td style={{ padding: "6px 6px", fontSize: "12px", fontWeight: 600, color: "#A3A3A3", textTransform: "uppercase" as const }}>xG</td>
+            <td style={{ padding: "6px 6px", fontSize: "12px", fontWeight: 600, color: "#A3A3A3", textTransform: "uppercase" as const, textAlign: "left" as const }}>xG</td>
             <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#E5E5E5", textAlign: "center" as const }}>{homeXg}</td>
             <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#E5E5E5", textAlign: "center" as const }}>{awayXg}</td>
             <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#E5E5E5", textAlign: "right" as const }}>{totalXg}</td>
