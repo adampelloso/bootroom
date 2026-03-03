@@ -70,7 +70,7 @@ export function OverviewTab({
         {/* Left column: market snapshot + chart + form */}
         <div className="space-y-4">
           <section className="px-5 py-4 space-y-3" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
-            <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em]">Market snapshot</h2>
+            <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em]">Form snapshot <span className="text-tertiary font-normal normal-case tracking-normal">(L10)</span></h2>
             {o25Row && (
               <div className="space-y-1">
                 <div className="flex items-baseline justify-between">

@@ -45,14 +45,14 @@ export function MatchPulse({ sim, feedProbs }: Props) {
         )}
         {o25 != null && (
           <div>
-            <span className="text-mono text-[10px] uppercase text-tertiary block mb-1">O2.5</span>
+            <span className="text-mono text-[10px] uppercase text-tertiary block mb-1">O2.5 proj.</span>
             <span className="text-hero-metric">{(o25 * 100).toFixed(0)}%</span>
             <PctBar value={o25} />
           </div>
         )}
         {btts != null && (
           <div>
-            <span className="text-mono text-[10px] uppercase text-tertiary block mb-1">BTTS</span>
+            <span className="text-mono text-[10px] uppercase text-tertiary block mb-1">BTTS proj.</span>
             <span className="text-hero-metric">{(btts * 100).toFixed(0)}%</span>
             <PctBar value={btts} />
           </div>
