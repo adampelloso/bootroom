@@ -8,25 +8,22 @@ import { getMatchStats, getTeamLastNMatchRows, getTeamRecentResults } from "@/li
 import { getTeamPlayerStats } from "@/lib/insights/player-stats";
 import { buildTrendsByStat } from "@/lib/insights/trend-chart-data";
 import { getFeedMarketRows, getDetailScreenshotCharts } from "@/lib/insights/feed-market-stats";
-import { CornersCard } from "@/app/components/CornersCard";
-import { DetailTabs } from "@/app/components/DetailTabs";
-import { FiltersReveal } from "@/app/components/FiltersReveal";
+import { getPrecomputedSim } from "@/lib/modeling/sim-reader";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
-import { FormDisplay } from "@/app/components/FormDisplay";
 import { FormFilterLinks } from "@/app/components/FormFilterLinks";
-import { PlayerPropsCard } from "@/app/components/PlayerPropsCard";
-import { PredictedLineupCard } from "@/app/components/PredictedLineupCard";
-import { PlayerProjectionsCard } from "@/app/components/PlayerProjectionsCard";
-import { TotalGoalsSection } from "@/app/components/TotalGoalsSection";
-import { TeamTotalsSection } from "@/app/components/TeamTotalsSection";
-import { MoreStatsReveal } from "@/app/components/MoreStatsReveal";
+import { MatchPillNav } from "@/app/components/MatchPillNav";
+import type { TabId } from "@/app/components/MatchPillNav";
+import { OverviewTab } from "@/app/components/tabs/OverviewTab";
+import { GoalsTab } from "@/app/components/tabs/GoalsTab";
+import { CornersTab } from "@/app/components/tabs/CornersTab";
+import { PlayersTab } from "@/app/components/tabs/PlayersTab";
+import { SimulationTab } from "@/app/components/tabs/SimulationTab";
 import { predictLineup } from "@/lib/modeling/predicted-lineup";
 import { getMatchPlayerSim } from "@/lib/modeling/player-sim";
 import { estimateMatchGoalLambdas } from "@/lib/modeling/baseline-params";
 import type { FeedPredictedLineup, FeedPlayerSim, FeedPlayerSimEntry } from "@/lib/feed";
 import type { PredictedLineup } from "@/lib/modeling/predicted-lineup";
 import type { PlayerSimResult } from "@/lib/modeling/player-sim";
-import type { InsightFamily } from "@/lib/insights/catalog";
 import type { PlayerPropStat } from "@/app/components/PlayerPropsCard";
 
 function formatKickoffTime(iso: string): string {
@@ -80,33 +77,21 @@ function getPlayerPropsFromSeason(homeTeamName: string, awayTeamName: string): P
   }));
 }
 
-type VenueCondition = "Home" | "Away" | "Combined";
-type SampleCondition = "L5" | "L10" | "Season";
-
-function parseConditions(search: Record<string, string | undefined>): {
-  venue: VenueCondition;
-  sample: SampleCondition;
-} {
-  const venue = (search.venue as VenueCondition) ?? "Combined";
-  const sample = (search.sample as SampleCondition) ?? "L10";
-  return {
-    venue: venue === "Home" || venue === "Away" || venue === "Combined" ? venue : "Combined",
-    sample: sample === "L5" || sample === "L10" || sample === "Season" ? sample : "L10",
-  };
-}
+const VALID_TABS: TabId[] = ["overview", "goals", "corners", "players", "simulation"];
 
 export default async function MatchDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ category?: string; venue?: string; sample?: string; debug?: string; form?: string }>;
+  searchParams: Promise<{ tab?: string; venue?: string; sample?: string; debug?: string; form?: string }>;
 }) {
   await requireActiveSubscription();
 
   const { id } = await params;
-  const search = (await searchParams) as { category?: string; venue?: string; sample?: string; debug?: string; form?: string };
-  const category = search.category;
+  const search = (await searchParams) as { tab?: string; venue?: string; sample?: string; debug?: string; form?: string };
+  const rawTab = search.tab ?? "overview";
+  const activeTab: TabId = VALID_TABS.includes(rawTab as TabId) ? (rawTab as TabId) : "overview";
   const debugParam = search.debug;
   const formParam = search.form;
   const match = await getMatch(id);
@@ -128,11 +113,6 @@ export default async function MatchDetailPage({
     playerStats = getPlayerPropsFromSeason(match.homeTeamName, match.awayTeamName);
     isSeasonAverage = true;
   }
-  const parsed = parseConditions(search);
-  const venue = parsed.venue;
-  const sample = parsed.sample;
-  const currentCategory = (category as InsightFamily | "all" | undefined) ?? "all";
-  const showDebug = debugParam === "1" || debugParam === "true";
 
   const fixtureDate = match.kickoffUtc?.slice(0, 10);
   const defaultFormSame = match.leagueId != null && isCup(match.leagueId);
@@ -165,11 +145,10 @@ export default async function MatchDetailPage({
   const homeLast10 = getTeamLastNMatchRows(match.homeTeamName, 10, fixtureDate, statsOpts);
   const awayLast10 = getTeamLastNMatchRows(match.awayTeamName, 10, fixtureDate, statsOpts);
 
-  // Form display respects form filter (All vs This competition)
   const displayHomeForm = getTeamRecentResults(match.homeTeamName, 10, fixtureDate, { leagueId: formLeagueId });
   const displayAwayForm = getTeamRecentResults(match.awayTeamName, 10, fixtureDate, { leagueId: formLeagueId });
 
-  // Compute corners data for CornersCard
+  // Corners data
   const homeHome5 = getTeamLastNMatchRows(match.homeTeamName, 5, fixtureDate, {
     venue: "home",
     leagueId: formLeagueId,
@@ -178,23 +157,11 @@ export default async function MatchDetailPage({
     venue: "away",
     leagueId: formLeagueId,
   });
-  const homeCornersFor =
-    homeHome5.length > 0
-      ? homeHome5.reduce((sum, r) => sum + r.cornersFor, 0) / homeHome5.length
-      : 0;
-  const homeCornersAgainst =
-    homeHome5.length > 0
-      ? homeHome5.reduce((sum, r) => sum + r.cornersAgainst, 0) / homeHome5.length
-      : 0;
+  const homeCornersFor = homeHome5.length > 0 ? homeHome5.reduce((sum, r) => sum + r.cornersFor, 0) / homeHome5.length : 0;
+  const homeCornersAgainst = homeHome5.length > 0 ? homeHome5.reduce((sum, r) => sum + r.cornersAgainst, 0) / homeHome5.length : 0;
   const homeTotalCorners = homeCornersFor + homeCornersAgainst;
-  const awayCornersFor =
-    awayAway5.length > 0
-      ? awayAway5.reduce((sum, r) => sum + r.cornersFor, 0) / awayAway5.length
-      : 0;
-  const awayCornersAgainst =
-    awayAway5.length > 0
-      ? awayAway5.reduce((sum, r) => sum + r.cornersAgainst, 0) / awayAway5.length
-      : 0;
+  const awayCornersFor = awayAway5.length > 0 ? awayAway5.reduce((sum, r) => sum + r.cornersFor, 0) / awayAway5.length : 0;
+  const awayCornersAgainst = awayAway5.length > 0 ? awayAway5.reduce((sum, r) => sum + r.cornersAgainst, 0) / awayAway5.length : 0;
   const awayTotalCorners = awayCornersFor + awayCornersAgainst;
   const cornersData =
     homeHome5.length > 0 || awayAway5.length > 0
@@ -210,6 +177,7 @@ export default async function MatchDetailPage({
           awayEdge: awayCornersFor - homeCornersAgainst,
         }
       : null;
+
   const homeTrends =
     rollingStats && homeLast10.length > 0
       ? buildTrendsByStat(homeLast10, rollingStats.home.l10)
@@ -262,203 +230,151 @@ export default async function MatchDetailPage({
     }
   }
 
+  // Sim data
+  const precomputed = getPrecomputedSim(match.providerFixtureId, match.kickoffUtc);
+  const hasSimData = precomputed != null;
+
+  const showDebug = debugParam === "1" || debugParam === "true";
+
+  // Team totals for GoalsTab
+  const homeGoalsFor = homeHome5.length > 0 ? homeHome5.reduce((s, r) => s + r.goalsFor, 0) / homeHome5.length : 0;
+  const homeGoalsAgainst = homeHome5.length > 0 ? homeHome5.reduce((s, r) => s + r.goalsAgainst, 0) / homeHome5.length : 0;
+  const awayGoalsFor = awayAway5.length > 0 ? awayAway5.reduce((s, r) => s + r.goalsFor, 0) / awayAway5.length : 0;
+  const awayGoalsAgainst = awayAway5.length > 0 ? awayAway5.reduce((s, r) => s + r.goalsAgainst, 0) / awayAway5.length : 0;
+
   return (
-    <main className="app-shell min-h-screen flex flex-col bg-[var(--bg-body)]">
+    <main className="app-shell--detail min-h-screen flex flex-col bg-[var(--bg-body)]">
       <header
-          className="flex justify-between items-center px-5 pt-8 pb-3"
-          style={{ paddingTop: "var(--space-lg)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}
-        >
+        className="flex flex-col lg:flex-row lg:items-center lg:justify-between px-5 pt-8 pb-3"
+        style={{ paddingTop: "var(--space-lg)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}
+      >
+        <div className="flex justify-between items-center lg:flex-none">
           <Link
             href="/feed"
             className="font-bold uppercase text-[var(--text-main)] hover:text-[var(--text-sec)] transition-colors"
             style={{ fontSize: "20px", letterSpacing: "-0.02em", lineHeight: 1.2 }}
           >
-            ← Match Details
+            &larr; Match Details
           </Link>
           <ThemeToggle />
-        </header>
-
-        <div className="flex items-center justify-between text-mono text-[11px] uppercase text-tertiary px-5 pb-3" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}>
-          <div className="flex items-center gap-2">
-            {match.leagueName ? (
-              <span
-                className="font-semibold uppercase"
-                style={{ color: "var(--text-sec)", fontSize: "10px" }}
-              >
-                {match.leagueName}
-              </span>
-            ) : null}
-            <span>{formatKickoffTime(match.kickoffUtc)} GMT</span>
-          </div>
-          <span className="text-right">{match.venueName ?? "Venue TBD"}</span>
         </div>
+      </header>
 
-        <div className="px-5 pb-2" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
-          <FormFilterLinks matchId={id} currentForm={currentForm} searchParams={search} />
+      <div className="flex items-center justify-between text-mono text-[11px] uppercase text-tertiary px-5 pb-3" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}>
+        <div className="flex items-center gap-2">
+          {match.leagueName ? (
+            <span className="font-semibold uppercase" style={{ color: "var(--text-sec)", fontSize: "10px" }}>
+              {match.leagueName}
+            </span>
+          ) : null}
+          <span>{formatKickoffTime(match.kickoffUtc)} GMT</span>
         </div>
+        <span className="text-right">{match.venueName ?? "Venue TBD"}</span>
+      </div>
 
-        <div
-          className="flex items-center gap-3 px-5 pb-3"
-          style={{ gap: "var(--space-sm)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}
-        >
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-col gap-0.5">
-              <div
-                className="flex items-center gap-3"
-                style={{ gap: "var(--space-sm)" }}
-              >
-                <img
-                  src={match.homeTeamLogo}
-                  alt=""
-                  className="w-6 h-6 object-contain shrink-0"
-                  width={24}
-                  height={24}
-                />
-                <span
-                  className="font-semibold uppercase truncate block"
-                  style={{ fontSize: "28px", letterSpacing: "-0.8px", lineHeight: 1.05 }}
-                >
-                  {match.homeTeamCode ?? match.homeTeamName}
-                </span>
-                {displayHomeForm.length > 0 ? <FormDisplay form={displayHomeForm} label="Home form" /> : null}
-              </div>
-              <div
-                className="flex items-center gap-3"
-                style={{ gap: "var(--space-sm)" }}
-              >
-                <img
-                  src={match.awayTeamLogo}
-                  alt=""
-                  className="w-6 h-6 object-contain shrink-0"
-                  width={24}
-                  height={24}
-                />
-                <span
-                  className="font-semibold uppercase truncate block"
-                  style={{
-                    fontSize: "28px",
-                    letterSpacing: "-0.8px",
-                    lineHeight: 1.05,
-                  }}
-                >
-                  {match.awayTeamCode ?? match.awayTeamName}
-                </span>
-                {displayAwayForm.length > 0 ? <FormDisplay form={displayAwayForm} label="Away form" /> : null}
-              </div>
-            </div>
+      <div className="px-5 pb-2" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
+        <FormFilterLinks matchId={id} currentForm={currentForm} searchParams={search} />
+      </div>
+
+      {/* Teams header - side by side on desktop */}
+      <div
+        className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-5 pb-3"
+        style={{ gap: "var(--space-sm)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center lg:gap-6 gap-0.5 flex-1 min-w-0">
+          <div className="flex items-center gap-3" style={{ gap: "var(--space-sm)" }}>
+            <img src={match.homeTeamLogo} alt="" className="w-6 h-6 object-contain shrink-0" width={24} height={24} />
+            <span className="font-semibold uppercase truncate block" style={{ fontSize: "28px", letterSpacing: "-0.8px", lineHeight: 1.05 }}>
+              {match.homeTeamCode ?? match.homeTeamName}
+            </span>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {isFinished ? (
-              <span
-                className="text-mono stat-value font-medium"
-                style={{ fontSize: "15px" }}
-              >
-                {match.homeGoals} – {match.awayGoals}
-              </span>
-            ) : null}
+          <span className="hidden lg:inline text-tertiary text-[16px]">v</span>
+          <div className="flex items-center gap-3" style={{ gap: "var(--space-sm)" }}>
+            <img src={match.awayTeamLogo} alt="" className="w-6 h-6 object-contain shrink-0" width={24} height={24} />
+            <span className="font-semibold uppercase truncate block" style={{ fontSize: "28px", letterSpacing: "-0.8px", lineHeight: 1.05 }}>
+              {match.awayTeamCode ?? match.awayTeamName}
+            </span>
           </div>
         </div>
+        {isFinished && (
+          <span className="text-mono stat-value font-medium shrink-0" style={{ fontSize: "15px" }}>
+            {match.homeGoals} &ndash; {match.awayGoals}
+          </span>
+        )}
+      </div>
 
-      <DetailTabs />
+      <MatchPillNav activeTab={activeTab} hasSimData={hasSimData} />
 
-      <TotalGoalsSection
-        rows={snapshotRows.filter((r) => r.market !== "Corners")}
-        totalGoalsChart={screenshotCharts.totalGoals}
-      />
-
-      <details className="border-t border-[var(--border-light)]">
-        <summary className="px-5 py-3 cursor-pointer text-[13px] font-semibold uppercase tracking-[0.08em] text-tertiary" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
-          Team totals
-        </summary>
-        {(homeHome5.length > 0 || awayAway5.length > 0) && (
-          <TeamTotalsSection
+      <div className="flex-1">
+        {activeTab === "overview" && (
+          <OverviewTab
+            rows={snapshotRows.filter((r) => r.market !== "Corners")}
+            totalGoalsChart={screenshotCharts.totalGoals}
+            displayHomeForm={displayHomeForm}
+            displayAwayForm={displayAwayForm}
             homeTeamName={match.homeTeamName}
             awayTeamName={match.awayTeamName}
-            homeGoalsFor={
-              homeHome5.length > 0
-                ? homeHome5.reduce((s, r) => s + r.goalsFor, 0) / homeHome5.length
-                : 0
-            }
-            homeGoalsAgainst={
-              homeHome5.length > 0
-                ? homeHome5.reduce((s, r) => s + r.goalsAgainst, 0) / homeHome5.length
-                : 0
-            }
-            awayGoalsFor={
-              awayAway5.length > 0
-                ? awayAway5.reduce((s, r) => s + r.goalsFor, 0) / awayAway5.length
-                : 0
-            }
-            awayGoalsAgainst={
-              awayAway5.length > 0
-                ? awayAway5.reduce((s, r) => s + r.goalsAgainst, 0) / awayAway5.length
-                : 0
-            }
-            homeMatchCount={homeHome5.length}
-            awayMatchCount={awayAway5.length}
+            sim={precomputed?.sim ?? null}
+            feedProbs={precomputed?.feedProbs ?? null}
           />
         )}
-      </details>
 
-      <details className="border-t border-[var(--border-light)]">
-        <summary className="px-5 py-3 cursor-pointer text-[13px] font-semibold uppercase tracking-[0.08em] text-tertiary" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
-          Corners
-        </summary>
-        <section id="section-total-corners" aria-label="Corners">
-          {cornersData && (
-            <CornersCard
-              homeTeamName={match.homeTeamName}
-              awayTeamName={match.awayTeamName}
-              data={cornersData}
-            />
-          )}
-        </section>
-      </details>
+        {activeTab === "goals" && (
+          <GoalsTab
+            rows={snapshotRows.filter((r) => r.market !== "Corners")}
+            charts={screenshotCharts}
+            homeTeamName={match.homeTeamName}
+            awayTeamName={match.awayTeamName}
+            homeGoalsFor={homeGoalsFor}
+            homeGoalsAgainst={homeGoalsAgainst}
+            awayGoalsFor={awayGoalsFor}
+            awayGoalsAgainst={awayGoalsAgainst}
+            homeMatchCount={homeHome5.length}
+            awayMatchCount={awayAway5.length}
+            homeTrends={homeTrends}
+            awayTrends={awayTrends}
+          />
+        )}
 
-      {!isFinished && (predictedHomeLineup || predictedAwayLineup) && (
-        <PredictedLineupCard
-          homeTeamName={match.homeTeamName}
-          awayTeamName={match.awayTeamName}
-          homeLineup={predictedHomeLineup}
-          awayLineup={predictedAwayLineup}
-          playerSim={playerSimData}
-        />
-      )}
+        {activeTab === "corners" && (
+          <CornersTab
+            homeTeamName={match.homeTeamName}
+            awayTeamName={match.awayTeamName}
+            cornersData={cornersData}
+            charts={{
+              totalCorners: screenshotCharts.totalCorners,
+              homeCornersFor: screenshotCharts.homeCornersFor,
+              awayCornersFor: screenshotCharts.awayCornersFor,
+            }}
+          />
+        )}
 
-      {!isFinished && playerSimData && (
-        <PlayerProjectionsCard
-          homeTeamName={match.homeTeamName}
-          awayTeamName={match.awayTeamName}
-          playerSim={playerSimData}
-        />
-      )}
+        {activeTab === "players" && (
+          <PlayersTab
+            homeTeamName={match.homeTeamName}
+            awayTeamName={match.awayTeamName}
+            isFinished={isFinished}
+            predictedHomeLineup={predictedHomeLineup}
+            predictedAwayLineup={predictedAwayLineup}
+            playerSimData={playerSimData}
+            playerStats={playerStats}
+            isSeasonAverage={isSeasonAverage}
+          />
+        )}
 
-      <PlayerPropsCard
-        playerStats={playerStats}
-        homeTeamName={match.homeTeamName}
-        awayTeamName={match.awayTeamName}
-        isSeasonAverage={isSeasonAverage}
-      />
-
-      <MoreStatsReveal
-        charts={screenshotCharts}
-        homeTeamName={match.homeTeamName}
-        awayTeamName={match.awayTeamName}
-        homeTrends={homeTrends}
-        awayTrends={awayTrends}
-        rollingStats={rollingStats}
-      />
-
-      <FiltersReveal
-        currentCategory={currentCategory}
-        venue={venue}
-        sample={sample}
-      />
+        {activeTab === "simulation" && (
+          <SimulationTab
+            sim={precomputed?.sim ?? null}
+            feedProbs={precomputed?.feedProbs ?? null}
+            inputs={precomputed?.inputs ?? null}
+          />
+        )}
+      </div>
 
       {showDebug ? (
         <section className="px-5 py-3 border-t border-[var(--border-light)] text-[11px] font-mono text-tertiary overflow-x-auto">
           <p className="font-semibold text-[var(--text-sec)] mb-2">[Debug ?debug=1]</p>
-          <p>home: {match.homeTeamName} | away: {match.awayTeamName} | date: {fixtureDate ?? "—"}</p>
+          <p>home: {match.homeTeamName} | away: {match.awayTeamName} | date: {fixtureDate ?? "\u2014"}</p>
         </section>
       ) : null}
     </main>

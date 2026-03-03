@@ -131,6 +131,40 @@ function TeamLineup({
   );
 }
 
+export function PredictedLineupContent({
+  homeTeamName,
+  awayTeamName,
+  homeLineup,
+  awayLineup,
+  playerSim,
+}: Props) {
+  if (!homeLineup && !awayLineup) return null;
+
+  return (
+    <section aria-label="Predicted lineups">
+      <p className="text-mono text-[10px] uppercase text-tertiary mb-3">
+        Based on season start rates
+      </p>
+      <div className="space-y-4">
+        {homeLineup && (
+          <TeamLineup
+            teamName={homeTeamName}
+            lineup={homeLineup}
+            simEntries={playerSim?.home}
+          />
+        )}
+        {awayLineup && (
+          <TeamLineup
+            teamName={awayTeamName}
+            lineup={awayLineup}
+            simEntries={playerSim?.away}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function PredictedLineupCard({
   homeTeamName,
   awayTeamName,
@@ -151,35 +185,21 @@ export function PredictedLineupCard({
       >
         Predicted lineups
       </summary>
-      <section
-        id="section-predicted-lineups"
+      <div
         className="px-5 pb-4"
         style={{
           paddingLeft: "var(--space-md)",
           paddingRight: "var(--space-md)",
         }}
-        aria-label="Predicted lineups"
       >
-        <p className="text-mono text-[10px] uppercase text-tertiary mb-3">
-          Based on season start rates
-        </p>
-        <div className="space-y-4">
-          {homeLineup && (
-            <TeamLineup
-              teamName={homeTeamName}
-              lineup={homeLineup}
-              simEntries={playerSim?.home}
-            />
-          )}
-          {awayLineup && (
-            <TeamLineup
-              teamName={awayTeamName}
-              lineup={awayLineup}
-              simEntries={playerSim?.away}
-            />
-          )}
-        </div>
-      </section>
+        <PredictedLineupContent
+          homeTeamName={homeTeamName}
+          awayTeamName={awayTeamName}
+          homeLineup={homeLineup}
+          awayLineup={awayLineup}
+          playerSim={playerSim}
+        />
+      </div>
     </details>
   );
 }

@@ -5,8 +5,19 @@ import { getSessionCookie } from "better-auth/cookies";
 const PUBLIC_PATHS = ["/", "/login", "/signup", "/subscribe"];
 const PUBLIC_PREFIXES = ["/api/auth", "/api/stripe", "/_next", "/images"];
 
+// Logged-in users hitting these pages should go straight to /feed
+const REDIRECT_IF_AUTHED = ["/", "/login", "/signup"];
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const sessionCookie = getSessionCookie(request, {
+    cookiePrefix: "bootroom",
+  });
+
+  // Redirect logged-in users away from landing/login/signup → /feed
+  if (REDIRECT_IF_AUTHED.includes(pathname) && sessionCookie) {
+    return NextResponse.redirect(new URL("/feed", request.url));
+  }
 
   // Public routes — no auth check
   if (
@@ -17,7 +28,6 @@ export function middleware(request: NextRequest) {
   }
 
   // Protected routes — check for session cookie
-  const sessionCookie = getSessionCookie(request);
   if (!sessionCookie) {
     return NextResponse.redirect(new URL("/login", request.url));
   }

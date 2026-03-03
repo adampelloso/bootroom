@@ -17,6 +17,14 @@ function createAuth() {
         maxAge: 60 * 5,
       },
     },
+    advanced: {
+      cookiePrefix: "bootroom",
+      defaultCookieAttributes: {
+        maxAge: 60 * 60 * 24 * 30,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
     emailAndPassword: {
       enabled: true,
     },

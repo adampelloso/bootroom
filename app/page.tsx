@@ -87,7 +87,7 @@ export default function LandingPage() {
             margin: "0 auto 16px",
           }}
         >
-          The most advanced football analytics engine
+          The beautiful game deserves beautiful data
         </h1>
         <p
           style={{
@@ -98,7 +98,7 @@ export default function LandingPage() {
             margin: "0 auto 40px",
           }}
         >
-          100K simulations per match. 2,000+ data points per fixture. Every major league, updated daily.
+          100K simulations per match powered by 2K+ data points
         </p>
         <a
           href="/signup"

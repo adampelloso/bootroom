@@ -171,6 +171,35 @@ function TeamTable({
   );
 }
 
+export function PlayerProjectionsContent({ homeTeamName, awayTeamName, playerSim }: Props) {
+  const [stat, setStat] = useState<StatKey>("goals");
+
+  return (
+    <section aria-label="Player projections">
+      <div className="flex items-center gap-1 mb-3">
+        {STAT_BUTTONS.map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setStat(key)}
+            className={`px-3 py-1.5 text-mono text-[11px] uppercase rounded transition-colors ${
+              stat === key
+                ? "bg-[var(--text-main)] text-[var(--bg-body)] font-semibold"
+                : "text-tertiary hover:text-[var(--text-sec)]"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="space-y-4">
+        <TeamTable teamName={homeTeamName} entries={playerSim.home} stat={stat} />
+        <TeamTable teamName={awayTeamName} entries={playerSim.away} stat={stat} />
+      </div>
+    </section>
+  );
+}
+
 export function PlayerProjectionsCard({ homeTeamName, awayTeamName, playerSim }: Props) {
   const [stat, setStat] = useState<StatKey>("goals");
 
