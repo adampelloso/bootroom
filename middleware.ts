@@ -5,8 +5,8 @@ import { getSessionCookie } from "better-auth/cookies";
 const PUBLIC_PATHS = ["/", "/login", "/signup", "/subscribe"];
 const PUBLIC_PREFIXES = ["/api/auth", "/api/stripe", "/_next", "/images"];
 
-// Logged-in users hitting these pages should go straight to /feed
-const REDIRECT_IF_AUTHED = ["/login", "/signup"];
+// Logged-in users hitting these pages should go straight to /today
+const REDIRECT_IF_AUTHED = ["/", "/login", "/signup"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -14,9 +14,14 @@ export function middleware(request: NextRequest) {
     cookiePrefix: "bootroom",
   });
 
-  // Redirect logged-in users away from landing/login/signup → /feed
+  // Redirect logged-in users away from landing/login/signup → /today
   if (REDIRECT_IF_AUTHED.includes(pathname) && sessionCookie) {
-    return NextResponse.redirect(new URL("/feed", request.url));
+    return NextResponse.redirect(new URL("/today", request.url));
+  }
+
+  // /feed → /matches redirect (keep /feed alive for old bookmarks)
+  if (pathname === "/feed" && sessionCookie) {
+    return NextResponse.redirect(new URL("/matches", request.url));
   }
 
   // Public routes — no auth check

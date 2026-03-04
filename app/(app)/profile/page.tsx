@@ -16,11 +16,11 @@ export default async function ProfilePage() {
         style={{ paddingTop: "var(--space-lg)", paddingBottom: "var(--space-sm)" }}
       >
         <a
-          href="/feed"
+          href="/matches"
           className="font-mono text-xs"
           style={{ color: "var(--text-sec)" }}
         >
-          &larr; Back to feed
+          &larr; Back to matches
         </a>
       </header>
 

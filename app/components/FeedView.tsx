@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import type { FeedMatch } from "@/lib/feed";
 import type { LeagueFilterValue } from "@/lib/leagues";
@@ -8,7 +8,9 @@ import type { DateRange } from "./DateSelector";
 import { percentPill } from "@/lib/percent-color";
 import { LeagueScrubber } from "./LeagueScrubber";
 import { MatchCard } from "./MatchCard";
+import { FeedFilterBar, type FeedFilters } from "./FeedFilterBar";
 type ViewMode = "cards" | "table";
+type SortMode = "kickoff" | "edge";
 
 function getBttsPercent(match: FeedMatch): number | null {
   if (match.modelProbs?.btts != null) return match.modelProbs.btts;
@@ -229,6 +231,60 @@ function DateGroupHeader({ date }: { date: string }) {
   );
 }
 
+const GOALS_MARKETS = new Set(["HOME", "DRAW", "AWAY", "O2.5", "U2.5", "O3.5"]);
+const BTTS_MARKETS = new Set(["BTTS", "BTTS NO"]);
+
+function matchesMarketFilter(match: FeedMatch, marketType: FeedFilters["marketType"]): boolean {
+  if (marketType === "all") return true;
+  const best = match.edgeSummary?.bestMarket;
+  if (!best) return false;
+  const upper = best.toUpperCase();
+  if (marketType === "goals") return GOALS_MARKETS.has(upper);
+  if (marketType === "btts") return BTTS_MARKETS.has(upper);
+  // corners — no corner edges yet, show all
+  return true;
+}
+
+function matchesTierFilter(match: FeedMatch, minTier: FeedFilters["minTier"]): boolean {
+  if (minTier === "ALL") return true;
+  const tier = match.edgeSummary?.tier;
+  if (!tier) return false;
+  if (minTier === "HIGH") return tier === "HIGH";
+  if (minTier === "HIGH_MEDIUM") return tier === "HIGH" || tier === "MEDIUM";
+  return true;
+}
+
+function SortToggle({ sort, onChange }: { sort: SortMode; onChange: (s: SortMode) => void }) {
+  return (
+    <div className="flex items-center shrink-0" style={{ gap: "2px" }}>
+      <button
+        type="button"
+        onClick={() => onChange("kickoff")}
+        className="px-2.5 py-1.5 text-mono text-[12px] uppercase transition-colors"
+        style={{
+          background: sort === "kickoff" ? "var(--text-main)" : "transparent",
+          color: sort === "kickoff" ? "var(--bg-body)" : "var(--text-tertiary)",
+          border: sort === "kickoff" ? "none" : "1px solid var(--border-light)",
+        }}
+      >
+        Time
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("edge")}
+        className="px-2.5 py-1.5 text-mono text-[12px] uppercase transition-colors"
+        style={{
+          background: sort === "edge" ? "var(--text-main)" : "transparent",
+          color: sort === "edge" ? "var(--bg-body)" : "var(--text-tertiary)",
+          border: sort === "edge" ? "none" : "1px solid var(--border-light)",
+        }}
+      >
+        Edge
+      </button>
+    </div>
+  );
+}
+
 export function FeedView({
   matches,
   currentRange,
@@ -241,8 +297,25 @@ export function FeedView({
   activeLeagues: Array<{ value: LeagueFilterValue; label: string }>;
 }) {
   const [mode, setMode] = useState<ViewMode>("cards");
+  const [sort, setSort] = useState<SortMode>("kickoff");
+  const [filters, setFilters] = useState<FeedFilters>({ marketType: "all", minEdge: 0, minTier: "ALL" });
+
+  const handleFilterChange = useCallback((f: FeedFilters) => setFilters(f), []);
+
+  const sortedMatches = useMemo(() => {
+    let result = matches.filter((m) => {
+      if (!matchesMarketFilter(m, filters.marketType)) return false;
+      if (filters.minEdge > 0 && (m.edgeSummary?.bestEdge ?? 0) < filters.minEdge / 100) return false;
+      if (!matchesTierFilter(m, filters.minTier)) return false;
+      return true;
+    });
+    if (sort === "edge") {
+      result = [...result].sort((a, b) => (b.edgeSummary?.bestEdge ?? 0) - (a.edgeSummary?.bestEdge ?? 0));
+    }
+    return result;
+  }, [matches, filters, sort]);
+
   const showDateHeaders = currentRange === "week";
-  const sortedMatches = matches;
 
   return (
     <>
@@ -251,8 +324,13 @@ export function FeedView({
         currentLeague={currentLeague}
         activeLeagues={activeLeagues}
       >
-        <ViewToggle mode={mode} onChange={setMode} />
+        <div className="flex items-center gap-2">
+          <SortToggle sort={sort} onChange={setSort} />
+          <ViewToggle mode={mode} onChange={setMode} />
+        </div>
       </LeagueScrubber>
+
+      <FeedFilterBar onFilterChange={handleFilterChange} />
 
       {mode === "cards" ? (
         <section

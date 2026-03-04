@@ -19,6 +19,7 @@ import { CornersTab } from "@/app/components/tabs/CornersTab";
 import { CardsTab } from "@/app/components/tabs/CardsTab";
 import { PlayersTab } from "@/app/components/tabs/PlayersTab";
 import { SimulationTab } from "@/app/components/tabs/SimulationTab";
+import { ValueTab } from "@/app/components/tabs/ValueTab";
 import { predictLineup } from "@/lib/modeling/predicted-lineup";
 import { getMatchPlayerSim } from "@/lib/modeling/player-sim";
 import { estimateMatchGoalLambdas } from "@/lib/modeling/baseline-params";
@@ -78,7 +79,7 @@ function getPlayerPropsFromSeason(homeTeamName: string, awayTeamName: string): P
   }));
 }
 
-const VALID_TABS: TabId[] = ["overview", "goals", "shots", "corners", "cards", "players", "simulation"];
+const VALID_TABS: TabId[] = ["overview", "goals", "shots", "corners", "cards", "players", "value", "simulation"];
 
 export default async function MatchDetailPage({
   params,
@@ -247,6 +248,29 @@ export default async function MatchDetailPage({
 
   const showDebug = debugParam === "1" || debugParam === "true";
 
+  // Generate narrative for overview tab
+  const { generateNarrative } = await import("@/lib/narrative");
+  const feedProbs = precomputed?.feedProbs ?? null;
+  const narrativeMatch = {
+    homeTeamName: match.homeTeamName,
+    awayTeamName: match.awayTeamName,
+    homeTeamCode: match.homeTeamCode,
+    awayTeamCode: match.awayTeamCode,
+    homeForm: match.homeForm,
+    awayForm: match.awayForm,
+    marketRows: snapshotRows,
+    modelProbs: feedProbs ? {
+      expectedHomeGoals: feedProbs.expectedHomeGoals,
+      expectedAwayGoals: feedProbs.expectedAwayGoals,
+      over_2_5: feedProbs.over_2_5,
+      btts: feedProbs.btts,
+      mcOver25: feedProbs.mcOver25,
+      mcBtts: feedProbs.mcBtts,
+    } : undefined,
+    edgeSummary: undefined,
+  } as Parameters<typeof generateNarrative>[0];
+  const matchNarrative = generateNarrative(narrativeMatch);
+
   // Cards thresholds
   const cardsCombined = [...homeLast10, ...awayLast10];
   const cardThresholds = cardsCombined.length > 0
@@ -270,11 +294,11 @@ export default async function MatchDetailPage({
         style={{ paddingTop: "var(--space-lg)", paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}
       >
         <Link
-          href="/feed"
+          href="/matches"
           className="uppercase text-[var(--text-sec)] hover:text-[var(--text-main)] transition-colors"
           style={{ fontSize: "13px", letterSpacing: "0.02em", lineHeight: 1.2 }}
         >
-          &larr; Match Details
+          &larr; Matches
         </Link>
       </header>
 
@@ -337,6 +361,7 @@ export default async function MatchDetailPage({
             homeLast10={homeLast10}
             awayLast10={awayLast10}
             h2hSummary={match.h2hSummary}
+            narrative={matchNarrative}
           />
         )}
 
@@ -409,6 +434,14 @@ export default async function MatchDetailPage({
             playerSimData={playerSimData}
             playerStats={playerStats}
             isSeasonAverage={isSeasonAverage}
+          />
+        )}
+
+        {activeTab === "value" && (
+          <ValueTab
+            feedProbs={precomputed?.feedProbs ?? null}
+            homeTeamName={match.homeTeamName}
+            awayTeamName={match.awayTeamName}
           />
         )}
 

@@ -4,6 +4,8 @@
  */
 
 import type { InsightPeriod } from "@/lib/insights/catalog";
+import type { ConfidenceTier } from "@/lib/edge-engine";
+import type { EvaluatedSignal } from "@/lib/signals/evaluate";
 
 export type { InsightPeriod };
 
@@ -48,6 +50,9 @@ export interface H2HSummary {
   draws: number;
   awayWins: number;
   lastWinner?: string;
+  avgGoals?: number;
+  bttsRate?: number;
+  meetingsCount?: number;
 }
 
 /** Season hit rate for feed (e.g. 6/10). */
@@ -182,6 +187,16 @@ export interface FeedMatch {
     expectedAwayCorners?: number;
     topScorelines?: { score: string; prob: number }[];
   };
+  /** Edge summary for feed display. */
+  edgeSummary?: {
+    bestMarket: string;
+    bestEdge: number;
+    tier: ConfidenceTier;
+  };
+  /** Signal tags for feed cards (max 4). */
+  signalTags?: EvaluatedSignal[];
+  /** Plain-English narrative for match context. */
+  narrative?: string;
 }
 
 export interface MatchDetailInsight extends FeedInsight {

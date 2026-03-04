@@ -4,6 +4,18 @@ import Link from "next/link";
 import type { FeedMatch } from "@/lib/feed";
 import { percentPill } from "@/lib/percent-color";
 import { EdgeBadge, getBestEdge } from "@/app/components/EdgeBadge";
+import { SignalTag } from "@/app/components/SignalTag";
+
+const MARKET_LABELS: Record<string, string> = {
+  HOME: "Home",
+  DRAW: "Draw",
+  AWAY: "Away",
+  "O2.5": "Over 2.5",
+  "U2.5": "Under 2.5",
+  "O3.5": "Over 3.5",
+  BTTS: "BTTS",
+  "BTTS NO": "BTTS No",
+};
 
 function formatKickoffTime(iso: string): string {
   const d = new Date(iso);
@@ -106,6 +118,38 @@ export function MatchCard({ match }: { match: FeedMatch }) {
         </div>
       </div>
 
+      {/* Form dots */}
+      {(match.homeForm || match.awayForm) && (
+        <div className="flex items-center justify-between mb-2 text-mono text-[12px]">
+          <div className="flex items-center gap-1">
+            {(match.homeForm ?? []).slice(0, 5).map((r, i) => (
+              <span
+                key={i}
+                className="inline-block w-2 h-2 rounded-full"
+                style={{
+                  backgroundColor:
+                    r === "W" ? "var(--color-edge-strong)" : r === "D" ? "var(--text-tertiary)" : "#EF4444",
+                }}
+                title={r}
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-1">
+            {(match.awayForm ?? []).slice(0, 5).map((r, i) => (
+              <span
+                key={i}
+                className="inline-block w-2 h-2 rounded-full"
+                style={{
+                  backgroundColor:
+                    r === "W" ? "var(--color-edge-strong)" : r === "D" ? "var(--text-tertiary)" : "#EF4444",
+                }}
+                title={r}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Stats table — always the same layout, rows hidden when data unavailable */}
       <table className="w-full text-mono" style={{ borderCollapse: "collapse" }}>
         <thead>
@@ -178,6 +222,27 @@ export function MatchCard({ match }: { match: FeedMatch }) {
               <span className="text-[15px] font-bold" style={{ color: "var(--text-main)" }}>{s.score}</span>
               <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>{Math.round(s.prob * 100)}%</span>
             </div>
+          ))}
+        </div>
+      )}
+      {/* Primary market pill + signal tags */}
+      {(match.edgeSummary || (match.signalTags && match.signalTags.length > 0)) && (
+        <div className="flex flex-wrap items-center gap-1 pt-2">
+          {match.edgeSummary && match.edgeSummary.bestEdge > 0 && (
+            <span
+              className="inline-flex items-center font-mono text-[10px] uppercase font-semibold px-1.5 py-0.5 whitespace-nowrap"
+              style={{
+                color: "var(--color-edge-strong)",
+                background: "color-mix(in srgb, var(--color-edge-strong) 12%, transparent)",
+                letterSpacing: "0.02em",
+              }}
+            >
+              {MARKET_LABELS[match.edgeSummary.bestMarket] ?? match.edgeSummary.bestMarket}{" "}
+              +{(match.edgeSummary.bestEdge * 100).toFixed(1)}%
+            </span>
+          )}
+          {match.signalTags?.slice(0, 3).map((tag) => (
+            <SignalTag key={tag.id} label={tag.shortLabel} category={tag.category} />
           ))}
         </div>
       )}

@@ -150,9 +150,13 @@ function deriveH2HSummary(
   let awayWins = 0;
   let draws = 0;
   let lastWinner: string | undefined;
+  let totalGoals = 0;
+  let bttsCount = 0;
   for (const f of fixtures) {
     const gh = f.goals?.home ?? 0;
     const ga = f.goals?.away ?? 0;
+    totalGoals += gh + ga;
+    if (gh > 0 && ga > 0) bttsCount++;
     const isHomeFirst = f.teams.home.id === homeTeamId && f.teams.away.id === awayTeamId;
     const homeGoals = isHomeFirst ? gh : ga;
     const awayGoals = isHomeFirst ? ga : gh;
@@ -166,7 +170,9 @@ function deriveH2HSummary(
       draws++;
     }
   }
-  return { homeWins, draws, awayWins, lastWinner };
+  const avgGoals = totalGoals / fixtures.length;
+  const bttsRate = bttsCount / fixtures.length;
+  return { homeWins, draws, awayWins, lastWinner, avgGoals, bttsRate, meetingsCount: fixtures.length };
 }
 
 function buildHighlights(
@@ -417,6 +423,25 @@ async function buildFeedMatch(
   if (modelProbs) {
     match.modelProbs = modelProbs;
   }
+
+  // Populate edge summary
+  if (match.modelProbs?.edges) {
+    const { computeMatchEdges } = await import("@/lib/edge-engine");
+    const edges = computeMatchEdges(match);
+    if (edges) {
+      match.edgeSummary = {
+        bestMarket: edges.bestMarket,
+        bestEdge: edges.bestEdge,
+        tier: edges.bestTier,
+      };
+    }
+  }
+
+  // Evaluate signal tags and generate narrative
+  const { evaluateSignals } = await import("@/lib/signals/evaluate");
+  const { generateNarrative } = await import("@/lib/narrative");
+  match.signalTags = evaluateSignals(match);
+  match.narrative = generateNarrative(match);
 
   // Predicted lineups + player-level sim (upcoming matches only)
   const isUpcoming = match.homeGoals == null && match.awayGoals == null;

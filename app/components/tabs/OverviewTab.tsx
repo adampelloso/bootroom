@@ -9,6 +9,7 @@ import { EdgeBadge } from "@/app/components/EdgeBadge";
 import type { MatchSimulationResult } from "@/lib/modeling/mc-engine";
 import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import { ScorelineBarChart } from "@/app/components/ScorelineBarChart";
+import { PlainEnglishNarrative } from "@/app/components/PlainEnglishNarrative";
 
 type Props = {
   rows: FeedMarketRow[];
@@ -22,6 +23,7 @@ type Props = {
   homeLast10?: TeamMatchRow[];
   awayLast10?: TeamMatchRow[];
   h2hSummary?: H2HSummary | null;
+  narrative?: string;
 };
 
 function formatPercent(p: number): string {
@@ -40,6 +42,7 @@ export function OverviewTab({
   homeLast10,
   awayLast10,
   h2hSummary,
+  narrative,
 }: Props) {
   const o25Row = rows.find((r) => r.market === "O2.5");
   const bttsRow = rows.find((r) => r.market === "BTTS");
@@ -174,32 +177,39 @@ export function OverviewTab({
           ) : null}
         </div>
 
-        {/* Right column: sim highlights + H2H */}
+        {/* Right column: edge summary + narrative + scorelines + H2H */}
         <div className="space-y-4">
-          {sim && feedProbs && (
-            <>
-              {edgeRows.length > 0 && (
-                <section className="px-5 py-4" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
-                  <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-3">Model edges</h2>
-                  <div className="space-y-1.5">
-                    {edgeRows.map((row) => (
-                      <div key={`${row.market}-${row.outcome}`} className="flex items-center gap-3 text-[12px] font-mono">
-                        <span className="w-14 uppercase text-[var(--text-main)]">{row.outcome}</span>
-                        <span className="w-10 uppercase text-tertiary">{row.market}</span>
-                        <EdgeBadge edge={row.edge} market={row.market} bookProb={row.bookProb} variant="inline" />
-                      </div>
-                    ))}
+          {/* Edge Summary Cards */}
+          {edgeRows.length > 0 && (
+            <section className="px-5 py-4" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
+              <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-3">Top projections</h2>
+              <div className="space-y-2">
+                {edgeRows.slice(0, 3).map((row) => (
+                  <div key={`${row.market}-${row.outcome}`} className="flex items-center justify-between py-2 px-3" style={{ background: "var(--bg-surface)" }}>
+                    <div>
+                      <span className="text-[13px] font-bold uppercase" style={{ color: "var(--text-main)" }}>{row.outcome}</span>
+                      <span className="text-[12px] text-tertiary uppercase ml-2">{row.market}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[12px] font-mono">
+                      <span className="text-tertiary">Book {row.bookProb != null ? `${Math.round(row.bookProb * 100)}%` : '\u2014'}</span>
+                      <EdgeBadge edge={row.edge} market={row.market} variant="badge" />
+                    </div>
                   </div>
-                </section>
-              )}
+                ))}
+              </div>
+            </section>
+          )}
 
-              {sortedScorelines && sortedScorelines.length > 0 && (
-                <section className="px-5 py-4" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
-                  <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-3">Top scorelines</h2>
-                  <ScorelineBarChart scorelines={sortedScorelines} totalSimulations={sim.totalSimulations} />
-                </section>
-              )}
-            </>
+          {/* Plain-English Narrative */}
+          {narrative && (
+            <PlainEnglishNarrative narrative={narrative} />
+          )}
+
+          {sim && feedProbs && sortedScorelines && sortedScorelines.length > 0 && (
+            <section className="px-5 py-4" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
+              <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-3">Top scorelines</h2>
+              <ScorelineBarChart scorelines={sortedScorelines} totalSimulations={sim.totalSimulations} />
+            </section>
           )}
 
           {/* H2H module */}
@@ -223,7 +233,30 @@ export function OverviewTab({
                       <div style={{ width: `${dPct}%`, backgroundColor: "var(--text-tertiary)", minWidth: dPct > 0 ? "4px" : "0" }} />
                       <div style={{ width: `${aPct}%`, backgroundColor: "var(--color-away)", minWidth: aPct > 0 ? "4px" : "0" }} />
                     </div>
-                    <p className="text-mono text-[12px] text-tertiary mt-2">Last {total} meetings</p>
+                    <p className="text-mono text-[12px] text-tertiary mt-2">
+                      Last {h2hSummary.meetingsCount ?? total} meetings
+                    </p>
+                    {/* H2H mini-tiles */}
+                    {(h2hSummary.avgGoals != null || h2hSummary.bttsRate != null) && (
+                      <div className="flex gap-3 mt-3">
+                        {h2hSummary.avgGoals != null && (
+                          <div className="flex-1 py-2 px-3 text-center" style={{ background: "var(--bg-surface)" }}>
+                            <p className="text-[11px] uppercase text-tertiary font-mono mb-1">Avg Goals</p>
+                            <p className="text-[14px] font-semibold font-mono" style={{ color: "var(--text-main)" }}>
+                              {h2hSummary.avgGoals.toFixed(1)}
+                            </p>
+                          </div>
+                        )}
+                        {h2hSummary.bttsRate != null && (
+                          <div className="flex-1 py-2 px-3 text-center" style={{ background: "var(--bg-surface)" }}>
+                            <p className="text-[11px] uppercase text-tertiary font-mono mb-1">BTTS Rate</p>
+                            <p className="text-[14px] font-semibold font-mono" style={{ color: "var(--text-main)" }}>
+                              {Math.round(h2hSummary.bttsRate * 100)}%
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })()}
