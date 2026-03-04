@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
 
-export type TabId = "overview" | "goals" | "shots" | "corners" | "cards" | "players" | "value" | "simulation";
+export type TabId = "overview" | "goals" | "shots" | "corners" | "cards" | "h2h" | "players" | "value" | "simulation";
 
 const TABS: Array<{ id: TabId; label: string }> = [
   { id: "overview", label: "OVERVIEW" },
@@ -11,6 +11,7 @@ const TABS: Array<{ id: TabId; label: string }> = [
   { id: "shots", label: "SHOTS" },
   { id: "corners", label: "CORNERS" },
   { id: "cards", label: "CARDS" },
+  { id: "h2h", label: "H2H" },
   { id: "players", label: "PLAYERS" },
   { id: "value", label: "VALUE" },
   { id: "simulation", label: "SIMULATION" },
@@ -19,9 +20,10 @@ const TABS: Array<{ id: TabId; label: string }> = [
 type Props = {
   activeTab: TabId;
   hasSimData: boolean;
+  hasH2H?: boolean;
 };
 
-export function MatchPillNav({ activeTab, hasSimData }: Props) {
+export function MatchPillNav({ activeTab, hasSimData, hasH2H }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -35,7 +37,11 @@ export function MatchPillNav({ activeTab, hasSimData }: Props) {
     return `${pathname}${q ? `?${q}` : ""}`;
   }
 
-  const visibleTabs = hasSimData ? TABS : TABS.filter((t) => t.id !== "simulation");
+  const visibleTabs = TABS.filter((t) => {
+    if (t.id === "simulation" && !hasSimData) return false;
+    if (t.id === "h2h" && !hasH2H) return false;
+    return true;
+  });
 
   return (
     <nav

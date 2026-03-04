@@ -45,6 +45,16 @@ export interface FeedInsight {
 
 export type FormResult = "W" | "D" | "L";
 
+export interface H2HMatchRow {
+  date: string;
+  homeTeamId: number;
+  awayTeamId: number;
+  homeGoals: number;
+  awayGoals: number;
+  venue?: string;
+  competition?: string;
+}
+
 export interface H2HSummary {
   homeWins: number;
   draws: number;
@@ -53,6 +63,7 @@ export interface H2HSummary {
   avgGoals?: number;
   bttsRate?: number;
   meetingsCount?: number;
+  meetingRows?: H2HMatchRow[];
 }
 
 /** Season hit rate for feed (e.g. 6/10). */

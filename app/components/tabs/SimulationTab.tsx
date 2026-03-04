@@ -7,6 +7,7 @@ import { EdgeBadge } from "@/app/components/EdgeBadge";
 import type { MatchSimulationResult } from "@/lib/modeling/mc-engine";
 import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import type { MatchGoalLambdas, MatchCornerLambdas, GoalLambdaComponents } from "@/lib/modeling/baseline-params";
+import type { FeedPredictedLineup } from "@/lib/feed";
 import { useState } from "react";
 
 type SimInputs = {
@@ -30,13 +31,15 @@ type Props = {
   inputs: SimInputs | null;
   homeTeamName?: string;
   awayTeamName?: string;
+  predictedHomeLineup?: FeedPredictedLineup;
+  predictedAwayLineup?: FeedPredictedLineup;
 };
 
 function formatPercent(p: number): string {
   return `${(p * 100).toFixed(1)}%`;
 }
 
-export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamName }: Props) {
+export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamName, predictedHomeLineup, predictedAwayLineup }: Props) {
   const [showInputs, setShowInputs] = useState(false);
 
   if (!sim || !feedProbs) {
@@ -307,6 +310,64 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
           </section>
         </div>
       </div>
+
+      {/* Lineup basis */}
+      {(predictedHomeLineup || predictedAwayLineup) && (
+        <section className="px-5 py-4 border-t border-[var(--border-light)]" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
+          <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-3">Lineup basis</h2>
+          <div className="grid grid-cols-2 gap-4">
+            {predictedHomeLineup && (
+              <div>
+                <p className="text-[12px] font-mono uppercase text-tertiary mb-2">{homeTeamName ?? "Home"}</p>
+                <div className="space-y-1">
+                  {predictedHomeLineup.starters.map((s) => (
+                    <div key={s.playerId} className="flex items-center gap-2 text-[12px] font-mono">
+                      <span
+                        className="inline-block w-2 h-2 rounded-full shrink-0"
+                        style={{
+                          backgroundColor:
+                            s.confidence === "locked" ? "#16a34a" :
+                            s.confidence === "likely" ? "#d97706" :
+                            "#64748b",
+                        }}
+                      />
+                      <span style={{ color: "var(--text-main)" }}>{s.name}</span>
+                      <span className="text-tertiary ml-auto">{s.position ?? ""}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {predictedAwayLineup && (
+              <div>
+                <p className="text-[12px] font-mono uppercase text-tertiary mb-2">{awayTeamName ?? "Away"}</p>
+                <div className="space-y-1">
+                  {predictedAwayLineup.starters.map((s) => (
+                    <div key={s.playerId} className="flex items-center gap-2 text-[12px] font-mono">
+                      <span
+                        className="inline-block w-2 h-2 rounded-full shrink-0"
+                        style={{
+                          backgroundColor:
+                            s.confidence === "locked" ? "#16a34a" :
+                            s.confidence === "likely" ? "#d97706" :
+                            "#64748b",
+                        }}
+                      />
+                      <span style={{ color: "var(--text-main)" }}>{s.name}</span>
+                      <span className="text-tertiary ml-auto">{s.position ?? ""}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-4 mt-3 text-[11px] font-mono text-tertiary">
+            <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: "#16a34a" }} /> Locked</span>
+            <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: "#d97706" }} /> Likely</span>
+            <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: "#64748b" }} /> Rotation</span>
+          </div>
+        </section>
+      )}
 
       {/* Collapsible: model transparency */}
       {inputs && goalLambdas && (

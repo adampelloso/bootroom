@@ -191,6 +191,15 @@ const LEAGUE_COLORS: Record<number, string> = {
   143: "#F59E0B",  // Copa del Rey — amber
   66: "#14B8A6",   // Coupe de France — teal
   81: "#E11D48",   // DFB-Pokal — rose
+  88: "#FF6B00",   // Eredivisie — orange
+  94: "#004D33",   // Liga Portugal — forest green
+  144: "#C8102E",  // Belgian Pro League — red
+  203: "#E30A17",  // Süper Lig — Turkish red
+  179: "#003DA5",  // Scottish Prem — blue
+  253: "#292929",  // MLS — dark gray
+  262: "#1A472A",  // Liga MX — green
+  307: "#006C35",  // Saudi Pro — green
+  71: "#009B3A",   // Série A BR — Brazil green
 };
 
 export function getLeagueColor(leagueId: number): string {

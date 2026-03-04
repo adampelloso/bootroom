@@ -19,6 +19,7 @@ import { CornersTab } from "@/app/components/tabs/CornersTab";
 import { CardsTab } from "@/app/components/tabs/CardsTab";
 import { PlayersTab } from "@/app/components/tabs/PlayersTab";
 import { SimulationTab } from "@/app/components/tabs/SimulationTab";
+import { H2HTab } from "@/app/components/tabs/H2HTab";
 import { ValueTab } from "@/app/components/tabs/ValueTab";
 import { predictLineup } from "@/lib/modeling/predicted-lineup";
 import { getMatchPlayerSim } from "@/lib/modeling/player-sim";
@@ -79,7 +80,7 @@ function getPlayerPropsFromSeason(homeTeamName: string, awayTeamName: string): P
   }));
 }
 
-const VALID_TABS: TabId[] = ["overview", "goals", "shots", "corners", "cards", "players", "value", "simulation"];
+const VALID_TABS: TabId[] = ["overview", "goals", "shots", "corners", "cards", "h2h", "players", "value", "simulation"];
 
 export default async function MatchDetailPage({
   params,
@@ -345,7 +346,7 @@ export default async function MatchDetailPage({
         )}
       </div>
 
-      <MatchPillNav activeTab={activeTab} hasSimData={hasSimData} />
+      <MatchPillNav activeTab={activeTab} hasSimData={hasSimData} hasH2H={!!match.h2hSummary} />
 
       <div className="flex-1">
         {activeTab === "overview" && (
@@ -424,6 +425,16 @@ export default async function MatchDetailPage({
           />
         )}
 
+        {activeTab === "h2h" && (
+          <H2HTab
+            homeTeamName={match.homeTeamName}
+            awayTeamName={match.awayTeamName}
+            homeTeamId={match.homeTeamId}
+            awayTeamId={match.awayTeamId}
+            h2hSummary={match.h2hSummary}
+          />
+        )}
+
         {activeTab === "players" && (
           <PlayersTab
             homeTeamName={match.homeTeamName}
@@ -452,6 +463,8 @@ export default async function MatchDetailPage({
             inputs={precomputed?.inputs ?? null}
             homeTeamName={match.homeTeamName}
             awayTeamName={match.awayTeamName}
+            predictedHomeLineup={predictedHomeLineup}
+            predictedAwayLineup={predictedAwayLineup}
           />
         )}
       </div>

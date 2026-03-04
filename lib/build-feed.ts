@@ -27,7 +27,7 @@ import { getFeedMarketRows, feedMatchScore } from "@/lib/insights/feed-market-st
 import { getWhatStandsOut } from "@/lib/insights/what-stands-out";
 import { getFeedMatchModelProbs } from "@/lib/modeling/feed-model-probs";
 import { preloadSimulations } from "@/lib/modeling/sim-reader";
-import type { H2HSummary } from "./feed";
+import type { H2HSummary, H2HMatchRow } from "./feed";
 import type { FootballProvider } from "@/lib/providers/types";
 import {
   SUPPORTED_LEAGUES,
@@ -142,6 +142,8 @@ function deriveH2HSummary(
   awayTeamName: string
 ): H2HSummary | null {
   const fixtures = (h2hResponse.response ?? []) as Array<{
+    fixture: { date?: string; venue?: { name?: string } };
+    league?: { name?: string };
     teams: { home: { id: number }; away: { id: number } };
     goals: { home: number | null; away: number | null };
   }>;
@@ -152,11 +154,21 @@ function deriveH2HSummary(
   let lastWinner: string | undefined;
   let totalGoals = 0;
   let bttsCount = 0;
+  const meetingRows: H2HMatchRow[] = [];
   for (const f of fixtures) {
     const gh = f.goals?.home ?? 0;
     const ga = f.goals?.away ?? 0;
     totalGoals += gh + ga;
     if (gh > 0 && ga > 0) bttsCount++;
+    meetingRows.push({
+      date: f.fixture?.date?.slice(0, 10) ?? "",
+      homeTeamId: f.teams.home.id,
+      awayTeamId: f.teams.away.id,
+      homeGoals: gh,
+      awayGoals: ga,
+      venue: f.fixture?.venue?.name,
+      competition: f.league?.name,
+    });
     const isHomeFirst = f.teams.home.id === homeTeamId && f.teams.away.id === awayTeamId;
     const homeGoals = isHomeFirst ? gh : ga;
     const awayGoals = isHomeFirst ? ga : gh;
@@ -172,7 +184,7 @@ function deriveH2HSummary(
   }
   const avgGoals = totalGoals / fixtures.length;
   const bttsRate = bttsCount / fixtures.length;
-  return { homeWins, draws, awayWins, lastWinner, avgGoals, bttsRate, meetingsCount: fixtures.length };
+  return { homeWins, draws, awayWins, lastWinner, avgGoals, bttsRate, meetingsCount: fixtures.length, meetingRows };
 }
 
 function buildHighlights(

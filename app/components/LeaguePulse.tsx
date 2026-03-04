@@ -27,7 +27,7 @@ export function LeaguePulse({ leagues }: Props) {
         return (
           <Link
             key={league.leagueId}
-            href={`/feed?league=${league.leagueId}`}
+            href={`/leagues/${league.leagueId}`}
             className="block cursor-pointer transition-colors hover:bg-[var(--bg-card)]"
             style={{
               borderLeft: `3px solid ${color}`,
