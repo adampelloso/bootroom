@@ -46,15 +46,39 @@ async function fetchJson(baseUrl, key, host, urlPath) {
 // Keep in sync with lib/leagues.ts ALL_COMPETITION_IDS
 const ALL_LEAGUE_IDS = [
   39, 78, 135, 140, 61,           // Big 5
+  88, 94, 144, 203, 179, 218,     // European tier 1.5
+  207, 119, 197, 210, 103, 113,   // European tier 2
+  106, 345,                        // European tier 2 cont.
+  253, 262, 71, 128,              // Americas
+  307, 98, 292, 188,              // Asia / Middle East / Oceania
   40, 41, 42, 136, 79, 141, 62,   // Second-tier leagues
   2, 3, 848,                       // European cups
   48, 45, 137, 143, 66, 81,       // Domestic cups
 ];
 
+// Calendar-year leagues need the current year as season (not the European season start year).
+// European leagues running Aug-May use the start year (e.g. 2025 for 2025-26).
+const CALENDAR_YEAR_LEAGUES = new Set([
+  253,  // MLS
+  71,   // Série A (Brazil)
+  128,  // Liga Profesional (Argentina)
+  98,   // J-League
+  292,  // K-League 1
+  103,  // Eliteserien (Norway)
+  113,  // Allsvenskan (Sweden)
+]);
+
+function getSeasonForLeague(league, defaultSeason) {
+  if (CALENDAR_YEAR_LEAGUES.has(league)) {
+    return defaultSeason + 1; // e.g. 2025 → 2026
+  }
+  return defaultSeason;
+}
+
 async function main() {
   const env = readEnv();
   const args = parseArgs();
-  const season = Number(args.season ?? 2025);
+  const baseSeason = Number(args.season ?? 2025);
   const days = Number(args.days ?? 7);
   const delayMs = Number(args.delay ?? 3000);
   const baseUrl = env.API_FOOTBALL_BASE_URL ?? "https://v3.football.api-sports.io";
@@ -72,6 +96,7 @@ async function main() {
   const allUpcoming = [];
 
   for (const league of ALL_LEAGUE_IDS) {
+    const season = getSeasonForLeague(league, baseSeason);
     console.log(`Fetching upcoming fixtures for league ${league}, season ${season}...`);
     const res = await fetchJson(baseUrl, key, host, `/fixtures?league=${league}&season=${season}&status=NS`);
     const fixtures = res.response ?? [];

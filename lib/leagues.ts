@@ -27,6 +27,32 @@ export const SUPPORTED_COMPETITIONS: SupportedCompetition[] = [
   { id: 135, label: "Serie A", season: 2025, type: "league", oddsKey: "seriea" },
   { id: 140, label: "La Liga", season: 2025, type: "league", oddsKey: "laliga" },
   { id: 61, label: "Ligue 1", season: 2025, type: "league", oddsKey: "ligue1" },
+  // European tier 1.5
+  { id: 88, label: "Eredivisie", season: 2025, type: "league", oddsKey: "eredivisie" },
+  { id: 94, label: "Liga Portugal", season: 2025, type: "league", oddsKey: "portugal" },
+  { id: 144, label: "Belgian Pro League", season: 2025, type: "league", oddsKey: "belgium" },
+  { id: 203, label: "Süper Lig", season: 2025, type: "league", oddsKey: "turkey" },
+  { id: 179, label: "Scottish Prem", season: 2025, type: "league", oddsKey: "scotland" },
+  { id: 218, label: "Austrian BL", season: 2025, type: "league", oddsKey: null },
+  // European tier 2
+  { id: 207, label: "Swiss Super League", season: 2025, type: "league", oddsKey: null },
+  { id: 119, label: "Superliga DK", season: 2025, type: "league", oddsKey: null },
+  { id: 197, label: "Super League GR", season: 2025, type: "league", oddsKey: null },
+  { id: 210, label: "HNL", season: 2025, type: "league", oddsKey: null },
+  { id: 103, label: "Eliteserien", season: 2026, type: "league", oddsKey: null },
+  { id: 113, label: "Allsvenskan", season: 2026, type: "league", oddsKey: null },
+  { id: 106, label: "Ekstraklasa", season: 2025, type: "league", oddsKey: null },
+  { id: 345, label: "Czech Liga", season: 2025, type: "league", oddsKey: null },
+  // Americas
+  { id: 253, label: "MLS", season: 2026, type: "league", oddsKey: "mls" },
+  { id: 262, label: "Liga MX", season: 2025, type: "league", oddsKey: "ligamx" },
+  { id: 71, label: "Série A BR", season: 2026, type: "league", oddsKey: "brazil_serie_a" },
+  { id: 128, label: "Liga Profesional", season: 2026, type: "league", oddsKey: null },
+  // Asia / Middle East / Oceania
+  { id: 307, label: "Saudi Pro", season: 2025, type: "league", oddsKey: "saudi" },
+  { id: 98, label: "J-League", season: 2026, type: "league", oddsKey: null },
+  { id: 292, label: "K-League 1", season: 2026, type: "league", oddsKey: null },
+  { id: 188, label: "A-League", season: 2025, type: "league", oddsKey: null },
   // Second-tier leagues (stats/form for cup opponents)
   { id: 40, label: "Championship", season: 2025, type: "league", oddsKey: null },
   { id: 41, label: "League One", season: 2025, type: "league", oddsKey: null },
@@ -98,6 +124,16 @@ const LEAGUE_STRENGTH: Record<number, number> = {
   119: 0.80, // Denmark Superliga
   103: 0.75, // Norway Eliteserien
   210: 0.78, // Croatia HNL
+  // Americas
+  253: 0.72, // MLS
+  262: 0.78, // Liga MX
+  71: 0.82,  // Série A (Brazil)
+  128: 0.80, // Liga Profesional (Argentina)
+  // Asia / Middle East / Oceania
+  307: 0.72, // Saudi Pro League
+  98: 0.72,  // J-League
+  292: 0.70, // K-League 1
+  188: 0.68, // A-League
   // Tier 2 — Second divisions
   40: 0.78,  // Championship
   136: 0.78, // Serie B

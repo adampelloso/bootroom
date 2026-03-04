@@ -31,14 +31,29 @@ def read_env() -> Dict[str, str]:
 # Mapping from our competition codes to The Odds API sport keys.
 # Competitions in lib/leagues.ts with oddsKey null are not listed here (fixtures/stats only).
 SPORT_MAP = {
+  # Big 5
   "epl": "soccer_epl",
   "laliga": "soccer_spain_la_liga",
   "seriea": "soccer_italy_serie_a",
   "bundesliga": "soccer_germany_bundesliga",
   "ligue1": "soccer_france_ligue_one",
+  # European tier 1.5
+  "eredivisie": "soccer_netherlands_eredivisie",
+  "portugal": "soccer_portugal_primeira_liga",
+  "belgium": "soccer_belgium_first_div",
+  "turkey": "soccer_turkey_super_league",
+  "scotland": "soccer_spl",
+  # Americas
+  "mls": "soccer_usa_mls",
+  "ligamx": "soccer_mexico_ligamx",
+  "brazil_serie_a": "soccer_brazil_serie_a",
+  # Asia / Middle East
+  "saudi": "soccer_saudi_professional_league",
+  # European cups
   "ucl": "soccer_uefa_champions_league",
   "uel": "soccer_uefa_europa_league",
   "uecl": "soccer_uefa_europa_conference_league",
+  # Domestic cups
   "fa_cup": "soccer_england_fa_cup",
   "efl_cup": "soccer_england_league_cup",
 }

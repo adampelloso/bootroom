@@ -56,7 +56,7 @@ fi
 # Odds ingestion: competitions that have The Odds API sport_key (lib/leagues.ts oddsKey; scripts/ingest-odds.py SPORT_MAP).
 # Competitions with oddsKey null (Coppa Italia, Copa del Rey, Coupe de France, DFB-Pokal) are fixtures/stats only.
 # Set ODDS_COMPETITIONS to space-separated list; default below includes all with odds.
-ODDS_COMPETITIONS="${ODDS_COMPETITIONS:-epl laliga seriea bundesliga ligue1 ucl uel uecl fa_cup efl_cup}"
+ODDS_COMPETITIONS="${ODDS_COMPETITIONS:-epl laliga seriea bundesliga ligue1 eredivisie portugal belgium turkey scotland mls ligamx brazil_serie_a saudi ucl uel uecl fa_cup efl_cup}"
 
 for COMP in ${ODDS_COMPETITIONS}; do
   echo "[ingest-daily] odds ingest for competition=${COMP}"

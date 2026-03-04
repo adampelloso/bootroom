@@ -46,14 +46,26 @@ async function fetchJson(baseUrl, key, host, path) {
 // Keep in sync with lib/leagues.ts ALL_COMPETITION_IDS (used when --all)
 const ALL_LEAGUE_IDS = [
   39, 78, 135, 140, 61,           // Big 5
+  88, 94, 144, 203, 179, 218,     // European tier 1.5
+  207, 119, 197, 210, 103, 113,   // European tier 2
+  106, 345, 283, 286, 271, 332,   // European tier 2.5
+  172, 244, 318, 383, 419,        // European tier 2.5 cont.
+  253, 262, 71, 128,              // Americas
+  307, 98, 292, 188,              // Asia / Middle East / Oceania
   40, 41, 42, 136, 79, 141, 62,   // Second-tier leagues
-  94, 88, 203, 144, 179, 218,     // European leagues (tier 1.5)
-  197, 345, 207, 119, 103, 210,   // European leagues (tier 1.5 cont.)
-  106, 283, 286, 271, 113, 332,   // European leagues (tier 2.5)
-  172, 244, 318, 383, 419,        // European leagues (tier 2.5 cont.)
   2, 3, 848,                       // European cups
   48, 45, 137, 143, 66, 81,       // Domestic cups
 ];
+
+// Calendar-year leagues need current year as season (not European season start year).
+const CALENDAR_YEAR_LEAGUES = new Set([
+  253, 71, 128, 98, 292, 103, 113,
+]);
+
+function getSeasonForLeague(league, defaultSeason) {
+  if (CALENDAR_YEAR_LEAGUES.has(league)) return defaultSeason + 1;
+  return defaultSeason;
+}
 
 function loadExistingFixtures(outPath) {
   if (!fs.existsSync(outPath)) return [];
@@ -159,9 +171,10 @@ async function main() {
   }
 
   for (const league of leaguesToIngest) {
-    console.log(`\nFetching fixtures for league ${league}, season ${season}...`);
-    const outPath = path.join(outDir, `${league}-${season}-fixtures.json`);
-    const results = await ingestOneLeague(baseUrl, key, host, league, season, delayMs, limit, skipPlayers, force, outPath);
+    const leagueSeason = getSeasonForLeague(league, season);
+    console.log(`\nFetching fixtures for league ${league}, season ${leagueSeason}...`);
+    const outPath = path.join(outDir, `${league}-${leagueSeason}-fixtures.json`);
+    const results = await ingestOneLeague(baseUrl, key, host, league, leagueSeason, delayMs, limit, skipPlayers, force, outPath);
     fs.writeFileSync(outPath, JSON.stringify(results, null, 2));
     console.log(`Saved ${results.length} fixtures to ${outPath}`);
   }

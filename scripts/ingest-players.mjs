@@ -45,8 +45,26 @@ async function fetchJson(baseUrl, key, host, urlPath) {
 
 // Keep in sync with lib/leagues.ts ALL_COMPETITION_IDS and season-ingest.mjs
 const ALL_LEAGUE_IDS = [
-  39, 78, 135, 140, 61, 2, 3, 848, 48, 45, 137, 143, 62, 81,
+  39, 78, 135, 140, 61,           // Big 5
+  88, 94, 144, 203, 179, 218,     // European tier 1.5
+  207, 119, 197, 210, 103, 113,   // European tier 2
+  106, 345,                        // European tier 2 cont.
+  253, 262, 71, 128,              // Americas
+  307, 98, 292, 188,              // Asia / Middle East / Oceania
+  40, 41, 42, 136, 79, 141, 62,   // Second-tier leagues
+  2, 3, 848,                       // European cups
+  48, 45, 137, 143, 66, 81,       // Domestic cups
 ];
+
+// Calendar-year leagues need current year as season (not European season start year).
+const CALENDAR_YEAR_LEAGUES = new Set([
+  253, 71, 128, 98, 292, 103, 113,
+]);
+
+function getSeasonForLeague(league, defaultSeason) {
+  if (CALENDAR_YEAR_LEAGUES.has(league)) return defaultSeason + 1;
+  return defaultSeason;
+}
 
 function flattenPlayer(item) {
   const player = item.player;
@@ -130,7 +148,8 @@ async function main() {
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir);
 
   for (const league of leaguesToIngest) {
-    const outPath = path.join(outDir, `${league}-${season}-players.json`);
+    const leagueSeason = getSeasonForLeague(league, season);
+    const outPath = path.join(outDir, `${league}-${leagueSeason}-players.json`);
 
     if (skipIfFresh && isFileFresh(outPath)) {
       console.log(`\nSkipping league ${league} — player file is fresh (< 20h old)`);
@@ -138,14 +157,14 @@ async function main() {
     }
 
     console.log(
-      `\nFetching player stats for league ${league}, season ${season}...`
+      `\nFetching player stats for league ${league}, season ${leagueSeason}...`
     );
     const players = await ingestOneLeague(
       baseUrl,
       key,
       host,
       league,
-      season,
+      leagueSeason,
       delayMs
     );
     fs.writeFileSync(outPath, JSON.stringify(players, null, 2));
