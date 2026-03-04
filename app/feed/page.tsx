@@ -1,10 +1,10 @@
 import { getFeedMatches } from "@/lib/build-feed";
 import { FeedView } from "@/app/components/FeedView";
 import { DateSelector, type DateRange } from "@/app/components/DateSelector";
-import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { AccountButton } from "@/app/components/AccountButton";
 import { ALL_COMPETITION_IDS, SUPPORTED_COMPETITIONS, getLeagueStrength, type LeagueFilterValue } from "@/lib/leagues";
 import { requireActiveSubscription } from "@/lib/auth-guard";
+
 
 function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -80,7 +80,6 @@ export default async function FeedPage({
         </h1>
         <div className="flex items-center gap-2">
           <DateSelector currentRange={range} currentLeague={league} />
-          <ThemeToggle />
           <AccountButton />
         </div>
       </header>

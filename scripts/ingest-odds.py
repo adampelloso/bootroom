@@ -62,7 +62,7 @@ def fetch_odds_snapshot(competition: str, date: str, api_key: str) -> List[Dict[
   params = {
     "apiKey": api_key,
     "regions": "us,uk",  # US and UK bookmakers
-    "markets": "h2h,spreads,totals",  # 1X2, spreads, totals
+    "markets": "h2h,totals,both_teams_to_score",  # 1X2, totals, BTTS
     "dateFormat": "iso",
   }
   

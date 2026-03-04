@@ -11,6 +11,7 @@ export interface MarketProbabilities {
   away: number;
   over_2_5?: number;
   under_2_5?: number;
+  btts?: number;
 }
 
 export interface ModelVsMarket {
@@ -84,6 +85,10 @@ function extractMarketProbs(match: any): MarketProbabilities | null {
     over: [],
     under: [],
   };
+  const bttsPrices: { yes: number[]; no: number[] } = {
+    yes: [],
+    no: [],
+  };
 
   for (const book of match.bookmakers) {
     for (const market of book.markets || []) {
@@ -110,6 +115,16 @@ function extractMarketProbs(match: any): MarketProbabilities | null {
             } else if (name.toLowerCase().includes("under")) {
               totalsPrices.under.push(price);
             }
+          }
+        }
+      } else if (market.key === "both_teams_to_score") {
+        for (const outcome of market.outcomes || []) {
+          const name = (outcome.name || "").toLowerCase();
+          const price = parseFloat(outcome.price) || 0;
+          if (name === "yes") {
+            bttsPrices.yes.push(price);
+          } else if (name === "no") {
+            bttsPrices.no.push(price);
           }
         }
       }
@@ -153,6 +168,17 @@ function extractMarketProbs(match: any): MarketProbabilities | null {
     if (totalsTotal > 0) {
       result.over_2_5 = pOverRaw / totalsTotal;
       result.under_2_5 = pUnderRaw / totalsTotal;
+    }
+  }
+
+  const bttsYesPrice = median(bttsPrices.yes);
+  const bttsNoPrice = median(bttsPrices.no);
+  if (bttsYesPrice && bttsNoPrice) {
+    const pYesRaw = 1 / bttsYesPrice;
+    const pNoRaw = 1 / bttsNoPrice;
+    const bttsTotal = pYesRaw + pNoRaw;
+    if (bttsTotal > 0) {
+      result.btts = pYesRaw / bttsTotal;
     }
   }
 

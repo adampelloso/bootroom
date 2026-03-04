@@ -26,7 +26,7 @@ export function ThresholdHitRates({ title, thresholds }: Props) {
           const pct = (rate * 100).toFixed(0);
           return (
             <div key={t.label}>
-              <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+              <div className="flex items-center justify-between text-[12px] font-mono mb-1">
                 <span className="text-[var(--text-sec)]">{t.label}</span>
                 <span className="text-[var(--text-main)] font-semibold">
                   {t.hits}/{t.total} ({pct}%)

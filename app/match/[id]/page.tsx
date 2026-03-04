@@ -9,7 +9,6 @@ import { getTeamPlayerStats } from "@/lib/insights/player-stats";
 import { buildTrendsByStat } from "@/lib/insights/trend-chart-data";
 import { getFeedMarketRows, getDetailScreenshotCharts } from "@/lib/insights/feed-market-stats";
 import { getPrecomputedSim } from "@/lib/modeling/sim-reader";
-import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { FormFilterLinks } from "@/app/components/FormFilterLinks";
 import { MatchPillNav } from "@/app/components/MatchPillNav";
 import type { TabId } from "@/app/components/MatchPillNav";
@@ -248,22 +247,6 @@ export default async function MatchDetailPage({
 
   const showDebug = debugParam === "1" || debugParam === "true";
 
-  // Shots thresholds
-  const shotsThresholds = homeLast10.length > 0 || awayLast10.length > 0
-    ? [3.5, 4.5, 5.5].map((t) => ({
-        label: `Team Shots O${t}`,
-        hits: [...homeLast10, ...awayLast10].filter((r) => r.shotsFor > t).length,
-        total: homeLast10.length + awayLast10.length,
-      }))
-    : [];
-  const sotThresholds = homeLast10.length > 0 || awayLast10.length > 0
-    ? [1.5, 2.5, 3.5].map((t) => ({
-        label: `Team SOT O${t}`,
-        hits: [...homeLast10, ...awayLast10].filter((r) => r.sotFor > t).length,
-        total: homeLast10.length + awayLast10.length,
-      }))
-    : [];
-
   // Cards thresholds
   const cardsCombined = [...homeLast10, ...awayLast10];
   const cardThresholds = cardsCombined.length > 0
@@ -293,13 +276,12 @@ export default async function MatchDetailPage({
         >
           &larr; Match Details
         </Link>
-        <ThemeToggle />
       </header>
 
-      <div className="flex items-center justify-between text-mono text-[11px] uppercase text-tertiary px-5 pb-3" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}>
+      <div className="flex items-center justify-between text-mono text-[12px] uppercase text-tertiary px-5 pb-3" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)", paddingBottom: "var(--space-sm)" }}>
         <div className="flex items-center gap-2">
           {match.leagueName ? (
-            <span className="font-semibold uppercase" style={{ color: "var(--text-sec)", fontSize: "10px" }}>
+            <span className="font-semibold uppercase" style={{ color: "var(--text-sec)", fontSize: "12px" }}>
               {match.leagueName}
             </span>
           ) : null}
@@ -374,6 +356,7 @@ export default async function MatchDetailPage({
             awayTrends={awayTrends}
             homeLast10={homeLast10}
             awayLast10={awayLast10}
+            feedProbs={precomputed?.feedProbs ?? null}
           />
         )}
 
@@ -385,8 +368,7 @@ export default async function MatchDetailPage({
             awayStats={rollingStats?.away.l10 ?? null}
             homeTrends={homeTrends}
             awayTrends={awayTrends}
-            shotsThresholds={shotsThresholds}
-            sotThresholds={sotThresholds}
+            feedProbs={precomputed?.feedProbs ?? null}
           />
         )}
 
@@ -401,6 +383,7 @@ export default async function MatchDetailPage({
               awayCornersFor: screenshotCharts.awayCornersFor,
             }}
             cornerThresholds={cornerThresholds}
+            feedProbs={precomputed?.feedProbs ?? null}
           />
         )}
 
@@ -412,6 +395,7 @@ export default async function MatchDetailPage({
             awayStats={rollingStats?.away.l10 ?? null}
             cardThresholds={cardThresholds}
             referee={match.referee}
+            feedProbs={precomputed?.feedProbs ?? null}
           />
         )}
 
@@ -440,7 +424,7 @@ export default async function MatchDetailPage({
       </div>
 
       {showDebug ? (
-        <section className="px-5 py-3 border-t border-[var(--border-light)] text-[11px] font-mono text-tertiary overflow-x-auto">
+        <section className="px-5 py-3 border-t border-[var(--border-light)] text-[12px] font-mono text-tertiary overflow-x-auto">
           <p className="font-semibold text-[var(--text-sec)] mb-2">[Debug ?debug=1]</p>
           <p>home: {match.homeTeamName} | away: {match.awayTeamName} | date: {fixtureDate ?? "\u2014"}</p>
         </section>

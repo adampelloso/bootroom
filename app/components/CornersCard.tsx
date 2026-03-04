@@ -46,7 +46,7 @@ export function CornersCard({ homeTeamName, awayTeamName, data }: Props) {
 
       {/* Home team */}
       <div className="pb-3 border-b border-[var(--border-light)]">
-        <p className="text-mono text-[11px] uppercase text-tertiary mb-3">
+        <p className="text-mono text-[12px] uppercase text-tertiary mb-3">
           {abbrev(homeTeamName)} (last 5 home)
         </p>
         <div className="grid grid-cols-3 gap-3 text-secondary-data">
@@ -72,7 +72,7 @@ export function CornersCard({ homeTeamName, awayTeamName, data }: Props) {
 
       {/* Away team */}
       <div className="py-3 border-b border-[var(--border-light)]">
-        <p className="text-mono text-[11px] uppercase text-tertiary mb-3">
+        <p className="text-mono text-[12px] uppercase text-tertiary mb-3">
           {abbrev(awayTeamName)} (last 5 away)
         </p>
         <div className="grid grid-cols-3 gap-3 text-secondary-data">
@@ -99,7 +99,7 @@ export function CornersCard({ homeTeamName, awayTeamName, data }: Props) {
       {/* Combined & Edge */}
       <div className="pt-3">
         <div className="flex items-baseline justify-between mb-3">
-          <p className="text-mono text-[11px] uppercase text-tertiary">Combined expected</p>
+          <p className="text-mono text-[12px] uppercase text-tertiary">Combined expected</p>
           <span
             className="text-mono font-bold"
             style={{ fontSize: "18px", color: "var(--text-main)" }}
@@ -109,7 +109,7 @@ export function CornersCard({ homeTeamName, awayTeamName, data }: Props) {
         </div>
         <div className="grid grid-cols-2 gap-3 pt-2 border-t border-[var(--border-light)] text-secondary-data">
           <div>
-            <span className="text-tertiary block mb-1 text-[10px] uppercase">
+            <span className="text-tertiary block mb-1 text-[12px] uppercase">
               {abbrev(homeTeamName)} edge
             </span>
             <span className="text-primary-data font-semibold" style={{ color: "var(--text-main)" }}>
@@ -118,7 +118,7 @@ export function CornersCard({ homeTeamName, awayTeamName, data }: Props) {
             </span>
           </div>
           <div>
-            <span className="text-tertiary block mb-1 text-[10px] uppercase">
+            <span className="text-tertiary block mb-1 text-[12px] uppercase">
               {abbrev(awayTeamName)} edge
             </span>
             <span className="text-primary-data font-semibold" style={{ color: "var(--text-main)" }}>

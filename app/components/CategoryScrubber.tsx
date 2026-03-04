@@ -47,7 +47,7 @@ export function CategoryScrubber({
             key={cat.key}
             type="button"
             onClick={() => router.push(buildUrl(cat.key), { scroll: false })}
-            className="rounded-full font-mono text-[11px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0"
+            className="rounded-full font-mono text-[12px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0"
             style={{
               scrollSnapAlign: "center",
               padding: "10px 14px",

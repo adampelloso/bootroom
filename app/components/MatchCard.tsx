@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { FeedMatch } from "@/lib/feed";
 import { percentPill } from "@/lib/percent-color";
+import { EdgeBadge, getBestEdge } from "@/app/components/EdgeBadge";
 
 function formatKickoffTime(iso: string): string {
   const d = new Date(iso);
@@ -46,29 +47,36 @@ export function MatchCard({ match }: { match: FeedMatch }) {
 
   const over25Display = getOver25Percent(match);
   const bttsDisplay = getBttsPercent(match);
+  const bestEdge = getBestEdge(match.modelProbs);
 
   return (
     <Link
       href={`/match/${match.providerFixtureId}`}
-      className="block cursor-pointer transition-colors hover:bg-[var(--bg-surface)]"
+      className="block cursor-pointer transition-colors hover:bg-[var(--bg-card)]"
       style={{
-        border: "2px solid var(--text-main)",
+        borderLeft: "3px solid var(--border-light)",
+        background: "var(--bg-panel)",
         padding: "var(--space-sm)",
       }}
       aria-label={`${match.homeTeamName} v ${match.awayTeamName} – match detail`}
     >
-      {/* Header row: league left, time right */}
+      {/* Header row: league left, edge + time right */}
       <div className="flex items-center justify-between mb-2">
-        <div className="text-mono text-[11px] uppercase" style={{ color: "var(--text-tertiary)" }}>
+        <div className="text-mono text-[12px] uppercase" style={{ color: "var(--text-tertiary)" }}>
           {match.leagueName && (
-            <span className="font-semibold" style={{ color: "var(--text-sec)" }}>
+            <span className="font-semibold">
               {match.leagueName}
             </span>
           )}
         </div>
-        <span className="text-mono text-[11px] uppercase" style={{ color: "var(--text-tertiary)" }}>
-          {formatKickoffTime(match.kickoffUtc)}
-        </span>
+        <div className="flex items-center gap-2">
+          {bestEdge && (
+            <EdgeBadge edge={bestEdge.edge} market={bestEdge.market} variant="badge" />
+          )}
+          <span className="text-mono text-[12px] uppercase" style={{ color: "var(--text-tertiary)" }}>
+            {formatKickoffTime(match.kickoffUtc)}
+          </span>
+        </div>
       </div>
 
       {/* Teams row: home — H2H — away */}
@@ -83,7 +91,7 @@ export function MatchCard({ match }: { match: FeedMatch }) {
           </span>
         </div>
         {match.h2hSummary && (
-          <span className="text-mono text-[11px] uppercase shrink-0 px-2" style={{ color: "var(--text-tertiary)" }}>
+          <span className="text-mono text-[12px] uppercase shrink-0 px-2" style={{ color: "var(--text-tertiary)" }}>
             {match.h2hSummary.homeWins}-{match.h2hSummary.draws}-{match.h2hSummary.awayWins}
           </span>
         )}
@@ -102,16 +110,16 @@ export function MatchCard({ match }: { match: FeedMatch }) {
       <table className="w-full text-mono" style={{ borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ background: "var(--bg-surface)" }}>
-            <th className="text-left uppercase font-bold py-1.5 px-1.5 text-[10px] tracking-wider" style={{ color: "var(--text-tertiary)", width: "40%" }}>
+            <th className="text-left text-table-header py-1.5 px-1.5" style={{ color: "var(--text-tertiary)", width: "40%" }}>
               Stat
             </th>
-            <th className="text-center uppercase font-bold py-1.5 px-1.5 text-[10px] tracking-wider" style={{ color: "var(--text-tertiary)", width: "20%" }}>
+            <th className="text-center text-table-header py-1.5 px-1.5" style={{ color: "var(--text-tertiary)", width: "20%" }}>
               Home
             </th>
-            <th className="text-center uppercase font-bold py-1.5 px-1.5 text-[10px] tracking-wider" style={{ color: "var(--text-tertiary)", width: "20%" }}>
+            <th className="text-center text-table-header py-1.5 px-1.5" style={{ color: "var(--text-tertiary)", width: "20%" }}>
               Away
             </th>
-            <th className="text-right uppercase font-bold py-1.5 px-1.5 text-[10px] tracking-wider" style={{ color: "var(--text-tertiary)", width: "20%" }}>
+            <th className="text-right text-table-header py-1.5 px-1.5" style={{ color: "var(--text-tertiary)", width: "20%" }}>
               Total
             </th>
           </tr>
@@ -168,7 +176,7 @@ export function MatchCard({ match }: { match: FeedMatch }) {
               style={{ background: "var(--bg-surface)" }}
             >
               <span className="text-[15px] font-bold" style={{ color: "var(--text-main)" }}>{s.score}</span>
-              <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>{Math.round(s.prob * 100)}%</span>
+              <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>{Math.round(s.prob * 100)}%</span>
             </div>
           ))}
         </div>

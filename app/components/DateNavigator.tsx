@@ -153,7 +153,7 @@ export function DateNavigator({ currentDate }: { currentDate: string }) {
                   <path d="m18.59 5 1.41 1.41L6.41 20 5 18.59z" />
                 </svg>
               </button>
-              <div className="text-mono text-[11px] uppercase text-tertiary">
+              <div className="text-mono text-[12px] uppercase text-tertiary">
                 Select date
               </div>
               <button
@@ -164,7 +164,7 @@ export function DateNavigator({ currentDate }: { currentDate: string }) {
                   setIsPickerOpen(false);
                   router.push(`/?date=${toDateParam(today)}`);
                 }}
-                className="text-mono text-[11px] uppercase font-medium"
+                className="text-mono text-[12px] uppercase font-medium"
               >
                 Today
               </button>
@@ -196,7 +196,7 @@ export function DateNavigator({ currentDate }: { currentDate: string }) {
               </button>
             </div>
 
-            <div className="mt-8 grid grid-cols-7 gap-2 text-mono text-[11px] uppercase text-tertiary">
+            <div className="mt-8 grid grid-cols-7 gap-2 text-mono text-[12px] uppercase text-tertiary">
               {WEEKDAYS.map((day) => (
                 <div key={day} className="text-center">
                   {day}

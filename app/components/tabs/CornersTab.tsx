@@ -1,4 +1,5 @@
 import type { ScreenshotChartPoint } from "@/lib/insights/feed-market-stats";
+import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import { CornersCard } from "@/app/components/CornersCard";
 import { StatTrendChart } from "@/app/components/StatTrendChart";
 import { ThresholdHitRates } from "@/app/components/ThresholdHitRates";
@@ -28,9 +29,10 @@ type Props = {
   cornersData: CornersData | null;
   charts: ChartSet;
   cornerThresholds?: ThresholdRow[];
+  feedProbs?: FeedModelProbs | null;
 };
 
-export function CornersTab({ homeTeamName, awayTeamName, cornersData, charts, cornerThresholds }: Props) {
+export function CornersTab({ homeTeamName, awayTeamName, cornersData, charts, cornerThresholds, feedProbs }: Props) {
   if (!cornersData && charts.totalCorners.data.length === 0) {
     return (
       <section className="px-5 py-4" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>

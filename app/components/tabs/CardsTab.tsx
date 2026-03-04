@@ -1,4 +1,5 @@
 import type { RollingStats } from "@/lib/insights/team-stats";
+import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import { ThresholdHitRates } from "@/app/components/ThresholdHitRates";
 import type { ThresholdRow } from "@/app/components/ThresholdHitRates";
 
@@ -9,6 +10,7 @@ type Props = {
   awayStats: RollingStats | null;
   cardThresholds: ThresholdRow[];
   referee?: string;
+  feedProbs?: FeedModelProbs | null;
 };
 
 export function CardsTab({
@@ -18,6 +20,7 @@ export function CardsTab({
   awayStats,
   cardThresholds,
   referee,
+  feedProbs,
 }: Props) {
   const homeBookingPts = homeStats ? homeStats.yellowCards * 10 + homeStats.redCards * 25 : 0;
   const awayBookingPts = awayStats ? awayStats.yellowCards * 10 + awayStats.redCards * 25 : 0;
@@ -34,19 +37,45 @@ export function CardsTab({
         <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-3">Discipline snapshot</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <span className="text-mono text-[10px] uppercase text-tertiary block mb-1">Expected cards</span>
+            <span className="text-mono text-[12px] uppercase text-tertiary block mb-1">Expected cards</span>
             <span className="text-hero-metric">{expectedTotalCards.toFixed(1)}</span>
           </div>
           <div>
-            <span className="text-mono text-[10px] uppercase text-tertiary block mb-1">Avg booking pts</span>
+            <span className="text-mono text-[12px] uppercase text-tertiary block mb-1">Avg booking pts</span>
             <span className="text-sans text-[20px] font-bold" style={{ fontFeatureSettings: '"tnum"' }}>
               {((homeBookingPts + awayBookingPts) / 2).toFixed(0)}
             </span>
           </div>
           {referee && (
             <div className="col-span-2">
-              <span className="text-mono text-[10px] uppercase text-tertiary block mb-1">Referee</span>
-              <span className="text-[14px] font-semibold" style={{ color: "var(--text-main)" }}>{referee}</span>
+              <span className="text-mono text-[12px] uppercase text-tertiary block mb-1">Referee</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] font-semibold" style={{ color: "var(--text-main)" }}>{referee}</span>
+                {(() => {
+                  // Compare avg cards/match vs league average (~4.0 cards/match baseline)
+                  const LEAGUE_AVG_CARDS = 4.0;
+                  const ratio = expectedTotalCards / LEAGUE_AVG_CARDS;
+                  if (ratio > 1.2) {
+                    return (
+                      <span className="text-mono text-[12px] uppercase px-1.5 py-0.5" style={{ color: "var(--color-amber)", background: "rgba(245,158,11,0.12)" }}>
+                        Card-heavy
+                      </span>
+                    );
+                  }
+                  if (ratio < 0.8) {
+                    return (
+                      <span className="text-mono text-[12px] uppercase px-1.5 py-0.5" style={{ color: "var(--color-positive)", background: "rgba(34,197,94,0.12)" }}>
+                        Lenient
+                      </span>
+                    );
+                  }
+                  return (
+                    <span className="text-mono text-[12px] uppercase px-1.5 py-0.5" style={{ color: "var(--text-tertiary)", background: "var(--bg-surface)" }}>
+                      Average
+                    </span>
+                  );
+                })()}
+              </div>
             </div>
           )}
         </div>
@@ -60,7 +89,7 @@ export function CardsTab({
             <div className="grid grid-cols-2 gap-4">
               {homeStats && (
                 <div>
-                  <p className="text-mono text-[10px] uppercase text-tertiary mb-2">
+                  <p className="text-mono text-[12px] uppercase text-tertiary mb-2">
                     {homeTeamName.slice(0, 3).toUpperCase()}
                   </p>
                   <div className="space-y-1 text-[12px] font-mono">
@@ -85,7 +114,7 @@ export function CardsTab({
               )}
               {awayStats && (
                 <div>
-                  <p className="text-mono text-[10px] uppercase text-tertiary mb-2">
+                  <p className="text-mono text-[12px] uppercase text-tertiary mb-2">
                     {awayTeamName.slice(0, 3).toUpperCase()}
                   </p>
                   <div className="space-y-1 text-[12px] font-mono">

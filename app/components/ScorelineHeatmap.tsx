@@ -34,12 +34,13 @@ export function ScorelineHeatmap({ scorelines, totalSimulations }: Props) {
   }
 
   return (
-    <div>
+    <div style={{ overflowX: "auto", minWidth: 0 }}>
+    <div style={{ minWidth: "240px" }}>
       {/* Column headers (home goals) */}
       <div className="flex items-end mb-1">
         <div className="w-6 shrink-0" />
         {Array.from({ length: MAX_GOALS + 1 }, (_, i) => (
-          <div key={i} className="flex-1 text-center text-[9px] font-mono text-tertiary">
+          <div key={i} className="flex-1 text-center text-[12px] font-mono text-tertiary">
             {i === MAX_GOALS ? `${i}+` : i}
           </div>
         ))}
@@ -48,28 +49,33 @@ export function ScorelineHeatmap({ scorelines, totalSimulations }: Props) {
       {/* Grid rows (away goals) */}
       {Array.from({ length: MAX_GOALS + 1 }, (_, away) => (
         <div key={away} className="flex items-center" style={{ height: "28px" }}>
-          <div className="w-6 shrink-0 text-[9px] font-mono text-tertiary text-right pr-1">
+          <div className="w-6 shrink-0 text-[12px] font-mono text-tertiary text-right pr-1">
             {away === MAX_GOALS ? `${away}+` : away}
           </div>
           {Array.from({ length: MAX_GOALS + 1 }, (_, home) => {
             const prob = grid[away][home];
             const pct = (prob * 100).toFixed(1);
-            const opacity = maxProb > 0 ? Math.max(0.05, prob / maxProb) : 0;
             const isTop = `${home}-${away}` === topScore;
+            // Interpolated color: dim slate → bright blue
+            const intensity = maxProb > 0 ? prob / maxProb : 0;
+            const r = Math.round(30 + (59 - 30) * intensity);
+            const g = Math.round(41 + (130 - 41) * intensity);
+            const b = Math.round(59 + (246 - 59) * intensity);
+            const a = Math.max(0.08, intensity * 0.9);
             return (
               <div
                 key={home}
                 className="flex-1 flex items-center justify-center border border-[var(--bg-body)]"
                 style={{
                   height: "28px",
-                  backgroundColor: `rgba(59, 130, 246, ${opacity})`,
-                  outline: isTop ? "2px solid var(--color-accent)" : "none",
+                  backgroundColor: prob > 0 ? `rgba(${r}, ${g}, ${b}, ${a})` : "transparent",
+                  outline: isTop ? "2px solid var(--color-amber)" : "none",
                   outlineOffset: "-2px",
                 }}
                 title={`${home}-${away}: ${pct}%`}
               >
                 {prob >= 0.01 && (
-                  <span className="text-[9px] font-mono font-medium" style={{ color: "var(--text-main)" }}>
+                  <span className="text-[12px] font-mono font-medium" style={{ color: "var(--text-main)" }}>
                     {pct}
                   </span>
                 )}
@@ -80,10 +86,11 @@ export function ScorelineHeatmap({ scorelines, totalSimulations }: Props) {
       ))}
 
       {/* Axis labels */}
-      <div className="flex justify-between text-[9px] font-mono text-tertiary mt-1 px-6">
+      <div className="flex justify-between text-[12px] font-mono text-tertiary mt-1 px-6">
         <span>← Home goals</span>
         <span>Away goals ↑</span>
       </div>
+    </div>
     </div>
   );
 }

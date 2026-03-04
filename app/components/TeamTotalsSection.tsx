@@ -34,10 +34,10 @@ export function TeamTotalsSection({
       aria-label="Team totals"
     >
       <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-4">Team totals</h2>
-      <p className="text-mono text-[11px] uppercase text-tertiary mb-3">Goals (L5 home / L5 away)</p>
+      <p className="text-mono text-[12px] uppercase text-tertiary mb-3">Goals (L5 home / L5 away)</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="border-b border-[var(--border-light)] pb-3">
-          <p className="text-mono text-[11px] uppercase text-tertiary mb-2">
+          <p className="text-mono text-[12px] uppercase text-tertiary mb-2">
             {abbrev(homeTeamName)} (home)
           </p>
           <div className="flex items-baseline gap-2">
@@ -48,11 +48,11 @@ export function TeamTotalsSection({
             <span className="text-tertiary text-[12px]">against</span>
           </div>
           {homeMatchCount > 0 && (
-            <p className="text-[11px] text-tertiary mt-1">{homeMatchCount} matches</p>
+            <p className="text-[12px] text-tertiary mt-1">{homeMatchCount} matches</p>
           )}
         </div>
         <div className="border-b border-[var(--border-light)] pb-3">
-          <p className="text-mono text-[11px] uppercase text-tertiary mb-2">
+          <p className="text-mono text-[12px] uppercase text-tertiary mb-2">
             {abbrev(awayTeamName)} (away)
           </p>
           <div className="flex items-baseline gap-2">
@@ -63,7 +63,7 @@ export function TeamTotalsSection({
             <span className="text-tertiary text-[12px]">against</span>
           </div>
           {awayMatchCount > 0 && (
-            <p className="text-[11px] text-tertiary mt-1">{awayMatchCount} matches</p>
+            <p className="text-[12px] text-tertiary mt-1">{awayMatchCount} matches</p>
           )}
         </div>
       </div>

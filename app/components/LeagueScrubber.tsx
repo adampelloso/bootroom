@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { LeagueFilterValue } from "@/lib/leagues";
+import { SUPPORTED_COMPETITIONS } from "@/lib/leagues";
 import type { DateRange } from "./DateSelector";
 
 function buildUrl(range: DateRange, league: LeagueFilterValue): string {
@@ -65,12 +66,12 @@ export function LeagueScrubber({
               ref={isSelected ? activeRef : null}
               type="button"
               onClick={() => router.push(buildUrl(currentRange, item.value))}
-              className="font-mono text-[11px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0 hover:bg-[var(--bg-surface)]"
+              className="font-mono text-[12px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0 hover:bg-[var(--bg-surface)]"
               style={{
                 scrollSnapAlign: "center",
                 padding: "10px 14px",
-                background: isSelected ? "var(--bg-accent)" : "transparent",
-                color: isSelected ? "var(--text-on-accent)" : "var(--text-main)",
+                background: isSelected ? "var(--bg-surface)" : "transparent",
+                color: isSelected ? "var(--text-main)" : "var(--text-tertiary)",
                 border: isSelected ? "none" : "1px solid var(--border-light)",
                 lineHeight: 1.1,
               }}

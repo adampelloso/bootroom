@@ -137,3 +137,26 @@ const LEAGUE_STRENGTH: Record<number, number> = {
 export function getLeagueStrength(leagueId: number): number {
   return LEAGUE_STRENGTH[leagueId] ?? 0.70; // unknown domestic leagues default to ~tier 2.5
 }
+
+/** Accent colors per league for UI (left border bars, pills, etc.) */
+const LEAGUE_COLORS: Record<number, string> = {
+  39: "#6B21A8",   // EPL — purple
+  78: "#DC2626",   // Bundesliga — red
+  135: "#2563EB",  // Serie A — blue
+  140: "#EA580C",  // La Liga — orange
+  61: "#0D9488",   // Ligue 1 — teal
+  2: "#D4AF37",    // UCL — gold
+  3: "#F97316",    // UEL — orange
+  848: "#16A34A",  // UECL — green
+  48: "#7C3AED",   // FA Cup — violet
+  45: "#0EA5E9",   // EFL Cup — sky
+  40: "#A855F7",   // Championship — light purple
+  137: "#3B82F6",  // Coppa Italia — blue
+  143: "#F59E0B",  // Copa del Rey — amber
+  66: "#14B8A6",   // Coupe de France — teal
+  81: "#E11D48",   // DFB-Pokal — rose
+};
+
+export function getLeagueColor(leagueId: number): string {
+  return LEAGUE_COLORS[leagueId] ?? "#64748B"; // default slate
+}

@@ -83,7 +83,7 @@ export function DateScrubber({
             ref={isSelected ? activeRef : null}
             type="button"
             onClick={() => router.push(buildUrl(iso, currentLeague))}
-            className="font-mono text-[11px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0"
+            className="font-mono text-[12px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0"
             style={{
               scrollSnapAlign: "center",
               padding: "8px 16px",

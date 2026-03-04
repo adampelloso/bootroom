@@ -13,15 +13,15 @@ function PlayerCard({ player, teamCode }: { player: FeedPlayerSimEntry; teamCode
   return (
     <div className="panel-card p-3" style={{ minWidth: "140px" }}>
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-mono text-[9px] uppercase px-1.5 py-0.5" style={{ background: "var(--bg-elevated)", color: "var(--text-sec)" }}>
+        <span className="text-mono text-[12px] uppercase px-1.5 py-0.5" style={{ background: "var(--bg-elevated)", color: "var(--text-sec)" }}>
           {teamCode}
         </span>
-        <span className="text-mono text-[9px] uppercase text-tertiary">{player.position ?? "?"}</span>
+        <span className="text-mono text-[12px] uppercase text-tertiary">{player.position ?? "?"}</span>
       </div>
       <p className="text-[13px] font-semibold truncate mb-2" style={{ color: "var(--text-main)" }}>
         {player.name}
       </p>
-      <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+      <div className="grid grid-cols-2 gap-2 text-[12px] font-mono">
         <div>
           <span className="text-tertiary block">Scorer</span>
           <span className="text-[var(--text-main)] font-semibold">{(player.anytimeScorerProb * 100).toFixed(0)}%</span>

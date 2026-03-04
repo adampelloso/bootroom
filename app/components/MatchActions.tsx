@@ -28,7 +28,7 @@ export function MatchActions({ matchId, homeTeamName, awayTeamName, evFlags }: P
     <div className="flex items-center gap-2">
       <button
         onClick={handleShare}
-        className="text-mono text-[10px] uppercase px-2 py-1 border transition-colors"
+        className="text-mono text-[12px] uppercase px-2 py-1 border transition-colors"
         style={{
           borderColor: "var(--border-light)",
           color: copied ? "var(--text-main)" : "var(--text-tertiary)",

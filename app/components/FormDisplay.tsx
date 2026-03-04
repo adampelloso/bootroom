@@ -24,7 +24,7 @@ export function FormDisplay({ form, label }: Props) {
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-mono text-[9px] uppercase text-tertiary">{label}</span>
+      <span className="text-mono text-[12px] uppercase text-tertiary">{label}</span>
       <div className="flex items-center gap-0.5" aria-label={`${label}: ${form.join("-")}`}>
         {form.map((r, i) => (
           <div

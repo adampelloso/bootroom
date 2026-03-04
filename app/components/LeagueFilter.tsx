@@ -87,7 +87,7 @@ export function LeagueFilterPill({
                 >
                   <span className="font-medium">{it.label}</span>
                   {selected ? (
-                    <span className="text-mono text-[11px] uppercase text-tertiary">
+                    <span className="text-mono text-[12px] uppercase text-tertiary">
                       Selected
                     </span>
                   ) : null}

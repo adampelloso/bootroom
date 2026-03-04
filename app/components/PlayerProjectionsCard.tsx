@@ -38,7 +38,7 @@ function confidenceBadge(confidence: "locked" | "likely" | "rotation") {
   };
   return (
     <span
-      className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider ${colors[confidence]}`}
+      className={`inline-block px-1.5 py-0.5 rounded text-[12px] font-semibold uppercase tracking-wider ${colors[confidence]}`}
     >
       {confidence}
     </span>
@@ -79,9 +79,9 @@ function TeamTable({
 
   return (
     <div className="border-b border-[var(--border-light)] pb-3">
-      <p className="text-mono text-[11px] uppercase text-tertiary mb-2">{teamName}</p>
+      <p className="text-mono text-[12px] uppercase text-tertiary mb-2">{teamName}</p>
       <div className="overflow-x-auto">
-        <table className="w-full text-[10px] font-mono">
+        <table className="w-full text-[12px] font-mono">
           <thead>
             <tr className="text-left text-tertiary border-b border-[var(--border-light)]">
               <th className="py-1 pr-2 font-medium">Player</th>
@@ -125,7 +125,7 @@ function TeamTable({
                   <>
                     <td className="py-1 px-2 text-right">
                       {p.anytimeScorerProb > 0.01
-                        ? <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold" style={{ background: percentPill(Math.round(p.anytimeScorerProb * 100)).bg, color: percentPill(Math.round(p.anytimeScorerProb * 100)).text }}>{(p.anytimeScorerProb * 100).toFixed(0)}%</span>
+                        ? <span className="inline-block px-1.5 py-0.5 rounded text-[12px] font-bold" style={{ background: percentPill(Math.round(p.anytimeScorerProb * 100)).bg, color: percentPill(Math.round(p.anytimeScorerProb * 100)).text }}>{(p.anytimeScorerProb * 100).toFixed(0)}%</span>
                         : "—"}
                     </td>
                     <td className="py-1 px-2 text-right text-tertiary">
@@ -182,7 +182,7 @@ export function PlayerProjectionsContent({ homeTeamName, awayTeamName, playerSim
             key={key}
             type="button"
             onClick={() => setStat(key)}
-            className={`px-3 py-1.5 text-mono text-[11px] uppercase rounded transition-colors ${
+            className={`px-3 py-1.5 text-mono text-[12px] uppercase rounded transition-colors ${
               stat === key
                 ? "bg-[var(--text-main)] text-[var(--bg-body)] font-semibold"
                 : "text-tertiary hover:text-[var(--text-sec)]"
@@ -229,7 +229,7 @@ export function PlayerProjectionsCard({ homeTeamName, awayTeamName, playerSim }:
               key={key}
               type="button"
               onClick={() => setStat(key)}
-              className={`px-3 py-1.5 text-mono text-[11px] uppercase rounded transition-colors ${
+              className={`px-3 py-1.5 text-mono text-[12px] uppercase rounded transition-colors ${
                 stat === key
                   ? "bg-[var(--text-main)] text-[var(--bg-body)] font-semibold"
                   : "text-tertiary hover:text-[var(--text-sec)]"

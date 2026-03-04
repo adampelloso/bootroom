@@ -8,7 +8,6 @@ import type { DateRange } from "./DateSelector";
 import { percentPill } from "@/lib/percent-color";
 import { LeagueScrubber } from "./LeagueScrubber";
 import { MatchCard } from "./MatchCard";
-
 type ViewMode = "cards" | "table";
 
 function getBttsPercent(match: FeedMatch): number | null {
@@ -34,7 +33,7 @@ function ViewToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: ViewMode
       <button
         type="button"
         onClick={() => onChange("cards")}
-        className="px-2.5 py-1.5 text-mono text-[11px] uppercase transition-colors"
+        className="px-2.5 py-1.5 text-mono text-[12px] uppercase transition-colors"
         style={{
           background: mode === "cards" ? "var(--text-main)" : "transparent",
           color: mode === "cards" ? "var(--bg-body)" : "var(--text-tertiary)",
@@ -53,7 +52,7 @@ function ViewToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: ViewMode
       <button
         type="button"
         onClick={() => onChange("table")}
-        className="px-2.5 py-1.5 text-mono text-[11px] uppercase transition-colors"
+        className="px-2.5 py-1.5 text-mono text-[12px] uppercase transition-colors"
         style={{
           background: mode === "table" ? "var(--text-main)" : "transparent",
           color: mode === "table" ? "var(--bg-body)" : "var(--text-tertiary)",
@@ -74,9 +73,9 @@ function ViewToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: ViewMode
 }
 
 function MatchTable({ matches }: { matches: FeedMatch[] }) {
-  const teamText = "font-semibold uppercase truncate text-[11px] sm:text-[16px]";
-  const xgVal = "text-[11px] sm:text-[16px] font-bold";
-  const thBase = "uppercase font-bold py-2.5 text-[9px] sm:text-[16px] tracking-wider";
+  const teamText = "font-semibold uppercase truncate text-[12px] sm:text-[16px]";
+  const xgVal = "text-[12px] sm:text-[16px] font-bold";
+  const thBase = "uppercase font-bold py-2.5 text-[12px] sm:text-[16px] tracking-wider";
   const thColor = { color: "var(--text-tertiary)" };
   const cols = "1fr 36px 1fr 50px 12px 50px 12px 50px 1fr 36px 1fr";
 
@@ -148,7 +147,7 @@ function MatchTable({ matches }: { matches: FeedMatch[] }) {
             {/* O2.5 */}
             <div className="text-center">
               {o25 != null ? (
-                <span className="inline-block px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[13px] font-bold" style={{ background: percentPill(Math.round(o25 * 100)).bg, color: percentPill(Math.round(o25 * 100)).text }}>{Math.round(o25 * 100)}%</span>
+                <span className="inline-block px-1.5 sm:px-2 py-0.5 rounded text-[12px] sm:text-[13px] font-bold" style={{ background: percentPill(Math.round(o25 * 100)).bg, color: percentPill(Math.round(o25 * 100)).text }}>{Math.round(o25 * 100)}%</span>
               ) : <span className={xgVal} style={{ color: "var(--text-tertiary)" }}>—</span>}
             </div>
 
@@ -158,7 +157,7 @@ function MatchTable({ matches }: { matches: FeedMatch[] }) {
             {/* BTTS */}
             <div className="text-center">
               {btts != null ? (
-                <span className="inline-block px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[13px] font-bold" style={{ background: percentPill(Math.round(btts * 100)).bg, color: percentPill(Math.round(btts * 100)).text }}>{Math.round(btts * 100)}%</span>
+                <span className="inline-block px-1.5 sm:px-2 py-0.5 rounded text-[12px] sm:text-[13px] font-bold" style={{ background: percentPill(Math.round(btts * 100)).bg, color: percentPill(Math.round(btts * 100)).text }}>{Math.round(btts * 100)}%</span>
               ) : <span className={xgVal} style={{ color: "var(--text-tertiary)" }}>—</span>}
             </div>
 
@@ -217,12 +216,11 @@ function groupByDate(matches: FeedMatch[]): Array<{ date: string; matches: FeedM
 function DateGroupHeader({ date }: { date: string }) {
   return (
     <div
-      className="col-span-full font-mono text-[11px] uppercase font-bold tracking-wider"
+      className="col-span-full font-mono text-[12px] uppercase font-bold tracking-wider"
       style={{
-        color: "var(--text-tertiary)",
+        color: "var(--color-amber)",
         paddingTop: "var(--space-md)",
         paddingBottom: "var(--space-xs)",
-        borderBottom: "1px solid var(--border-light)",
         marginBottom: "var(--space-sm)",
       }}
     >
@@ -244,6 +242,7 @@ export function FeedView({
 }) {
   const [mode, setMode] = useState<ViewMode>("cards");
   const showDateHeaders = currentRange === "week";
+  const sortedMatches = matches;
 
   return (
     <>
@@ -258,17 +257,17 @@ export function FeedView({
       {mode === "cards" ? (
         <section
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-t border-[var(--border-light)] pt-5 pb-8"
-          style={{ gap: "var(--space-md)" }}
+          style={{ gap: "var(--space-sm)" }}
         >
-          {matches.length === 0 ? (
+          {sortedMatches.length === 0 ? (
             <p className="text-[13px] text-secondary">No matches in the feed.</p>
           ) : showDateHeaders ? (
-            groupByDate(matches).map((group) => (
+            groupByDate(sortedMatches).map((group) => (
               <div key={group.date} className="col-span-full">
                 <DateGroupHeader date={group.date} />
                 <div
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                  style={{ gap: "var(--space-md)" }}
+                  style={{ gap: "var(--space-sm)" }}
                 >
                   {group.matches.map((match) => (
                     <MatchCard key={match.id} match={match} />
@@ -277,24 +276,24 @@ export function FeedView({
               </div>
             ))
           ) : (
-            matches.map((match: FeedMatch) => (
+            sortedMatches.map((match: FeedMatch) => (
               <MatchCard key={match.id} match={match} />
             ))
           )}
         </section>
       ) : (
         <section className="pb-8">
-          {matches.length === 0 ? (
+          {sortedMatches.length === 0 ? (
             <p className="text-[13px] text-secondary border-t border-[var(--border-light)] pt-5">
               No matches in the feed.
             </p>
           ) : showDateHeaders ? (
-            groupByDate(matches).map((group) => (
+            groupByDate(sortedMatches).map((group) => (
               <div key={group.date}>
                 <div
-                  className="font-mono text-[11px] uppercase font-bold tracking-wider"
+                  className="font-mono text-[12px] uppercase font-bold tracking-wider"
                   style={{
-                    color: "var(--text-tertiary)",
+                    color: "var(--color-amber)",
                     paddingTop: "var(--space-md)",
                     paddingBottom: "var(--space-xs)",
                   }}
@@ -305,7 +304,7 @@ export function FeedView({
               </div>
             ))
           ) : (
-            <MatchTable matches={matches} />
+            <MatchTable matches={sortedMatches} />
           )}
         </section>
       )}

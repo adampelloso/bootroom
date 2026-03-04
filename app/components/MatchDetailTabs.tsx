@@ -165,7 +165,7 @@ function ForAgainstToggle({
           role="tab"
           aria-selected={value === opt}
           onClick={() => onChange(opt)}
-          className="rounded-full px-3 py-1 text-[11px] font-mono uppercase transition-colors"
+          className="rounded-full px-3 py-1 text-[12px] font-mono uppercase transition-colors"
           style={{
             background: value === opt ? "var(--bg-accent)" : "transparent",
             color: value === opt ? "var(--text-on-accent)" : "var(--text-tertiary)",
@@ -195,7 +195,7 @@ function CollapsibleSection({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.2em] text-tertiary hover:bg-[var(--bg-muted)]/50"
+        className="w-full flex items-center justify-between px-4 py-2.5 text-left text-[12px] font-semibold uppercase tracking-[0.2em] text-tertiary hover:bg-[var(--bg-muted)]/50"
       >
         {label}
         <span className="text-tertiary">{open ? "−" : "+"}</span>
@@ -347,9 +347,9 @@ function H2HFixtureList({
               <li key={i} className="flex items-center justify-between text-[13px] py-2 border-b border-[var(--border-light)]/50 last:border-0">
                 <div>
                   <span className="font-mono">{homeGoals} – {awayGoals}</span>
-                  <span className="text-tertiary ml-2 text-[11px]">{date}</span>
+                  <span className="text-tertiary ml-2 text-[12px]">{date}</span>
                 </div>
-                {venue ? <span className="text-tertiary text-[11px] truncate max-w-[120px]" title={venue}>{venue}</span> : null}
+                {venue ? <span className="text-tertiary text-[12px] truncate max-w-[120px]" title={venue}>{venue}</span> : null}
               </li>
             );
           })}
@@ -435,11 +435,11 @@ function H2HBarChartsSection({
           <div key={group.id} className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-tertiary">
+                <h3 className="text-[12px] font-semibold uppercase tracking-[0.2em] text-tertiary">
                   {group.label}
                 </h3>
                 {MARKET_TAGS_BY_GROUP[group.id] ? (
-                  <p className="text-[10px] text-tertiary mt-0.5" aria-hidden>
+                  <p className="text-[12px] text-tertiary mt-0.5" aria-hidden>
                     For: {MARKET_TAGS_BY_GROUP[group.id]}
                   </p>
                 ) : null}
@@ -464,7 +464,7 @@ function H2HBarChartsSection({
       })}
       {single.map((s) => (
         <div key={s.key} className="space-y-2">
-          <p className="text-[10px] text-tertiary" aria-hidden>
+          <p className="text-[12px] text-tertiary" aria-hidden>
             For: {s.key === "bttsCount" ? MARKET_TAGS_BTTS : MARKET_TAGS_CLEAN_SHEETS}
           </p>
           <H2HBarChart
@@ -540,7 +540,7 @@ export function MatchDetailTabs({
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
-                className="relative z-10 flex-1 px-2 py-1 text-[11px] uppercase font-mono whitespace-nowrap text-center transition-colors"
+                className="relative z-10 flex-1 px-2 py-1 text-[12px] uppercase font-mono whitespace-nowrap text-center transition-colors"
                 style={{
                   color: isActive ? "var(--text-on-accent)" : "var(--text-main)",
                 }}
@@ -655,7 +655,7 @@ export function MatchDetailTabs({
         <button
           type="button"
           onClick={() => setDeepExpanded((e) => !e)}
-          className="w-full flex items-center justify-between px-0 py-2 text-left text-mono text-[11px] uppercase text-tertiary hover:text-[var(--text-sec)]"
+          className="w-full flex items-center justify-between px-0 py-2 text-left text-mono text-[12px] uppercase text-tertiary hover:text-[var(--text-sec)]"
         >
           Deep exploration
           <span>{deepExpanded ? "−" : "+"}</span>
@@ -663,7 +663,7 @@ export function MatchDetailTabs({
         {deepExpanded && (
           <div className="mt-2 pt-2 text-[12px] text-tertiary border-t border-[var(--border-light)]/50">
             <ConditionsRow venue={venue ?? "Combined"} sample={sample ?? "L10"} time="Full" />
-            <p className="mt-2 text-[11px]">
+            <p className="mt-2 text-[12px]">
               Use filters above to change venue and sample. All sections in the tabs above can be expanded.
             </p>
           </div>

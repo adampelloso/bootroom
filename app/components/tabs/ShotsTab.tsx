@@ -1,9 +1,8 @@
 import type { TrendsByStat } from "@/lib/insights/trend-chart-data";
 import type { RollingStats } from "@/lib/insights/team-stats";
+import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import { TREND_STAT_TITLES, TREND_STAT_INTEGER } from "@/lib/insights/trend-chart-data";
 import { StatTrendChart } from "@/app/components/StatTrendChart";
-import { ThresholdHitRates } from "@/app/components/ThresholdHitRates";
-import type { ThresholdRow } from "@/app/components/ThresholdHitRates";
 
 type Props = {
   homeTeamName: string;
@@ -12,8 +11,7 @@ type Props = {
   awayStats: RollingStats | null;
   homeTrends: TrendsByStat | null;
   awayTrends: TrendsByStat | null;
-  shotsThresholds: ThresholdRow[];
-  sotThresholds: ThresholdRow[];
+  feedProbs?: FeedModelProbs | null;
 };
 
 export function ShotsTab({
@@ -23,8 +21,7 @@ export function ShotsTab({
   awayStats,
   homeTrends,
   awayTrends,
-  shotsThresholds,
-  sotThresholds,
+  feedProbs,
 }: Props) {
   return (
     <div className="space-y-0">
@@ -38,7 +35,7 @@ export function ShotsTab({
           <div className="grid grid-cols-2 gap-4">
             {homeStats && (
               <div>
-                <p className="text-mono text-[10px] uppercase text-tertiary mb-2">
+                <p className="text-mono text-[12px] uppercase text-tertiary mb-2">
                   {homeTeamName.slice(0, 3).toUpperCase()} (L10 avg)
                 </p>
                 <div className="grid grid-cols-2 gap-2 text-[12px] font-mono">
@@ -63,7 +60,7 @@ export function ShotsTab({
             )}
             {awayStats && (
               <div>
-                <p className="text-mono text-[10px] uppercase text-tertiary mb-2">
+                <p className="text-mono text-[12px] uppercase text-tertiary mb-2">
                   {awayTeamName.slice(0, 3).toUpperCase()} (L10 avg)
                 </p>
                 <div className="grid grid-cols-2 gap-2 text-[12px] font-mono">
@@ -91,22 +88,12 @@ export function ShotsTab({
       )}
 
       <div className="detail-grid">
-        {/* Left: thresholds */}
-        <div className="space-y-0">
-          {shotsThresholds.length > 0 && (
-            <ThresholdHitRates title="Team shots thresholds" thresholds={shotsThresholds} />
-          )}
-          {sotThresholds.length > 0 && (
-            <ThresholdHitRates title="Team SOT thresholds" thresholds={sotThresholds} />
-          )}
-        </div>
-
-        {/* Right: trend charts */}
+        {/* Left: Home team shots charts */}
         <div className="space-y-0">
           {homeTrends && (
             <div>
               <div className="px-5 pt-3" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
-                <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-tertiary">{homeTeamName} - Shots</h3>
+                <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-tertiary">{homeTeamName}</h3>
               </div>
               <StatTrendChart
                 title={TREND_STAT_TITLES.shotsFor}
@@ -123,10 +110,14 @@ export function ShotsTab({
               />
             </div>
           )}
+        </div>
+
+        {/* Right: Away team shots charts */}
+        <div className="space-y-0">
           {awayTrends && (
             <div>
               <div className="px-5 pt-3" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
-                <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-tertiary">{awayTeamName} - Shots</h3>
+                <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-tertiary">{awayTeamName}</h3>
               </div>
               <StatTrendChart
                 title={TREND_STAT_TITLES.shotsFor}

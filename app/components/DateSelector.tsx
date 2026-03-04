@@ -36,7 +36,7 @@ export function DateSelector({
             key={opt.value}
             type="button"
             onClick={() => router.push(buildUrl(opt.value, currentLeague))}
-            className="font-mono text-[11px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0 hover:bg-[var(--bg-surface)]"
+            className="font-mono text-[12px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0 hover:bg-[var(--bg-surface)]"
             style={{
               padding: "8px 12px",
               background: isActive ? "var(--bg-accent)" : "transparent",

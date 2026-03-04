@@ -22,7 +22,7 @@ function confidenceBadge(confidence: "locked" | "likely" | "rotation") {
   };
   return (
     <span
-      className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider ${colors[confidence]}`}
+      className={`inline-block px-1.5 py-0.5 rounded text-[12px] font-semibold uppercase tracking-wider ${colors[confidence]}`}
     >
       {confidence}
     </span>
@@ -70,13 +70,13 @@ function TeamLineup({
   return (
     <div className="border-b border-[var(--border-light)] pb-3">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-mono text-[11px] uppercase text-tertiary">{teamName}</p>
-        <p className="text-mono text-[10px] text-tertiary">
+        <p className="text-mono text-[12px] uppercase text-tertiary">{teamName}</p>
+        <p className="text-mono text-[12px] text-tertiary">
           {confidenceSummary(lineup.starters)}
         </p>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-[10px] font-mono">
+        <table className="w-full text-[12px] font-mono">
           <thead>
             <tr className="text-left text-tertiary border-b border-[var(--border-light)]">
               <th className="py-1 pr-2 font-medium w-7">Pos</th>
@@ -104,7 +104,7 @@ function TeamLineup({
                   </td>
                   <td className="py-1 pr-2 truncate max-w-[120px]">{p.name}</td>
                   <td className="py-1 px-2 text-right">
-                    <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold" style={{ background: percentPill(Math.round(p.startRate * 100)).bg, color: percentPill(Math.round(p.startRate * 100)).text }}>{(p.startRate * 100).toFixed(0)}%</span>
+                    <span className="inline-block px-1.5 py-0.5 rounded text-[12px] font-bold" style={{ background: percentPill(Math.round(p.startRate * 100)).bg, color: percentPill(Math.round(p.startRate * 100)).text }}>{(p.startRate * 100).toFixed(0)}%</span>
                   </td>
                   <td className="py-1 px-2 text-center">
                     {confidenceBadge(p.confidence)}
@@ -113,7 +113,7 @@ function TeamLineup({
                     <>
                       <td className="py-1 px-2 text-right">
                         {sim && sim.anytimeScorerProb > 0.01
-                          ? <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold" style={{ background: percentPill(Math.round(sim.anytimeScorerProb * 100)).bg, color: percentPill(Math.round(sim.anytimeScorerProb * 100)).text }}>{(sim.anytimeScorerProb * 100).toFixed(0)}%</span>
+                          ? <span className="inline-block px-1.5 py-0.5 rounded text-[12px] font-bold" style={{ background: percentPill(Math.round(sim.anytimeScorerProb * 100)).bg, color: percentPill(Math.round(sim.anytimeScorerProb * 100)).text }}>{(sim.anytimeScorerProb * 100).toFixed(0)}%</span>
                           : "—"}
                       </td>
                       <td className="py-1 pl-2 text-right text-tertiary">
@@ -142,7 +142,7 @@ export function PredictedLineupContent({
 
   return (
     <section aria-label="Predicted lineups">
-      <p className="text-mono text-[10px] uppercase text-tertiary mb-3">
+      <p className="text-mono text-[12px] uppercase text-tertiary mb-3">
         Based on season start rates
       </p>
       <div className="space-y-4">

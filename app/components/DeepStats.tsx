@@ -46,7 +46,7 @@ export function DeepStats({ homeTeamName, awayTeamName, homeTrends, awayTrends, 
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between py-2 text-left text-mono text-[11px] uppercase text-tertiary"
+        className="w-full flex items-center justify-between py-2 text-left text-mono text-[12px] uppercase text-tertiary"
       >
         Deep stats: xG, shot maps, possession +
         <span>{open ? "−" : "+"}</span>

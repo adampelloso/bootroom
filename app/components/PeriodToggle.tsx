@@ -33,7 +33,7 @@ export function PeriodToggle({
             key={period}
             type="button"
             onClick={() => onChange(period)}
-            className="relative z-10 px-3 py-1 text-[10px] uppercase font-mono whitespace-nowrap text-center transition-colors"
+            className="relative z-10 px-3 py-1 text-[12px] uppercase font-mono whitespace-nowrap text-center transition-colors"
             style={{
               color: isActive ? "var(--text-on-accent)" : "var(--text-main)",
             }}

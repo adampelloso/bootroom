@@ -122,7 +122,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
         gap: "12px",
       }}>
         <div style={{ flex: 1, height: "1px", background: "#333" }} />
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "#525252" }}>or</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "#525252" }}>or</span>
         <div style={{ flex: 1, height: "1px", background: "#333" }} />
       </div>
 

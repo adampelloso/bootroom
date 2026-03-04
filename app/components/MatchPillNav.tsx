@@ -38,11 +38,11 @@ export function MatchPillNav({ activeTab, hasSimData }: Props) {
 
   return (
     <nav
-      className="pill-nav flex gap-2 px-5 py-3 border-b border-[var(--border-light)] bg-[var(--bg-body)] sticky top-0 z-20"
+      className="pill-nav flex px-5 py-0 bg-[var(--bg-panel)] sticky top-0 z-20"
       style={{
         paddingLeft: "var(--space-md)",
         paddingRight: "var(--space-md)",
-        gap: "var(--space-xs)",
+        gap: "0",
       }}
       aria-label="Match sections"
     >
@@ -53,12 +53,12 @@ export function MatchPillNav({ activeTab, hasSimData }: Props) {
             key={id}
             href={buildHref(id)}
             scroll={false}
-            className="font-mono text-[11px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0 hover:bg-[var(--bg-surface)]"
+            className="font-mono text-[12px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0"
             style={{
-              padding: "10px 14px",
-              background: isActive ? "var(--bg-accent)" : "transparent",
-              color: isActive ? "var(--text-on-accent)" : "var(--text-main)",
-              border: isActive ? "none" : "1px solid var(--border-light)",
+              padding: "12px 14px",
+              background: "transparent",
+              color: isActive ? "var(--text-main)" : "var(--text-tertiary)",
+              borderBottom: isActive ? "2px solid var(--color-accent)" : "2px solid transparent",
               lineHeight: 1.1,
             }}
             aria-current={isActive ? "page" : undefined}

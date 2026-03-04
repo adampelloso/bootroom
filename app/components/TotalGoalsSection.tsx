@@ -27,7 +27,7 @@ export function TotalGoalsSection({ rows, totalGoalsChart }: Props) {
 
       {o25Row && o25Row.market === "O2.5" && (
         <div className="border-b border-[var(--border-light)] pb-3">
-          <p className="text-mono text-[11px] uppercase text-tertiary mb-2">O2.5 (last 10)</p>
+          <p className="text-mono text-[12px] uppercase text-tertiary mb-2">O2.5 (last 10)</p>
           <div className="flex items-baseline justify-between gap-4">
             <div className="grid grid-cols-2 gap-2 text-secondary-data text-tertiary">
               <span>Home {o25Row.homeHits * 20}%</span>
@@ -51,8 +51,8 @@ export function TotalGoalsSection({ rows, totalGoalsChart }: Props) {
       {bttsRow && bttsRow.market === "BTTS" && (
         <div>
           <div className="flex items-baseline justify-between">
-            <span className="text-mono text-[11px] text-tertiary">BTTS</span>
-            <span className="text-mono text-[11px] text-[var(--text-main)]">{bttsRow.combinedHits * 10}%</span>
+            <span className="text-mono text-[12px] text-tertiary">BTTS</span>
+            <span className="text-mono text-[12px] text-[var(--text-main)]">{bttsRow.combinedHits * 10}%</span>
           </div>
           <div className="pct-bar mt-1"><div className="pct-bar-fill" style={{ width: `${bttsRow.combinedHits * 10}%` }} /></div>
         </div>

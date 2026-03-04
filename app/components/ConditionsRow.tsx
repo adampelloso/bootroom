@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { FilterSheet } from "./FilterSheet";
 
 export type VenueCondition = "Home" | "Away" | "Combined";
 export type SampleCondition = "L5" | "L10" | "Season";
@@ -40,63 +41,74 @@ export function ConditionsRow({
   };
 
   return (
-    <div
-      className="flex flex-wrap items-center gap-x-4 gap-y-2 text-mono text-[11px] uppercase text-tertiary border-b border-[var(--border-light)] pb-3"
-      style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}
-      role="group"
-      aria-label="Filter by venue, sample, and time"
-    >
-      <span className="text-tertiary/80">Venue:</span>
-      <div className="flex gap-1">
-        {VENUE_OPTIONS.map((opt) => {
-          const isSelected = venue === opt.key;
-          return (
-            <button
-              key={opt.key}
-              type="button"
-              onClick={() => router.push(buildUrl({ venue: opt.key }), { scroll: false })}
-              className="rounded-full px-2.5 py-1 transition-colors"
-              style={{
-                background: isSelected ? "var(--bg-accent)" : "transparent",
-                color: isSelected ? "var(--text-on-accent)" : "var(--text-tertiary)",
-                border: isSelected ? "none" : "1px solid var(--border-light)",
-              }}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
+    <>
+      {/* Mobile: bottom sheet trigger */}
+      <div
+        className="sm:hidden border-b border-[var(--border-light)] pb-3"
+        style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}
+      >
+        <FilterSheet venue={venue} sample={sample} time={time} />
       </div>
-      <span className="text-tertiary/80 ml-1">Sample:</span>
-      <div className="flex gap-1">
-        {SAMPLE_OPTIONS.map((opt) => {
-          const isSelected = sample === opt.key;
-          return (
-            <button
-              key={opt.key}
-              type="button"
-              onClick={() => router.push(buildUrl({ sample: opt.key }), { scroll: false })}
-              className="rounded-full px-2.5 py-1 transition-colors"
-              style={{
-                background: isSelected ? "var(--bg-accent)" : "transparent",
-                color: isSelected ? "var(--text-on-accent)" : "var(--text-tertiary)",
-                border: isSelected ? "none" : "1px solid var(--border-light)",
-              }}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
+
+      {/* Desktop: inline row */}
+      <div
+        className="hidden sm:flex flex-wrap items-center gap-x-4 gap-y-2 text-mono text-[12px] uppercase text-tertiary border-b border-[var(--border-light)] pb-3"
+        style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}
+        role="group"
+        aria-label="Filter by venue, sample, and time"
+      >
+        <span className="text-tertiary/80">Venue:</span>
+        <div className="flex gap-1">
+          {VENUE_OPTIONS.map((opt) => {
+            const isSelected = venue === opt.key;
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => router.push(buildUrl({ venue: opt.key }), { scroll: false })}
+                className="rounded-full px-2.5 py-1 transition-colors"
+                style={{
+                  background: isSelected ? "var(--bg-accent)" : "transparent",
+                  color: isSelected ? "var(--text-on-accent)" : "var(--text-tertiary)",
+                  border: isSelected ? "none" : "1px solid var(--border-light)",
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        <span className="text-tertiary/80 ml-1">Sample:</span>
+        <div className="flex gap-1">
+          {SAMPLE_OPTIONS.map((opt) => {
+            const isSelected = sample === opt.key;
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => router.push(buildUrl({ sample: opt.key }), { scroll: false })}
+                className="rounded-full px-2.5 py-1 transition-colors"
+                style={{
+                  background: isSelected ? "var(--bg-accent)" : "transparent",
+                  color: isSelected ? "var(--text-on-accent)" : "var(--text-tertiary)",
+                  border: isSelected ? "none" : "1px solid var(--border-light)",
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        <span className="text-tertiary/80 ml-1">Time:</span>
+        <div className="flex gap-1">
+          <span
+            className="rounded-full px-2.5 py-1 bg-[var(--bg-accent)] text-[var(--text-on-accent)]"
+            aria-label="Full match only"
+          >
+            Full
+          </span>
+        </div>
       </div>
-      <span className="text-tertiary/80 ml-1">Time:</span>
-      <div className="flex gap-1">
-        <span
-          className="rounded-full px-2.5 py-1 bg-[var(--bg-accent)] text-[var(--text-on-accent)]"
-          aria-label="Full match only"
-        >
-          Full
-        </span>
-      </div>
-    </div>
+    </>
   );
 }

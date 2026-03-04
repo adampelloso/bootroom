@@ -125,7 +125,7 @@ export function UnifiedPlayerTable({
         <button
           type="button"
           onClick={() => setStartersOnly(!startersOnly)}
-          className="text-mono text-[10px] uppercase px-2 py-1 transition-colors"
+          className="text-mono text-[12px] uppercase px-2 py-1 transition-colors"
           style={{
             background: startersOnly ? "var(--bg-accent)" : "transparent",
             color: startersOnly ? "var(--text-on-accent)" : "var(--text-tertiary)",
@@ -137,10 +137,10 @@ export function UnifiedPlayerTable({
       </div>
 
       <div className="overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-        <table className="w-full text-[11px] font-mono" style={{ minWidth: "500px" }}>
+        <table className="w-full text-[12px] font-mono" style={{ minWidth: "500px" }}>
           <thead>
-            <tr className="text-tertiary uppercase text-[9px] border-b border-[var(--border-light)]">
-              <th className="text-left py-2 font-normal">Player</th>
+            <tr className="text-tertiary uppercase text-[12px] border-b border-[var(--border-light)]">
+              <th className="text-left py-2 font-normal sticky left-0 z-10" style={{ background: "var(--bg-panel)", minWidth: "120px" }}>Player</th>
               <th className="text-left py-2 font-normal">Team</th>
               <th className="text-left py-2 font-normal">Pos</th>
               <th className="text-right py-2 font-normal cursor-pointer hover:text-[var(--text-sec)]" onClick={() => handleSort("startPct")}>
@@ -164,19 +164,34 @@ export function UnifiedPlayerTable({
             </tr>
           </thead>
           <tbody>
-            {sorted.map((p) => (
-              <tr key={`${p.playerId}-${p.teamName}`} className="border-t border-[var(--border-light)]">
-                <td className="py-1.5 text-[var(--text-main)] truncate max-w-[120px]">{p.name}</td>
-                <td className="py-1.5 text-tertiary">{p.teamName.slice(0, 3).toUpperCase()}</td>
-                <td className="py-1.5 text-tertiary">{p.position ?? "—"}</td>
-                <td className="py-1.5 text-right text-[var(--text-sec)]">{p.startPct != null ? `${p.startPct.toFixed(0)}%` : "—"}</td>
-                <td className="py-1.5 text-right text-[var(--text-main)] font-semibold">{p.scorerPct != null ? `${p.scorerPct.toFixed(0)}%` : "—"}</td>
-                <td className="py-1.5 text-right text-[var(--text-sec)]">{p.xG != null ? p.xG.toFixed(2) : "—"}</td>
-                <td className="py-1.5 text-right text-[var(--text-sec)]">{p.xSh != null ? p.xSh.toFixed(1) : "—"}</td>
-                <td className="py-1.5 text-right text-[var(--text-sec)]">{p.xSOT != null ? p.xSOT.toFixed(1) : "—"}</td>
-                <td className="py-1.5 text-right text-[var(--text-sec)]">{p.xA != null ? p.xA.toFixed(2) : "—"}</td>
-              </tr>
-            ))}
+            {sorted.map((p, idx) => {
+              const isHighScorer = p.scorerPct != null && p.scorerPct >= 25;
+              const isHighXg = p.xG != null && p.xG >= 0.3;
+              const rowBg = idx % 2 === 1 ? "var(--bg-surface)" : "transparent";
+              return (
+                <tr key={`${p.playerId}-${p.teamName}`} className="border-t border-[var(--border-light)]" style={{ background: rowBg }}>
+                  <td className="py-1.5 text-[var(--text-main)] truncate max-w-[120px] sticky left-0 z-10" style={{ background: idx % 2 === 1 ? "var(--bg-surface)" : "var(--bg-panel)", minWidth: "120px" }}>{p.name}</td>
+                  <td className="py-1.5 text-tertiary">{p.teamName.slice(0, 3).toUpperCase()}</td>
+                  <td className="py-1.5 text-tertiary">{p.position ?? "—"}</td>
+                  <td className="py-1.5 text-right text-[var(--text-sec)]">{p.startPct != null ? `${p.startPct.toFixed(0)}%` : "—"}</td>
+                  <td
+                    className="py-1.5 text-right text-[var(--text-main)] font-semibold"
+                    style={isHighScorer ? { background: "rgba(59,130,246,0.08)" } : undefined}
+                  >
+                    {p.scorerPct != null ? `${p.scorerPct.toFixed(0)}%` : "—"}
+                  </td>
+                  <td
+                    className="py-1.5 text-right text-[var(--text-sec)]"
+                    style={isHighXg ? { background: "rgba(59,130,246,0.08)" } : undefined}
+                  >
+                    {p.xG != null ? p.xG.toFixed(2) : "—"}
+                  </td>
+                  <td className="py-1.5 text-right text-[var(--text-sec)]">{p.xSh != null ? p.xSh.toFixed(1) : "—"}</td>
+                  <td className="py-1.5 text-right text-[var(--text-sec)]">{p.xSOT != null ? p.xSOT.toFixed(1) : "—"}</td>
+                  <td className="py-1.5 text-right text-[var(--text-sec)]">{p.xA != null ? p.xA.toFixed(2) : "—"}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

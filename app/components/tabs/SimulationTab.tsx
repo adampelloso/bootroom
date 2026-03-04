@@ -3,6 +3,7 @@
 import { ScorelineBarChart } from "@/app/components/ScorelineBarChart";
 import { ScorelineHeatmap } from "@/app/components/ScorelineHeatmap";
 import { WinProbBar } from "@/app/components/WinProbBar";
+import { EdgeBadge } from "@/app/components/EdgeBadge";
 import type { MatchSimulationResult } from "@/lib/modeling/mc-engine";
 import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import type { MatchGoalLambdas, MatchCornerLambdas, GoalLambdaComponents } from "@/lib/modeling/baseline-params";
@@ -60,11 +61,18 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
     edgeRows.push({ outcome: "DRAW", market: "1X2", modelProb: feedProbs.draw, marketProb: marketDraw, edge: edges.draw });
     edgeRows.push({ outcome: "AWAY", market: "1X2", modelProb: feedProbs.away, marketProb: marketAway, edge: edges.away });
     if (edges.over_2_5 != null && feedProbs.over_2_5 != null) {
-      const marketOver = feedProbs.over_2_5 - edges.over_2_5;
+      const marketOver = feedProbs.marketProbs?.over_2_5 ?? (feedProbs.over_2_5 - edges.over_2_5);
       const modelUnder = 1 - feedProbs.over_2_5;
       const marketUnder = 1 - marketOver;
       edgeRows.push({ outcome: "OVER", market: "O2.5", modelProb: feedProbs.over_2_5, marketProb: marketOver, edge: edges.over_2_5 });
       edgeRows.push({ outcome: "UNDER", market: "O2.5", modelProb: modelUnder, marketProb: marketUnder, edge: modelUnder - marketUnder });
+    }
+    if (edges.btts != null && feedProbs.btts != null) {
+      const marketBtts = feedProbs.marketProbs?.btts ?? (feedProbs.btts - edges.btts);
+      const modelBttsNo = 1 - feedProbs.btts;
+      const marketBttsNo = 1 - marketBtts;
+      edgeRows.push({ outcome: "YES", market: "BTTS", modelProb: feedProbs.btts, marketProb: marketBtts, edge: edges.btts });
+      edgeRows.push({ outcome: "NO", market: "BTTS", modelProb: modelBttsNo, marketProb: marketBttsNo, edge: modelBttsNo - marketBttsNo });
     }
   }
   edgeRows.sort((a, b) => b.edge - a.edge);
@@ -174,6 +182,9 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
         awayWin={sim.pAwayWin}
         homeTeamName={homeTeamName ?? "Home"}
         awayTeamName={awayTeamName ?? "Away"}
+        marketHomeWin={feedProbs.marketProbs?.home}
+        marketDraw={feedProbs.marketProbs?.draw}
+        marketAwayWin={feedProbs.marketProbs?.away}
       />
 
       <section className="px-5 py-3" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
@@ -187,90 +198,70 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
         <section className="px-5 py-4 border-t border-[var(--border-light)]" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
           <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-3">Model vs market</h2>
           <div className="space-y-1.5">
-            {edgeRows.map((row) => {
-              const evLabel = row.edge > 0.10 ? "++EV" : row.edge > 0.05 ? "+EV" : "";
-              return (
-                <div key={`${row.market}-${row.outcome}`} className="flex items-center gap-3 text-[12px] font-mono">
-                  <span className="w-10 text-[11px] font-semibold" style={{ color: evLabel ? "var(--text-main)" : "var(--text-tertiary)" }}>
-                    {evLabel || "\u2014"}
-                  </span>
-                  <span className="w-14 uppercase text-[var(--text-main)]">{row.outcome}</span>
-                  <span className="w-10 uppercase text-tertiary">{row.market}</span>
-                  <span className="text-[var(--text-main)]">
-                    {row.edge > 0 ? "+" : ""}{(row.edge * 100).toFixed(1)}% edge
-                  </span>
-                  <span className="text-tertiary ml-auto">
-                    (model {formatPercent(row.modelProb)} vs market {formatPercent(row.marketProb)})
-                  </span>
-                </div>
-              );
-            })}
+            {edgeRows.map((row) => (
+              <div key={`${row.market}-${row.outcome}`} className="flex items-center gap-3 text-[12px] font-mono">
+                <span className="w-14 uppercase text-[var(--text-main)]">{row.outcome}</span>
+                <span className="w-10 uppercase text-tertiary">{row.market}</span>
+                <EdgeBadge edge={row.edge} market={row.market} bookProb={row.marketProb} variant="inline" />
+                <span className="text-tertiary ml-auto text-[12px]">
+                  model {formatPercent(row.modelProb)}
+                </span>
+              </div>
+            ))}
           </div>
         </section>
       )}
 
-      {/* Expanded markets grid */}
+      {/* Market probability panels */}
       <section className="px-5 py-4 border-t border-[var(--border-light)]" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
         <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-4">Markets</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Total Goals O/U */}
-          <div>
-            <p className="text-mono text-[10px] uppercase text-tertiary mb-2">Total goals</p>
-            <div className="space-y-1">
-              {expandedMarkets.totalGoals.map((m) => (
-                <div key={m.label} className="flex justify-between text-[11px] font-mono">
-                  <span className="text-[var(--text-sec)]">{m.label}</span>
-                  <span className="text-[var(--text-main)] font-semibold">{formatPercent(m.prob)}</span>
-                </div>
-              ))}
-              <div className="flex justify-between text-[11px] font-mono border-t border-[var(--border-light)] pt-1 mt-1">
-                <span className="text-[var(--text-sec)]">BTTS</span>
-                <span className="text-[var(--text-main)] font-semibold">{formatPercent(sim.pBTTS)}</span>
-              </div>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Goals Markets panel */}
+          <MarketPanel
+            title="Goals markets"
+            rows={expandedMarkets.totalGoals}
+            bookProbs={feedProbs?.marketProbs?.over_2_5 != null ? { "O2.5": feedProbs.marketProbs.over_2_5 } : {}}
+            edges={feedProbs?.edges?.over_2_5 != null ? { "O2.5": feedProbs.edges.over_2_5 } : {}}
+          />
 
-          {/* Home/Away Goals */}
-          <div>
-            <p className="text-mono text-[10px] uppercase text-tertiary mb-2">Team goals</p>
-            <div className="space-y-1">
-              {expandedMarkets.homeGoals.map((m) => (
-                <div key={m.label} className="flex justify-between text-[11px] font-mono">
-                  <span className="text-[var(--text-sec)]">{m.label}</span>
-                  <span className="text-[var(--text-main)] font-semibold">{formatPercent(m.prob)}</span>
-                </div>
-              ))}
-              <div className="border-t border-[var(--border-light)] pt-1 mt-1" />
-              {expandedMarkets.awayGoals.map((m) => (
-                <div key={m.label} className="flex justify-between text-[11px] font-mono">
-                  <span className="text-[var(--text-sec)]">{m.label}</span>
-                  <span className="text-[var(--text-main)] font-semibold">{formatPercent(m.prob)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Team Goals panel */}
+          <MarketPanel
+            title="Team goals"
+            rows={[...expandedMarkets.homeGoals, ...expandedMarkets.awayGoals]}
+          />
 
-          {/* Double Chance + DNB */}
-          <div>
-            <p className="text-mono text-[10px] uppercase text-tertiary mb-2">Double chance</p>
-            <div className="space-y-1">
-              {expandedMarkets.doubleChance.map((m) => (
-                <div key={m.label} className="flex justify-between text-[11px] font-mono">
-                  <span className="text-[var(--text-sec)]">{m.label}</span>
-                  <span className="text-[var(--text-main)] font-semibold">{formatPercent(m.prob)}</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-mono text-[10px] uppercase text-tertiary mb-2 mt-3">Draw no bet</p>
-            <div className="space-y-1">
-              {expandedMarkets.drawNoBet.map((m) => (
-                <div key={m.label} className="flex justify-between text-[11px] font-mono">
-                  <span className="text-[var(--text-sec)]">{m.label}</span>
-                  <span className="text-[var(--text-main)] font-semibold">{formatPercent(m.prob)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Result Markets panel */}
+          <MarketPanel
+            title="Result markets"
+            rows={[
+              { label: "Home", prob: sim.pHomeWin },
+              { label: "Draw", prob: sim.pDraw },
+              { label: "Away", prob: sim.pAwayWin },
+              ...expandedMarkets.doubleChance,
+              ...expandedMarkets.drawNoBet,
+            ]}
+            bookProbs={{
+              ...(feedProbs?.marketProbs?.home != null ? { Home: feedProbs.marketProbs.home } : {}),
+              ...(feedProbs?.marketProbs?.draw != null ? { Draw: feedProbs.marketProbs.draw } : {}),
+              ...(feedProbs?.marketProbs?.away != null ? { Away: feedProbs.marketProbs.away } : {}),
+            }}
+            edges={{
+              ...(feedProbs?.edges?.home != null ? { Home: feedProbs.edges.home } : {}),
+              ...(feedProbs?.edges?.draw != null ? { Draw: feedProbs.edges.draw } : {}),
+              ...(feedProbs?.edges?.away != null ? { Away: feedProbs.edges.away } : {}),
+            }}
+          />
+
+          {/* BTTS panel */}
+          <MarketPanel
+            title="BTTS"
+            rows={[
+              { label: "BTTS Yes", prob: sim.pBTTS },
+              { label: "BTTS No", prob: 1 - sim.pBTTS },
+            ]}
+            bookProbs={feedProbs?.marketProbs?.btts != null ? { "BTTS Yes": feedProbs.marketProbs.btts, "BTTS No": 1 - feedProbs.marketProbs.btts } : {}}
+            edges={feedProbs?.edges?.btts != null ? { "BTTS Yes": feedProbs.edges.btts, "BTTS No": -(feedProbs.edges.btts) } : {}}
+          />
         </div>
       </section>
 
@@ -279,22 +270,22 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
         <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-2">Expected values</h2>
         <div className="grid grid-cols-2 gap-4 text-primary-data">
           <div>
-            <span className="text-tertiary text-[11px] block mb-1">Home xG</span>
+            <span className="text-tertiary text-[12px] block mb-1">Home xG</span>
             <span className="font-bold">{sim.expectedHomeGoals.toFixed(2)}</span>
           </div>
           <div>
-            <span className="text-tertiary text-[11px] block mb-1">Away xG</span>
+            <span className="text-tertiary text-[12px] block mb-1">Away xG</span>
             <span className="font-bold">{sim.expectedAwayGoals.toFixed(2)}</span>
           </div>
           {sim.expectedHomeCorners != null && (
             <div>
-              <span className="text-tertiary text-[11px] block mb-1">Home corners</span>
+              <span className="text-tertiary text-[12px] block mb-1">Home corners</span>
               <span className="font-bold">{sim.expectedHomeCorners.toFixed(1)}</span>
             </div>
           )}
           {sim.expectedAwayCorners != null && (
             <div>
-              <span className="text-tertiary text-[11px] block mb-1">Away corners</span>
+              <span className="text-tertiary text-[12px] block mb-1">Away corners</span>
               <span className="font-bold">{sim.expectedAwayCorners.toFixed(1)}</span>
             </div>
           )}
@@ -323,7 +314,7 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
           <button
             type="button"
             onClick={() => setShowInputs((o) => !o)}
-            className="w-full flex items-center justify-between py-2 text-left text-mono text-[11px] uppercase text-tertiary hover:text-[var(--text-sec)]"
+            className="w-full flex items-center justify-between py-2 text-left text-mono text-[12px] uppercase text-tertiary hover:text-[var(--text-sec)]"
           >
             Model transparency
             <span aria-hidden>{showInputs ? "\u2212" : "+"}</span>
@@ -331,30 +322,30 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
           {showInputs && (
             <div className="mt-3 space-y-4">
               {/* Model overview */}
-              <div className="grid grid-cols-3 gap-3 text-[11px] font-mono p-3" style={{ background: "var(--bg-card)", border: "1px solid var(--border-light)" }}>
+              <div className="grid grid-cols-3 gap-3 text-[12px] font-mono p-3" style={{ background: "var(--bg-card)", border: "1px solid var(--border-light)" }}>
                 <div>
-                  <span className="text-tertiary block text-[9px] uppercase">Simulations</span>
+                  <span className="text-tertiary block text-[12px] uppercase">Simulations</span>
                   <span className="text-[var(--text-main)]">{sim.totalSimulations.toLocaleString()}</span>
                 </div>
                 <div>
-                  <span className="text-tertiary block text-[9px] uppercase">Market data</span>
+                  <span className="text-tertiary block text-[12px] uppercase">Market data</span>
                   <span className="text-[var(--text-main)]">{inputs.hasMarketProbs ? "Blended" : "Model only"}</span>
                 </div>
                 <div>
-                  <span className="text-tertiary block text-[9px] uppercase">Method</span>
+                  <span className="text-tertiary block text-[12px] uppercase">Method</span>
                   <span className="text-[var(--text-main)]">Poisson MC</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[10px] uppercase font-semibold mb-1">Goal rate parameters (λ)</p>
+                  <p className="text-[12px] uppercase font-semibold mb-1">Goal rate parameters (λ)</p>
                   <p>Home λ: {goalLambdas.lambdaHomeGoals.toFixed(3)}</p>
                   <p>Away λ: {goalLambdas.lambdaAwayGoals.toFixed(3)}</p>
                 </div>
                 {components && (
                   <div>
-                    <p className="text-[10px] uppercase font-semibold mb-1">Lambda components</p>
+                    <p className="text-[12px] uppercase font-semibold mb-1">Lambda components</p>
                     <p>League baseline H/A: {components.leagueHomeGoals.toFixed(2)} / {components.leagueAwayGoals.toFixed(2)}</p>
                     <p>Home attack × {components.homeAttackMultiplier.toFixed(2)} · defence × {components.homeDefenceMultiplier.toFixed(2)}</p>
                     <p>Away attack × {components.awayAttackMultiplier.toFixed(2)} · defence × {components.awayDefenceMultiplier.toFixed(2)}</p>
@@ -362,13 +353,13 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
                 )}
                 {cornerLambdas && (
                   <div>
-                    <p className="text-[10px] uppercase font-semibold mb-1">Corner parameters (λ)</p>
+                    <p className="text-[12px] uppercase font-semibold mb-1">Corner parameters (λ)</p>
                     <p>Home λ: {cornerLambdas.lambdaHomeCorners.toFixed(2)}</p>
                     <p>Away λ: {cornerLambdas.lambdaAwayCorners.toFixed(2)}</p>
                   </div>
                 )}
                 <div>
-                  <p className="text-[10px] uppercase font-semibold mb-1">Total goals distribution</p>
+                  <p className="text-[12px] uppercase font-semibold mb-1">Total goals distribution</p>
                   {Object.entries(totalGoalBuckets).map(([bucket, weight]) => (
                     <p key={bucket}>
                       {bucket} goals: {formatPercent(weight / sim.totalSimulations)}
@@ -376,7 +367,7 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
                   ))}
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-semibold mb-1">Goal difference</p>
+                  <p className="text-[12px] uppercase font-semibold mb-1">Goal difference</p>
                   {Object.entries(goalDiffBuckets).map(([bucket, weight]) => (
                     <p key={bucket}>
                       {bucket}: {formatPercent(weight / sim.totalSimulations)}
@@ -387,6 +378,90 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
             </div>
           )}
         </section>
+      )}
+    </div>
+  );
+}
+
+/** Focused market panel with horizontal probability bars + book marker ticks */
+function MarketPanel({
+  title,
+  rows,
+  bookProbs = {},
+  edges = {},
+}: {
+  title: string;
+  rows: { label: string; prob: number }[];
+  bookProbs?: Record<string, number>;
+  edges?: Record<string, number>;
+}) {
+  return (
+    <div className="panel-card p-4" style={{ background: "var(--bg-panel)" }}>
+      <p className="text-mono text-[12px] uppercase text-tertiary mb-3 font-semibold tracking-[0.1em]">{title}</p>
+      <div className="space-y-2">
+        {rows.map((row) => {
+          const bookProb = bookProbs[row.label];
+          const edge = edges[row.label];
+          const pct = Math.min(row.prob * 100, 100);
+          const bookPct = bookProb != null ? Math.min(bookProb * 100, 100) : null;
+          return (
+            <div key={row.label}>
+              <div className="flex items-center justify-between text-[12px] font-mono mb-0.5">
+                <span className="text-[var(--text-sec)]">{row.label}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[var(--text-main)] font-semibold">{formatPercent(row.prob)}</span>
+                  {edge != null && Math.abs(edge) > 0.01 && (
+                    <span
+                      className="text-[12px] font-mono"
+                      style={{
+                        color: edge > 0.05 ? "var(--color-edge-strong)" : edge > 0 ? "var(--color-edge-mild)" : "var(--color-edge-negative)",
+                      }}
+                    >
+                      {edge > 0 ? "+" : ""}{(edge * 100).toFixed(0)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+              {/* Probability bar with book marker */}
+              <div className="relative h-[6px] w-full" style={{ background: "var(--bg-elevated)", borderRadius: "3px" }}>
+                <div
+                  style={{
+                    width: `${pct}%`,
+                    height: "100%",
+                    background: "var(--color-bar-primary)",
+                    borderRadius: "3px",
+                    transition: "width 0.3s ease",
+                  }}
+                />
+                {bookPct != null && (
+                  <div
+                    className="absolute top-[-2px]"
+                    style={{
+                      left: `${bookPct}%`,
+                      width: "2px",
+                      height: "10px",
+                      background: "var(--color-amber)",
+                      transform: "translateX(-1px)",
+                    }}
+                    title={`Book: ${bookPct.toFixed(1)}%`}
+                  />
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {Object.keys(bookProbs).length > 0 && (
+        <div className="flex items-center gap-3 mt-3 text-[12px] font-mono text-tertiary">
+          <span className="flex items-center gap-1">
+            <span style={{ display: "inline-block", width: "8px", height: "4px", background: "var(--color-bar-primary)", borderRadius: "2px" }} />
+            Model
+          </span>
+          <span className="flex items-center gap-1">
+            <span style={{ display: "inline-block", width: "2px", height: "8px", background: "var(--color-amber)" }} />
+            Book
+          </span>
+        </div>
       )}
     </div>
   );

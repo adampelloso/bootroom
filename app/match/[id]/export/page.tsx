@@ -48,7 +48,7 @@ export default async function ExportPage({
         className="mx-auto flex flex-col items-center gap-4"
         style={{ gap: "var(--space-sm)" }}
       >
-        <p className="text-center text-mono text-[11px] uppercase text-tertiary">
+        <p className="text-center text-mono text-[12px] uppercase text-tertiary">
           Minimal chrome for screenshot — tap to capture
         </p>
         <div
@@ -56,7 +56,7 @@ export default async function ExportPage({
           className={`${aspectClass} w-full border border-[var(--border-light)] bg-[var(--bg-body)]`}
           style={{ padding: "var(--space-md)" }}
         >
-          <div className="flex items-center justify-between text-mono text-[11px] uppercase text-tertiary">
+          <div className="flex items-center justify-between text-mono text-[12px] uppercase text-tertiary">
             <span>{formatKickoff(match.kickoffUtc)} GMT</span>
             <span className="text-right">{match.venueName ?? "Venue TBD"}</span>
           </div>
@@ -110,7 +110,7 @@ export default async function ExportPage({
                   </p>
                   {ins.period ? (
                     <span
-                      className={`text-mono text-[11px] uppercase shrink-0 ${
+                      className={`text-mono text-[12px] uppercase shrink-0 ${
                         index === 0 ? "text-[var(--text-on-accent)]/70" : "text-tertiary"
                       }`}
                     >
@@ -125,20 +125,20 @@ export default async function ExportPage({
         <div className="flex gap-2">
           <Link
             href={`/match/${id}/export?ratio=1:1`}
-            className="rounded-full border border-[var(--border-light)] bg-[var(--bg-body)] px-4 py-2 text-mono text-[11px] uppercase text-tertiary"
+            className="rounded-full border border-[var(--border-light)] bg-[var(--bg-body)] px-4 py-2 text-mono text-[12px] uppercase text-tertiary"
           >
             1:1
           </Link>
           <Link
             href={`/match/${id}/export?ratio=9:16`}
-            className="rounded-full border border-[var(--border-light)] bg-[var(--bg-body)] px-4 py-2 text-mono text-[11px] uppercase text-tertiary"
+            className="rounded-full border border-[var(--border-light)] bg-[var(--bg-body)] px-4 py-2 text-mono text-[12px] uppercase text-tertiary"
           >
             9:16
           </Link>
         </div>
         <Link
           href={`/match/${id}`}
-          className="text-mono text-[11px] uppercase text-tertiary"
+          className="text-mono text-[12px] uppercase text-tertiary"
         >
           ← Back to match
         </Link>

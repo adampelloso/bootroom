@@ -52,7 +52,7 @@ export function H2HBarChart({
               backgroundColor: homeColor,
             }}
           />
-          <span className="text-[11px] font-mono text-tertiary truncate w-full text-center">
+          <span className="text-[12px] font-mono text-tertiary truncate w-full text-center">
             {homeLabel}
           </span>
           <span className="text-[13px] font-mono font-medium">
@@ -68,7 +68,7 @@ export function H2HBarChart({
               backgroundColor: awayColor,
             }}
           />
-          <span className="text-[11px] font-mono text-tertiary truncate w-full text-center">
+          <span className="text-[12px] font-mono text-tertiary truncate w-full text-center">
             {awayLabel}
           </span>
           <span className="text-[13px] font-mono font-medium">

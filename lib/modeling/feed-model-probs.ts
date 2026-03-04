@@ -35,8 +35,17 @@ export interface FeedModelProbs {
     draw: number;
     away: number;
     over_2_5?: number;
+    btts?: number;
   };
   evFlags?: string[];
+  /** Raw market probabilities for display (no reconstruction needed). */
+  marketProbs?: {
+    home?: number;
+    draw?: number;
+    away?: number;
+    over_2_5?: number;
+    btts?: number;
+  };
   expectedHomeGoals?: number;
   expectedAwayGoals?: number;
   expectedHomeCorners?: number;
@@ -122,6 +131,7 @@ export function getFeedMatchModelProbs(match: FeedMatch): FeedModelProbs | null 
       })
     : rawModelProbs;
 
+  const calibratedBtts = applyCalibration("BTTS", "Yes", sim.pBTTS);
   const edges = marketProbs
     ? {
         home: blendedProbs.home - marketProbs.home,
@@ -130,6 +140,19 @@ export function getFeedMatchModelProbs(match: FeedMatch): FeedModelProbs | null 
         over_2_5: marketProbs.over_2_5
           ? (blendedProbs.over_2_5 ?? rawModelProbs.over_2_5) - marketProbs.over_2_5
           : undefined,
+        btts: marketProbs.btts != null
+          ? calibratedBtts - marketProbs.btts
+          : undefined,
+      }
+    : undefined;
+
+  const storedMarketProbs = marketProbs
+    ? {
+        home: marketProbs.home,
+        draw: marketProbs.draw,
+        away: marketProbs.away,
+        over_2_5: marketProbs.over_2_5,
+        btts: marketProbs.btts,
       }
     : undefined;
 
@@ -139,6 +162,7 @@ export function getFeedMatchModelProbs(match: FeedMatch): FeedModelProbs | null 
     if (edges.draw > EV_THRESHOLD) evFlags.push("DRAW");
     if (edges.away > EV_THRESHOLD) evFlags.push("AWAY");
     if (edges.over_2_5 && edges.over_2_5 > EV_THRESHOLD) evFlags.push("O2.5");
+    if (edges.btts && edges.btts > EV_THRESHOLD) evFlags.push("BTTS");
   }
 
   const topScorelines = Object.entries(sim.scorelines)
@@ -152,11 +176,12 @@ export function getFeedMatchModelProbs(match: FeedMatch): FeedModelProbs | null 
     away: blendedProbs.away,
     over_2_5: blendedProbs.over_2_5,
     over_3_5: sim.pO35,
-    btts: applyCalibration("BTTS", "Yes", sim.pBTTS),
+    btts: calibratedBtts,
     mcOver25: sim.pO25,
     mcBtts: sim.pBTTS,
     edges,
     evFlags: evFlags.length > 0 ? evFlags : undefined,
+    marketProbs: storedMarketProbs,
     expectedHomeGoals: sim.expectedHomeGoals,
     expectedAwayGoals: sim.expectedAwayGoals,
     expectedHomeCorners: sim.expectedHomeCorners,

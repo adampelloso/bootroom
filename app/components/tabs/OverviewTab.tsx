@@ -5,6 +5,7 @@ import type { H2HSummary } from "@/lib/feed";
 import { StatTrendChart } from "@/app/components/StatTrendChart";
 import { FormTable } from "@/app/components/FormTable";
 import { MatchPulse } from "@/app/components/MatchPulse";
+import { EdgeBadge } from "@/app/components/EdgeBadge";
 import type { MatchSimulationResult } from "@/lib/modeling/mc-engine";
 import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import { ScorelineBarChart } from "@/app/components/ScorelineBarChart";
@@ -50,14 +51,16 @@ export function OverviewTab({
     : null;
 
   // Edge rows for quick overview
-  type EdgeRow = { outcome: string; market: string; edge: number };
+  type EdgeRow = { outcome: string; market: string; edge: number; bookProb?: number };
   const edgeRows: EdgeRow[] = [];
   if (feedProbs?.edges) {
     const e = feedProbs.edges;
-    if (e.home > 0.03) edgeRows.push({ outcome: "HOME", market: "1X2", edge: e.home });
-    if (e.draw > 0.03) edgeRows.push({ outcome: "DRAW", market: "1X2", edge: e.draw });
-    if (e.away > 0.03) edgeRows.push({ outcome: "AWAY", market: "1X2", edge: e.away });
-    if (e.over_2_5 != null && e.over_2_5 > 0.03) edgeRows.push({ outcome: "OVER", market: "O2.5", edge: e.over_2_5 });
+    const mp = feedProbs.marketProbs;
+    if (e.home > 0.03) edgeRows.push({ outcome: "HOME", market: "1X2", edge: e.home, bookProb: mp?.home });
+    if (e.draw > 0.03) edgeRows.push({ outcome: "DRAW", market: "1X2", edge: e.draw, bookProb: mp?.draw });
+    if (e.away > 0.03) edgeRows.push({ outcome: "AWAY", market: "1X2", edge: e.away, bookProb: mp?.away });
+    if (e.over_2_5 != null && e.over_2_5 > 0.03) edgeRows.push({ outcome: "OVER", market: "O2.5", edge: e.over_2_5, bookProb: mp?.over_2_5 });
+    if (e.btts != null && e.btts > 0.03) edgeRows.push({ outcome: "YES", market: "BTTS", edge: e.btts, bookProb: mp?.btts });
     edgeRows.sort((a, b) => b.edge - a.edge);
   }
 
@@ -74,7 +77,7 @@ export function OverviewTab({
             {o25Row && (
               <div className="space-y-1">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-mono text-[11px] uppercase text-tertiary">O2.5</span>
+                  <span className="text-mono text-[12px] uppercase text-tertiary">O2.5</span>
                   <span className="text-primary-data font-semibold">{o25Row.combinedHits * 10}%</span>
                 </div>
                 <div className="pct-bar"><div className="pct-bar-fill" style={{ width: `${o25Row.combinedHits * 10}%` }} /></div>
@@ -82,14 +85,14 @@ export function OverviewTab({
             )}
             {o25Row && (
               <div className="flex items-baseline justify-between">
-                <span className="text-mono text-[11px] uppercase text-tertiary">Avg goals</span>
+                <span className="text-mono text-[12px] uppercase text-tertiary">Avg goals</span>
                 <span className="text-primary-data font-semibold">{o25Row.avgGoals.toFixed(1)}</span>
               </div>
             )}
             {bttsRow && (
               <div className="space-y-1">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-mono text-[11px] uppercase text-tertiary">BTTS</span>
+                  <span className="text-mono text-[12px] uppercase text-tertiary">BTTS</span>
                   <span className="text-primary-data font-semibold">{bttsRow.combinedHits * 10}%</span>
                 </div>
                 <div className="pct-bar"><div className="pct-bar-fill" style={{ width: `${bttsRow.combinedHits * 10}%` }} /></div>
@@ -102,7 +105,7 @@ export function OverviewTab({
             <section className="px-5 py-3" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
               <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-3">Expected goals</h2>
               <div className="flex items-center gap-2">
-                <span className="text-mono text-[11px] text-tertiary w-10 text-right shrink-0">{sim.expectedHomeGoals.toFixed(2)}</span>
+                <span className="text-mono text-[12px] text-tertiary w-10 text-right shrink-0">{sim.expectedHomeGoals.toFixed(2)}</span>
                 <div className="flex-1 flex h-6" style={{ gap: "2px" }}>
                   <div
                     className="h-full flex items-center justify-end pr-1"
@@ -121,9 +124,9 @@ export function OverviewTab({
                     }}
                   />
                 </div>
-                <span className="text-mono text-[11px] text-tertiary w-10 shrink-0">{sim.expectedAwayGoals.toFixed(2)}</span>
+                <span className="text-mono text-[12px] text-tertiary w-10 shrink-0">{sim.expectedAwayGoals.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-mono text-[9px] uppercase text-tertiary mt-1">
+              <div className="flex justify-between text-mono text-[12px] uppercase text-tertiary mt-1">
                 <span>{homeTeamName.slice(0, 3).toUpperCase()}</span>
                 <span>{awayTeamName.slice(0, 3).toUpperCase()}</span>
               </div>
@@ -144,13 +147,13 @@ export function OverviewTab({
               <div className="space-y-4">
                 {homeLast10 && homeLast10.length > 0 && (
                   <div>
-                    <p className="text-mono text-[10px] uppercase text-tertiary mb-2">{homeTeamName.slice(0, 3).toUpperCase()}</p>
+                    <p className="text-mono text-[12px] uppercase text-tertiary mb-2">{homeTeamName.slice(0, 3).toUpperCase()}</p>
                     <FormTable rows={homeLast10} limit={5} />
                   </div>
                 )}
                 {awayLast10 && awayLast10.length > 0 && (
                   <div>
-                    <p className="text-mono text-[10px] uppercase text-tertiary mb-2">{awayTeamName.slice(0, 3).toUpperCase()}</p>
+                    <p className="text-mono text-[12px] uppercase text-tertiary mb-2">{awayTeamName.slice(0, 3).toUpperCase()}</p>
                     <FormTable rows={awayLast10} limit={5} />
                   </div>
                 )}
@@ -183,9 +186,7 @@ export function OverviewTab({
                       <div key={`${row.market}-${row.outcome}`} className="flex items-center gap-3 text-[12px] font-mono">
                         <span className="w-14 uppercase text-[var(--text-main)]">{row.outcome}</span>
                         <span className="w-10 uppercase text-tertiary">{row.market}</span>
-                        <span className="text-[var(--text-main)]">
-                          +{(row.edge * 100).toFixed(1)}%
-                        </span>
+                        <EdgeBadge edge={row.edge} market={row.market} bookProb={row.bookProb} variant="inline" />
                       </div>
                     ))}
                   </div>
@@ -222,7 +223,7 @@ export function OverviewTab({
                       <div style={{ width: `${dPct}%`, backgroundColor: "var(--text-tertiary)", minWidth: dPct > 0 ? "4px" : "0" }} />
                       <div style={{ width: `${aPct}%`, backgroundColor: "var(--color-away)", minWidth: aPct > 0 ? "4px" : "0" }} />
                     </div>
-                    <p className="text-mono text-[10px] text-tertiary mt-2">Last {total} meetings</p>
+                    <p className="text-mono text-[12px] text-tertiary mt-2">Last {total} meetings</p>
                   </div>
                 );
               })()}

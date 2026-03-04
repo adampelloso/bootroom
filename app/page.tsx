@@ -12,7 +12,7 @@ export default function LandingPage() {
         background: "#0A0A0A",
         minHeight: "100vh",
         fontFamily: "var(--font-mono)",
-        color: "#E5E5E5",
+        color: "#F1F5F9",
       }}
     >
       {/* ─── NAV ─── */}
@@ -22,7 +22,7 @@ export default function LandingPage() {
           top: 0,
           zIndex: 100,
           background: "#0A0A0A",
-          borderBottom: "1px solid #262626",
+          borderBottom: "1px solid #1E293B",
         }}
       >
         <div
@@ -50,7 +50,7 @@ export default function LandingPage() {
               href="/login"
               style={{
                 fontSize: "13px",
-                color: "#737373",
+                color: "#475569",
                 textDecoration: "none",
                 fontWeight: 500,
               }}
@@ -76,7 +76,17 @@ export default function LandingPage() {
       </nav>
 
       {/* ─── HERO ─── */}
-      <section style={{ ...section, paddingTop: "80px", paddingBottom: "64px", textAlign: "center" }}>
+      <section style={{ ...section, paddingTop: "80px", paddingBottom: "64px", textAlign: "center", position: "relative" }}>
+        {/* Animated radial gradient mesh */}
+        <div
+          className="mesh-gradient"
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "radial-gradient(ellipse 600px 400px at 30% 40%, rgba(59,130,246,0.06) 0%, transparent 70%), radial-gradient(ellipse 500px 350px at 70% 60%, rgba(245,158,11,0.05) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }}
+        />
         <h1
           style={{
             fontSize: "clamp(32px, 5vw, 52px)",
@@ -85,6 +95,7 @@ export default function LandingPage() {
             letterSpacing: "-0.03em",
             color: "#fff",
             margin: "0 auto 16px",
+            position: "relative",
           }}
         >
           The beautiful game deserves beautiful data
@@ -92,16 +103,18 @@ export default function LandingPage() {
         <p
           style={{
             fontSize: "14px",
-            color: "#737373",
+            color: "#475569",
             lineHeight: 1.7,
             maxWidth: "520px",
             margin: "0 auto 40px",
+            position: "relative",
           }}
         >
           100K simulations per match powered by 2K+ data points
         </p>
         <a
           href="/signup"
+          className="cta-glow"
           style={{
             display: "inline-block",
             fontSize: "14px",
@@ -111,6 +124,8 @@ export default function LandingPage() {
             padding: "14px 36px",
             textDecoration: "none",
             letterSpacing: "0.02em",
+            position: "relative",
+            transition: "box-shadow 0.2s ease",
           }}
         >
           {"Start free trial \u2192"}
@@ -184,15 +199,15 @@ export default function LandingPage() {
       {/* ─── HOW IT WORKS ─── */}
       <section style={{ ...section, paddingTop: "64px", paddingBottom: "64px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "0" }}>
-          <FeatureCard title="MATCH FEED" bullets={["Every fixture across 10+ leagues", "BTTS, Over 2.5, corners, xG", "Ranked by model confidence", "Best signals surface first"]} />
-          <FeatureCard title="SIMULATION ENGINE" bullets={["100,000 Monte Carlo runs per match", "Full scoreline distributions", "Probability breakdowns for every market", "Model vs. bookmaker edge detection"]} />
+          <FeatureCard title="MATCH FEED" bullets={["Every fixture across 10+ leagues", "BTTS, Over 2.5, corners, xG", "Model vs. market edge detection", "Best signals surface first"]} />
+          <FeatureCard title="SIMULATION ENGINE" bullets={["100,000 Monte Carlo runs per match", "Full scoreline distributions", "Probability breakdowns for every market", "Edge-aware intelligence for every fixture"]} />
           <FeatureCard title="DEEP ANALYSIS" bullets={["Head-to-head records", "Corner and xG trends over time", "Player-level projections", "Filtered by venue, competition, and form"]} />
         </div>
       </section>
 
       {/* ─── PRICING ─── */}
       <section style={{ ...section, paddingTop: "64px", paddingBottom: "80px" }}>
-        <div style={{ fontSize: "13px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#525252", marginBottom: "32px", textAlign: "center" }}>
+        <div style={{ fontSize: "13px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#475569", marginBottom: "32px", textAlign: "center" }}>
           PRICING
         </div>
 
@@ -201,14 +216,14 @@ export default function LandingPage() {
           <PricingCard label="YEARLY" price="$25" period="/yr" badge="SAVE 60%" featured />
         </div>
 
-        <p style={{ fontSize: "12px", color: "#525252", textAlign: "center", marginTop: "20px" }}>
+        <p style={{ fontSize: "12px", color: "#475569", textAlign: "center", marginTop: "20px" }}>
           7 day free trial. Cancel anytime.
         </p>
       </section>
 
       {/* ─── FOOTER ─── */}
       <footer style={{ padding: "24px", textAlign: "center" }}>
-        <span style={{ fontSize: "11px", color: "#333", letterSpacing: "0.04em" }}>
+        <span style={{ fontSize: "12px", color: "#333", letterSpacing: "0.04em" }}>
           BOOTROOM &middot; 2026
         </span>
       </footer>
@@ -220,11 +235,11 @@ export default function LandingPage() {
 
 function FeatureCard({ title, bullets }: { title: string; bullets: string[] }) {
   return (
-    <div style={{ border: "1px solid #262626", padding: "28px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-      <span style={{ fontSize: "13px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#E5E5E5" }}>{title}</span>
+    <div style={{ border: "1px solid #1E293B", padding: "28px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+      <span style={{ fontSize: "13px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#F1F5F9" }}>{title}</span>
       <ul style={{ listStyle: "disc", paddingLeft: "16px", margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
         {bullets.map((b) => (
-          <li key={b} style={{ fontSize: "13px", color: "#737373", lineHeight: 1.5 }}>{b}</li>
+          <li key={b} style={{ fontSize: "13px", color: "#475569", lineHeight: 1.5 }}>{b}</li>
         ))}
       </ul>
     </div>
@@ -253,29 +268,39 @@ function PreviewCard({
   const o25Pill = pillColor(over25);
   const bttsPill = pillColor(btts);
 
+  const leagueColorMap: Record<string, string> = {
+    "PREMIER LEAGUE": "#6B21A8",
+    "LA LIGA": "#EA580C",
+    "SERIE A": "#2563EB",
+    "BUNDESLIGA": "#DC2626",
+    "UCL": "#D4AF37",
+  };
+  const accentColor = leagueColorMap[league] ?? "#64748B";
+
   return (
     <div
       style={{
-        border: "2px solid #E5E5E5",
+        borderTop: `2px solid ${accentColor}`,
+        background: "#111111",
         padding: "16px",
         fontFamily: "var(--font-mono)",
       }}
     >
       {/* Header row: league left, time right */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-        <span style={{ fontSize: "11px", fontWeight: 600, color: "#A3A3A3", textTransform: "uppercase" as const }}>{league}</span>
-        <span style={{ fontSize: "11px", color: "#525252", textTransform: "uppercase" as const }}>{time}</span>
+        <span style={{ fontSize: "12px", fontWeight: 600, color: accentColor, textTransform: "uppercase" as const }}>{league}</span>
+        <span style={{ fontSize: "12px", color: "#475569", textTransform: "uppercase" as const }}>{time}</span>
       </div>
 
       {/* Teams row: home — H2H — away */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
           <img src={homeLogo} alt="" style={{ width: "24px", height: "24px", objectFit: "contain", flexShrink: 0 }} />
-          <span style={{ fontSize: "18px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2, textTransform: "uppercase" as const, color: "#E5E5E5" }}>{homeCode}</span>
+          <span style={{ fontSize: "18px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2, textTransform: "uppercase" as const, color: "#F1F5F9" }}>{homeCode}</span>
         </div>
-        <span style={{ fontSize: "11px", color: "#525252", textTransform: "uppercase" as const, flexShrink: 0, padding: "0 8px" }}>{h2h}</span>
+        <span style={{ fontSize: "12px", color: "#475569", textTransform: "uppercase" as const, flexShrink: 0, padding: "0 8px" }}>{h2h}</span>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, justifyContent: "flex-end" }}>
-          <span style={{ fontSize: "18px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2, textTransform: "uppercase" as const, color: "#E5E5E5" }}>{awayCode}</span>
+          <span style={{ fontSize: "18px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2, textTransform: "uppercase" as const, color: "#F1F5F9" }}>{awayCode}</span>
           <img src={awayLogo} alt="" style={{ width: "24px", height: "24px", objectFit: "contain", flexShrink: 0 }} />
         </div>
       </div>
@@ -284,27 +309,27 @@ function PreviewCard({
       <table style={{ width: "100%", borderCollapse: "collapse" as const, fontFamily: "var(--font-mono)" }}>
         <thead>
           <tr style={{ background: "#141414" }}>
-            <th style={{ fontSize: "10px", fontWeight: 700, color: "#525252", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.06em", textAlign: "left" as const, width: "40%" }}>Stat</th>
-            <th style={{ fontSize: "10px", fontWeight: 700, color: "#525252", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.06em", textAlign: "center" as const, width: "20%" }}>Home</th>
-            <th style={{ fontSize: "10px", fontWeight: 700, color: "#525252", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.06em", textAlign: "center" as const, width: "20%" }}>Away</th>
-            <th style={{ fontSize: "10px", fontWeight: 700, color: "#525252", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.06em", textAlign: "right" as const, width: "20%" }}>Total</th>
+            <th style={{ fontSize: "12px", fontWeight: 700, color: "#475569", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.1em", textAlign: "left" as const, width: "40%" }}>Stat</th>
+            <th style={{ fontSize: "12px", fontWeight: 700, color: "#475569", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.1em", textAlign: "center" as const, width: "20%" }}>Home</th>
+            <th style={{ fontSize: "12px", fontWeight: 700, color: "#475569", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.1em", textAlign: "center" as const, width: "20%" }}>Away</th>
+            <th style={{ fontSize: "12px", fontWeight: 700, color: "#475569", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.1em", textAlign: "right" as const, width: "20%" }}>Total</th>
           </tr>
         </thead>
         <tbody>
-          <tr style={{ borderBottom: "1px solid #262626" }}>
-            <td style={{ padding: "6px 6px", fontSize: "12px", fontWeight: 600, color: "#A3A3A3", textTransform: "uppercase" as const, textAlign: "left" as const }}>xG</td>
-            <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#E5E5E5", textAlign: "center" as const }}>{homeXg}</td>
-            <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#E5E5E5", textAlign: "center" as const }}>{awayXg}</td>
-            <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#E5E5E5", textAlign: "right" as const }}>{totalXg}</td>
+          <tr style={{ borderBottom: "1px solid #1E293B" }}>
+            <td style={{ padding: "6px 6px", fontSize: "12px", fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" as const, textAlign: "left" as const }}>xG</td>
+            <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#F1F5F9", textAlign: "center" as const }}>{homeXg}</td>
+            <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#F1F5F9", textAlign: "center" as const }}>{awayXg}</td>
+            <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#F1F5F9", textAlign: "right" as const }}>{totalXg}</td>
           </tr>
           <tr>
             <td colSpan={4} style={{ padding: "6px 6px" }}>
               <div style={{ display: "flex", alignItems: "center" }}>
-                <span style={{ width: "50%", display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "#A3A3A3", textTransform: "uppercase" as const }}>
+                <span style={{ width: "50%", display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" as const }}>
                   o2.5
                   <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: 700, background: o25Pill.bg, color: o25Pill.text }}>{over25}%</span>
                 </span>
-                <span style={{ width: "50%", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px", fontSize: "12px", fontWeight: 600, color: "#A3A3A3", textTransform: "uppercase" as const }}>
+                <span style={{ width: "50%", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px", fontSize: "12px", fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" as const }}>
                   BTTS
                   <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: 700, background: bttsPill.bg, color: bttsPill.text }}>{btts}%</span>
                 </span>
@@ -318,8 +343,8 @@ function PreviewCard({
       <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
         {scorelines.map((s) => (
           <div key={s.score} style={{ flex: 1, background: "#141414", padding: "8px 0", textAlign: "center" as const }}>
-            <span style={{ fontSize: "15px", fontWeight: 700, color: "#E5E5E5", display: "block" }}>{s.score}</span>
-            <span style={{ fontSize: "11px", color: "#525252" }}>{s.prob}%</span>
+            <span style={{ fontSize: "15px", fontWeight: 700, color: "#F1F5F9", display: "block" }}>{s.score}</span>
+            <span style={{ fontSize: "12px", color: "#475569" }}>{s.prob}%</span>
           </div>
         ))}
       </div>
@@ -331,14 +356,14 @@ function PricingCard({ label, price, period, badge, featured }: {
   label: string; price: string; period: string; badge?: string; featured?: boolean;
 }) {
   return (
-    <div style={{ flex: "1 1 280px", maxWidth: "300px", border: featured ? "2px solid #E5E5E5" : "1px solid #333", padding: "28px 24px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <div style={{ flex: "1 1 280px", maxWidth: "300px", border: featured ? "2px solid #F59E0B" : "1px solid #1E293B", padding: "28px 24px", display: "flex", flexDirection: "column", alignItems: "center" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-        <span style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#737373" }}>{label}</span>
-        {badge && <span style={{ fontSize: "11px", fontWeight: 600, color: "#22C55E", letterSpacing: "0.04em" }}>{badge}</span>}
+        <span style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#475569" }}>{label}</span>
+        {badge && <span style={{ fontSize: "12px", fontWeight: 600, color: "#F59E0B", letterSpacing: "0.04em", background: "rgba(245,158,11,0.12)", padding: "2px 6px" }}>{badge}</span>}
       </div>
       <div style={{ marginBottom: "24px" }}>
         <span style={{ fontSize: "32px", fontWeight: 700, letterSpacing: "-0.03em", color: "#fff" }}>{price}</span>
-        <span style={{ fontSize: "14px", color: "#737373", marginLeft: "4px" }}>{period}</span>
+        <span style={{ fontSize: "14px", color: "#475569", marginLeft: "4px" }}>{period}</span>
       </div>
       <a
         href="/signup"

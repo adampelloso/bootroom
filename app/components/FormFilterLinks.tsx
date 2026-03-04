@@ -23,7 +23,7 @@ function buildUrl(matchId: string, form: FormFilterValue, search: Record<string,
 
 export function FormFilterLinks({ matchId, currentForm, searchParams }: Props) {
   return (
-    <div className="flex items-center gap-2 text-mono text-[11px] uppercase text-tertiary">
+    <div className="flex items-center gap-2 text-mono text-[12px] uppercase text-tertiary">
       <span className="mr-1">Form:</span>
       <Link
         href={buildUrl(matchId, "all", searchParams)}

@@ -100,7 +100,7 @@ export function SubscribeForm({ monthlyPriceId, yearlyPriceId }: Props) {
         >
           <div
             style={{
-              fontSize: "11px",
+              fontSize: "12px",
               fontWeight: 600,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
@@ -155,7 +155,7 @@ export function SubscribeForm({ monthlyPriceId, yearlyPriceId }: Props) {
           >
             <span
               style={{
-                fontSize: "11px",
+                fontSize: "12px",
                 fontWeight: 600,
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
@@ -166,7 +166,7 @@ export function SubscribeForm({ monthlyPriceId, yearlyPriceId }: Props) {
             </span>
             <span
               style={{
-                fontSize: "11px",
+                fontSize: "12px",
                 fontWeight: 600,
                 color: "#22C55E",
                 letterSpacing: "0.04em",

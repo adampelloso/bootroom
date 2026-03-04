@@ -19,8 +19,11 @@ export function EVBadge({ edge, market, size = "small" }: Props) {
   if (size === "small") {
     return (
       <span
-        className="inline-flex items-center font-mono font-semibold uppercase text-[11px]"
-        style={{ color: "var(--text-main)" }}
+        className="inline-flex items-center font-mono font-semibold uppercase text-[12px] px-1.5 py-0.5"
+        style={{
+          color: "var(--color-amber)",
+          background: isStrong ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)",
+        }}
       >
         {label}{marketLabel}
       </span>
@@ -29,8 +32,12 @@ export function EVBadge({ edge, market, size = "small" }: Props) {
 
   return (
     <span
-      className="inline-flex items-center font-mono font-semibold uppercase text-[11px] border border-current px-1.5 py-0.5"
-      style={{ color: "var(--text-main)" }}
+      className="inline-flex items-center font-mono font-semibold uppercase text-[12px] px-1.5 py-0.5"
+      style={{
+        color: "var(--color-amber)",
+        background: isStrong ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.08)",
+        boxShadow: isStrong ? "0 0 8px rgba(245,158,11,0.2)" : "none",
+      }}
     >
       {label}{marketLabel}
     </span>

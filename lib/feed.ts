@@ -166,8 +166,16 @@ export interface FeedMatch {
       draw: number;
       away: number;
       over_2_5?: number;
+      btts?: number;
     };
     evFlags?: string[];
+    marketProbs?: {
+      home?: number;
+      draw?: number;
+      away?: number;
+      over_2_5?: number;
+      btts?: number;
+    };
     expectedHomeGoals?: number;
     expectedAwayGoals?: number;
     expectedHomeCorners?: number;

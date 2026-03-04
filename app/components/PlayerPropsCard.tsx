@@ -56,9 +56,9 @@ export function PlayerPropsCard({ playerStats, homeTeamName, awayTeamName, isSea
     if (players.length === 0) return null;
     return (
       <div className="border-b border-[var(--border-light)] pb-3">
-        <p className="text-mono text-[11px] uppercase text-tertiary mb-3">{teamLabel}</p>
+        <p className="text-mono text-[12px] uppercase text-tertiary mb-3">{teamLabel}</p>
         <div className="overflow-x-auto">
-          <table className="w-full text-[10px] font-mono">
+          <table className="w-full text-[12px] font-mono">
             <thead>
               <tr className="text-left text-tertiary border-b border-[var(--border-light)]">
                 <th className="py-1 pr-2 font-medium">Player</th>
@@ -111,7 +111,7 @@ export function PlayerPropsCard({ playerStats, homeTeamName, awayTeamName, isSea
       aria-label="Player props"
     >
       <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] mb-4">Player props</h2>
-      <p className="text-mono text-[11px] uppercase text-tertiary mb-3">{subtitle}</p>
+      <p className="text-mono text-[12px] uppercase text-tertiary mb-3">{subtitle}</p>
       <div className="space-y-4">
         <Table players={homePlayers} teamLabel={homeTeamName} />
         <Table players={awayPlayers} teamLabel={awayTeamName} />

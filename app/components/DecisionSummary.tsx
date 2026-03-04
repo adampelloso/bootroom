@@ -30,7 +30,7 @@ export function DecisionSummary({
         {primaryAngle}
       </p>
       {volatility ? (
-        <span className="inline-block mt-1 text-mono text-[10px] uppercase text-tertiary">
+        <span className="inline-block mt-1 text-mono text-[12px] uppercase text-tertiary">
           Volatility: {volatility}
         </span>
       ) : null}
