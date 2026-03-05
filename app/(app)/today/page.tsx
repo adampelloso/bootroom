@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getFeedMatches } from "@/lib/build-feed";
 import { computeMatchEdges, type MatchEdges } from "@/lib/edge-engine";
 import { requireActiveSubscription } from "@/lib/auth-guard";

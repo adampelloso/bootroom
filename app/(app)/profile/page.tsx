@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { requireSession } from "@/lib/auth-guard";
 import { getSubscription } from "@/lib/subscription";
 import { ProfileSettings } from "./profile-settings";

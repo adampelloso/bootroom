@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getFeedMatches } from "@/lib/build-feed";
 import { FeedView } from "@/app/components/FeedView";
 import { DateSelector, type DateRange } from "@/app/components/DateSelector";
