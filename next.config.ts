@@ -4,7 +4,10 @@ const nextConfig: NextConfig = {
   // Force nft to include workerd-compatible files that it otherwise misses
   // (nft traces using "node" conditions but esbuild re-bundles with "workerd")
   outputFileTracingIncludes: {
-    "/*": ["./node_modules/@libsql/isomorphic-ws/web.mjs"],
+    "/*": [
+      "./node_modules/@libsql/client/lib-esm/web.js",
+      "./node_modules/@libsql/isomorphic-ws/web.mjs",
+    ],
   },
   webpack: (config, { isServer }) => {
     if (isServer) {
