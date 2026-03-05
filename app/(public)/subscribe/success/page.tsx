@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function SubscribeSuccessPage() {
+function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
@@ -20,7 +20,7 @@ export default function SubscribeSuccessPage() {
         const res = await fetch(url, { credentials: "include" });
         if (res.ok) {
           const data = await res.json();
-          if (!data.active) return; // keep polling
+          if (!data.active) return;
           clearInterval(timer);
           router.replace("/matches");
           return;
@@ -93,5 +93,13 @@ export default function SubscribeSuccessPage() {
         This usually takes a few seconds.
       </p>
     </main>
+  );
+}
+
+export default function SubscribeSuccessPage() {
+  return (
+    <Suspense>
+      <SuccessContent />
+    </Suspense>
   );
 }
