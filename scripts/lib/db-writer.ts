@@ -6,7 +6,7 @@
 import { drizzle } from "drizzle-orm/libsql";
 import { createClient } from "@libsql/client";
 import { sql } from "drizzle-orm";
-import { fixture, team, fixtureOdds, h2h } from "../../lib/db-schema";
+import { fixture, team, fixtureOdds, h2h, injury, fixtureLineup } from "../../lib/db-schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -87,6 +87,43 @@ export async function upsertFixtureOdds(rows: FixtureOddsRow[]) {
         under25Prob: sql`excluded.under25_prob`,
         bttsProb: sql`excluded.btts_prob`,
         updatedAt: sql`excluded.updated_at`,
+      },
+    });
+  }
+}
+
+export type InjuryRow = typeof injury.$inferInsert;
+
+export async function upsertInjuries(rows: InjuryRow[]) {
+  if (rows.length === 0) return;
+  const db = getIngestDb();
+  // Clear existing injuries and replace with fresh data
+  // Injuries are ephemeral — full replace is safer than upsert
+  const teamIds = [...new Set(rows.map((r) => r.teamId))];
+  for (const tid of teamIds) {
+    await db.delete(injury).where(sql`${injury.teamId} = ${tid}`);
+  }
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+    await db.insert(injury).values(batch);
+  }
+}
+
+export type FixtureLineupRow = typeof fixtureLineup.$inferInsert;
+
+export async function upsertFixtureLineups(rows: FixtureLineupRow[]) {
+  if (rows.length === 0) return;
+  const db = getIngestDb();
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+    await db.insert(fixtureLineup).values(batch).onConflictDoUpdate({
+      target: [fixtureLineup.fixtureId, fixtureLineup.playerId],
+      set: {
+        playerName: sql`excluded.player_name`,
+        position: sql`excluded.position`,
+        started: sql`excluded.started`,
+        minutes: sql`excluded.minutes`,
+        teamId: sql`excluded.team_id`,
       },
     });
   }

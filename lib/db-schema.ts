@@ -105,6 +105,36 @@ export const h2h = sqliteTable("h2h", {
   index("idx_h2h_pair").on(t.teamAId, t.teamBId),
 ]);
 
+export const injury = sqliteTable("injury", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  playerId: integer("player_id").notNull(),
+  playerName: text("player_name").notNull(),
+  teamId: integer("team_id").notNull(),
+  leagueId: integer("league_id").notNull(),
+  type: text("type").notNull(),        // "Missing Fixture", "Questionable", "Doubtful"
+  reason: text("reason"),               // "Knee Injury", "Muscle Injury", etc.
+  fixtureId: integer("fixture_id"),     // specific fixture if available
+  updatedAt: integer("updated_at").notNull(),
+}, (t) => [
+  index("idx_injury_team").on(t.teamId),
+  index("idx_injury_player").on(t.playerId),
+]);
+
+export const fixtureLineup = sqliteTable("fixture_lineup", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  fixtureId: integer("fixture_id").notNull(),
+  teamId: integer("team_id").notNull(),
+  playerId: integer("player_id").notNull(),
+  playerName: text("player_name").notNull(),
+  position: text("position"),              // G, D, M, F
+  started: integer("started").notNull(),   // 1 = starter, 0 = sub
+  minutes: integer("minutes"),
+}, (t) => [
+  index("idx_lineup_team").on(t.teamId),
+  index("idx_lineup_fixture").on(t.fixtureId),
+  uniqueIndex("idx_lineup_unique").on(t.fixtureId, t.playerId),
+]);
+
 // ── Stripe subscription ─────────────────────────────────────────────
 
 export const subscription = sqliteTable("subscription", {

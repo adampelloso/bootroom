@@ -28,7 +28,7 @@ import {
   DEFAULT_LEAGUE_ID,
   getCompetitionByLeagueId,
 } from "@/lib/leagues";
-import { predictLineup } from "@/lib/modeling/predicted-lineup";
+import { predictLineup, predictLineupFromDb } from "@/lib/modeling/predicted-lineup";
 import { getMatchPlayerSim } from "@/lib/modeling/player-sim";
 import type { FeedPredictedLineup, FeedPlayerSim, FeedPlayerSimEntry } from "./feed";
 import type { PredictedLineup } from "@/lib/modeling/predicted-lineup";
@@ -42,7 +42,10 @@ import {
   getH2HFixtures,
   getH2HForPairs,
   getTeamFormBatch,
+  getInjuredPlayersByTeam,
+  getRecentLineupsBatch,
   type DbFixture,
+  type RecentStarterRow,
 } from "@/lib/db-queries";
 
 /** Short labels for feed pills from catalog marketKey. */
@@ -274,6 +277,8 @@ async function buildFeedMatchFromDb(
   h2hSummary?: H2HSummary | null,
   marketProbs?: MarketProbabilities | null,
   formMap?: Map<number, FormResult[]>,
+  injuredMap?: Map<number, Set<number>>,
+  recentLineupsMap?: Map<number, RecentStarterRow[]>,
 ): Promise<FeedMatch> {
   const fixtureDate = f.date;
   const home = f.homeTeamName;
@@ -351,8 +356,17 @@ async function buildFeedMatchFromDb(
   // Predicted lineups + player-level sim (upcoming matches only)
   const isUpcoming = match.homeGoals == null && match.awayGoals == null;
   if (isUpcoming) {
-    const homeLineup = predictLineup(home, leagueId, fixtureDate);
-    const awayLineup = predictLineup(away, leagueId, fixtureDate);
+    const homeInjured = injuredMap?.get(homeId);
+    const awayInjured = injuredMap?.get(awayId);
+    const homeRecentLineups = recentLineupsMap?.get(homeId);
+    const awayRecentLineups = recentLineupsMap?.get(awayId);
+    // Prefer DB-backed recency-weighted lineups; fall back to season stats
+    const homeLineup = (homeRecentLineups && homeRecentLineups.length > 0
+      ? predictLineupFromDb(home, homeRecentLineups, homeInjured)
+      : null) ?? predictLineup(home, leagueId, fixtureDate, homeInjured);
+    const awayLineup = (awayRecentLineups && awayRecentLineups.length > 0
+      ? predictLineupFromDb(away, awayRecentLineups, awayInjured)
+      : null) ?? predictLineup(away, leagueId, fixtureDate, awayInjured);
     if (homeLineup) match.predictedHomeLineup = toFeedLineup(homeLineup);
     if (awayLineup) match.predictedAwayLineup = toFeedLineup(awayLineup);
     if (homeLineup && awayLineup && modelProbs?.expectedHomeGoals != null && modelProbs?.expectedAwayGoals != null) {
@@ -416,12 +430,14 @@ export async function getFeedMatches(
     allDates.add(f.date);
   }
 
-  const [teamCodeMap, teamLogoMap, oddsMap, h2hMap, formMap] = await Promise.all([
+  const [teamCodeMap, teamLogoMap, oddsMap, h2hMap, formMap, injuredMap, recentLineupsMap] = await Promise.all([
     getTeamCodeMap(allTeamIds),
     getTeamLogoMap(allTeamIds),
     getOddsForFixtures(fixtureIds),
     getH2HForPairs(pairs),
     getTeamFormBatch(allTeamIds, date, 5),
+    getInjuredPlayersByTeam(allTeamIds),
+    getRecentLineupsBatch(allTeamIds, date, 10),
     // Side-effect preloads (return value not used)
     preloadTeamStats([...allTeamNames]),
     preloadLeagueAverages(ids),
@@ -432,6 +448,8 @@ export async function getFeedMatches(
     Map<number, MarketProbabilities>,
     Map<string, DbFixture[]>,
     Map<number, FormResult[]>,
+    Map<number, Set<number>>,
+    Map<number, RecentStarterRow[]>,
     ...unknown[],
   ];
 
@@ -442,7 +460,7 @@ export async function getFeedMatches(
       const h2hFixtures = h2hMap.get(h2hKey) ?? [];
       const h2hSummary = deriveH2HSummary(h2hFixtures, f.homeTeamId, f.awayTeamId, f.homeTeamName, f.awayTeamName);
       const odds = oddsMap.get(f.id) ?? null;
-      return buildFeedMatchFromDb(f, teamCodeMap, teamLogoMap, h2hSummary, odds, formMap);
+      return buildFeedMatchFromDb(f, teamCodeMap, teamLogoMap, h2hSummary, odds, formMap, injuredMap, recentLineupsMap);
     }),
   );
 

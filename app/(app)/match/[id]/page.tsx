@@ -22,9 +22,10 @@ import { PlayersTab } from "@/app/components/tabs/PlayersTab";
 import { SimulationTab } from "@/app/components/tabs/SimulationTab";
 import { H2HTab } from "@/app/components/tabs/H2HTab";
 import { ValueTab } from "@/app/components/tabs/ValueTab";
-import { predictLineup } from "@/lib/modeling/predicted-lineup";
+import { predictLineup, predictLineupFromDb } from "@/lib/modeling/predicted-lineup";
 import { getMatchPlayerSim } from "@/lib/modeling/player-sim";
 import { estimateMatchGoalLambdas } from "@/lib/modeling/baseline-params";
+import { getInjuredPlayersByTeam, getRecentLineupsBatch } from "@/lib/db-queries";
 import type { FeedPredictedLineup, FeedPlayerSim, FeedPlayerSimEntry } from "@/lib/feed";
 import type { PredictedLineup } from "@/lib/modeling/predicted-lineup";
 import type { PlayerSimResult } from "@/lib/modeling/player-sim";
@@ -172,8 +173,21 @@ export default async function MatchDetailPage({
   let playerSimData: FeedPlayerSim | undefined;
 
   if (!isFinished) {
-    const homeLineupRaw = predictLineup(match.homeTeamName, match.leagueId, fixtureDate);
-    const awayLineupRaw = predictLineup(match.awayTeamName, match.leagueId, fixtureDate);
+    const teamIds = [match.homeTeamId, match.awayTeamId];
+    const [injuredMap, recentLineupsMap] = await Promise.all([
+      getInjuredPlayersByTeam(teamIds),
+      getRecentLineupsBatch(teamIds, fixtureDate, 10),
+    ]);
+    const homeInjured = injuredMap.get(match.homeTeamId);
+    const awayInjured = injuredMap.get(match.awayTeamId);
+    const homeRecent = recentLineupsMap.get(match.homeTeamId);
+    const awayRecent = recentLineupsMap.get(match.awayTeamId);
+    const homeLineupRaw = (homeRecent && homeRecent.length > 0
+      ? predictLineupFromDb(match.homeTeamName, homeRecent, homeInjured)
+      : null) ?? predictLineup(match.homeTeamName, match.leagueId, fixtureDate, homeInjured);
+    const awayLineupRaw = (awayRecent && awayRecent.length > 0
+      ? predictLineupFromDb(match.awayTeamName, awayRecent, awayInjured)
+      : null) ?? predictLineup(match.awayTeamName, match.leagueId, fixtureDate, awayInjured);
 
     const toFeedLineup = (l: PredictedLineup): FeedPredictedLineup => ({
       starters: l.starters.map((s) => ({

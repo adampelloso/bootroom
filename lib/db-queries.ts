@@ -4,7 +4,7 @@
  */
 
 import { getDb } from "./db";
-import { fixture, team, fixtureOdds, h2h } from "./db-schema";
+import { fixture, team, fixtureOdds, h2h, injury, fixtureLineup } from "./db-schema";
 import { eq, and, gte, lte, inArray, sql } from "drizzle-orm";
 import type { MarketProbabilities } from "@/lib/odds/the-odds-api";
 
@@ -184,5 +184,119 @@ export async function getH2HForPairs(
     const fixtures = await getH2HFixtures(homeId, awayId);
     result.set(key, fixtures);
   }
+  return result;
+}
+
+/** Get injured player IDs for a set of teams. Returns map of teamId → Set of injured playerIds. */
+export async function getInjuredPlayersByTeam(
+  teamIds: number[],
+): Promise<Map<number, Set<number>>> {
+  if (teamIds.length === 0) return new Map();
+  const db = getDb();
+  const rows = await db
+    .select({ playerId: injury.playerId, teamId: injury.teamId, type: injury.type })
+    .from(injury)
+    .where(inArray(injury.teamId, teamIds));
+  const map = new Map<number, Set<number>>();
+  for (const row of rows) {
+    // Only exclude players who are confirmed missing
+    if (row.type !== "Missing Fixture") continue;
+    if (!map.has(row.teamId)) map.set(row.teamId, new Set());
+    map.get(row.teamId)!.add(row.playerId);
+  }
+  return map;
+}
+
+export type DbInjury = typeof injury.$inferSelect;
+
+/** Get all injuries for given teams (for UI display). */
+export async function getInjuriesForTeams(
+  teamIds: number[],
+): Promise<DbInjury[]> {
+  if (teamIds.length === 0) return [];
+  const db = getDb();
+  return db
+    .select()
+    .from(injury)
+    .where(inArray(injury.teamId, teamIds));
+}
+
+export interface RecentStarterRow {
+  playerId: number;
+  playerName: string;
+  position: string | null;
+  started: number;
+  fixtureDate: string;
+}
+
+/**
+ * Get lineup data for a team from their last N fixtures.
+ * Returns all players who appeared, with started flag and fixture date.
+ */
+export async function getRecentLineups(
+  teamId: number,
+  beforeDate: string,
+  n: number = 10,
+): Promise<RecentStarterRow[]> {
+  const db = getDb();
+  // First get the last N fixture IDs for this team
+  const recentFixtures = await db
+    .select({ id: fixture.id, date: fixture.date })
+    .from(fixture)
+    .where(
+      and(
+        sql`(${fixture.homeTeamId} = ${teamId} OR ${fixture.awayTeamId} = ${teamId})`,
+        sql`${fixture.date} < ${beforeDate}`,
+        sql`${fixture.status} IN ('FT', 'AET', 'PEN')`,
+      ),
+    )
+    .orderBy(sql`${fixture.date} DESC`)
+    .limit(n);
+
+  if (recentFixtures.length === 0) return [];
+
+  const fixtureIds = recentFixtures.map((f) => f.id);
+  const fixtureDateMap = new Map(recentFixtures.map((f) => [f.id, f.date]));
+
+  const rows = await db
+    .select({
+      playerId: fixtureLineup.playerId,
+      playerName: fixtureLineup.playerName,
+      position: fixtureLineup.position,
+      started: fixtureLineup.started,
+      fixtureId: fixtureLineup.fixtureId,
+    })
+    .from(fixtureLineup)
+    .where(
+      and(
+        eq(fixtureLineup.teamId, teamId),
+        inArray(fixtureLineup.fixtureId, fixtureIds),
+      ),
+    );
+
+  return rows.map((r) => ({
+    playerId: r.playerId,
+    playerName: r.playerName,
+    position: r.position,
+    started: r.started,
+    fixtureDate: fixtureDateMap.get(r.fixtureId) ?? "",
+  }));
+}
+
+/**
+ * Batch fetch recent lineups for multiple teams.
+ */
+export async function getRecentLineupsBatch(
+  teamIds: number[],
+  beforeDate: string,
+  n: number = 10,
+): Promise<Map<number, RecentStarterRow[]>> {
+  const result = new Map<number, RecentStarterRow[]>();
+  await Promise.all(
+    teamIds.map(async (id) => {
+      const rows = await getRecentLineups(id, beforeDate, n);
+      if (rows.length > 0) result.set(id, rows);
+    }),
+  );
   return result;
 }

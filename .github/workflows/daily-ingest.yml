@@ -48,7 +48,7 @@ jobs:
       # ── Detailed Data Ingest (stats, players) ───────────────
 
       - name: Ingest season fixtures (incremental)
-        run: node scripts/season-ingest.mjs --all --season=2025 --skipPlayers
+        run: node scripts/season-ingest.mjs --all --season=2025
 
       - name: Ingest player stats (skip if fresh)
         run: node scripts/ingest-players.mjs --all --season=2025 --skip-if-fresh
@@ -67,6 +67,12 @@ jobs:
 
       - name: Ingest H2H to Turso DB
         run: npx tsx scripts/ingest-h2h-db.ts
+
+      - name: Sync per-match lineups to Turso DB
+        run: npx tsx scripts/sync-lineups-to-db.ts
+
+      - name: Ingest injuries to Turso DB
+        run: npx tsx scripts/ingest-injuries-db.ts
 
       # ── Simulations ──────────────────────────────────────
 
