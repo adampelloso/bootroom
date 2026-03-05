@@ -163,12 +163,30 @@ export interface ApiFootballPlayersResponse {
   response: ApiFootballSeasonPlayerItem[];
 }
 
-/** Odds snapshot - simplified for MVP */
+/** Odds from /odds endpoint */
+export interface ApiFootballOddsBookmaker {
+  id: number;
+  name: string;
+  bets: Array<{
+    id: number;
+    name: string;    // "Match Winner", "Goals Over/Under", "Both Teams Score"
+    values: Array<{
+      value: string; // "Home", "Draw", "Away", "Over 2.5", "Under 2.5", "Yes", "No"
+      odd: string;   // decimal odds as string
+    }>;
+  }>;
+}
+
+export interface ApiFootballOddsResponseItem {
+  fixture: { id: number };
+  bookmakers: ApiFootballOddsBookmaker[];
+}
+
 export interface ApiFootballOddsResponse {
   get: string;
   parameters: Record<string, string | number>;
   errors: Record<string, unknown>;
   results: number;
   paging: { current: number; total: number };
-  response: unknown[];
+  response: ApiFootballOddsResponseItem[];
 }

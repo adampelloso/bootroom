@@ -10,7 +10,7 @@ function buildUrl(range: DateRange, league: LeagueFilterValue): string {
   const sp = new URLSearchParams();
   if (range !== "today") sp.set("range", range);
   sp.set("league", league);
-  return `/feed?${sp.toString()}`;
+  return `/matches?${sp.toString()}`;
 }
 
 export function LeagueScrubber({

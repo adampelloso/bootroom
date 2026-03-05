@@ -14,7 +14,18 @@ export async function getSubscription(userId: string) {
 export async function hasActiveSubscription(userId: string): Promise<boolean> {
   const sub = await getSubscription(userId);
   if (!sub) return false;
-  return sub.status === "active" || sub.status === "trialing";
+  if (sub.status !== "active" && sub.status !== "trialing") return false;
+
+  // Require a valid period end timestamp. Without one the record is
+  // incomplete (e.g. webhook never set it) and shouldn't grant access.
+  if (!sub.currentPeriodEnd) return false;
+
+  // Verify the period hasn't expired. 1-day grace for webhook delays.
+  const now = Math.floor(Date.now() / 1000);
+  const gracePeriod = 86400;
+  if (sub.currentPeriodEnd + gracePeriod < now) return false;
+
+  return true;
 }
 
 type SubscriptionStatus = "none" | "trialing" | "active" | "past_due" | "canceled";

@@ -176,13 +176,13 @@ export function UnifiedPlayerTable({
                   <td className="py-1.5 text-right text-[var(--text-sec)]">{p.startPct != null ? `${p.startPct.toFixed(0)}%` : "—"}</td>
                   <td
                     className="py-1.5 text-right text-[var(--text-main)] font-semibold"
-                    style={isHighScorer ? { background: "rgba(59,130,246,0.08)" } : undefined}
+                    style={isHighScorer ? { background: "rgba(212,255,0,0.08)" } : undefined}
                   >
                     {p.scorerPct != null ? `${p.scorerPct.toFixed(0)}%` : "—"}
                   </td>
                   <td
                     className="py-1.5 text-right text-[var(--text-sec)]"
-                    style={isHighXg ? { background: "rgba(59,130,246,0.08)" } : undefined}
+                    style={isHighXg ? { background: "rgba(212,255,0,0.08)" } : undefined}
                   >
                     {p.xG != null ? p.xG.toFixed(2) : "—"}
                   </td>

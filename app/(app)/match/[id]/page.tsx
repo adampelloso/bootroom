@@ -213,29 +213,6 @@ export default async function MatchDetailPage({
 
   const showDebug = debugParam === "1" || debugParam === "true";
 
-  // Generate narrative for overview tab
-  const { generateNarrative } = await import("@/lib/narrative");
-  const feedProbs = precomputed?.feedProbs ?? null;
-  const narrativeMatch = {
-    homeTeamName: match.homeTeamName,
-    awayTeamName: match.awayTeamName,
-    homeTeamCode: match.homeTeamCode,
-    awayTeamCode: match.awayTeamCode,
-    homeForm: match.homeForm,
-    awayForm: match.awayForm,
-    marketRows: snapshotRows,
-    modelProbs: feedProbs ? {
-      expectedHomeGoals: feedProbs.expectedHomeGoals,
-      expectedAwayGoals: feedProbs.expectedAwayGoals,
-      over_2_5: feedProbs.over_2_5,
-      btts: feedProbs.btts,
-      mcOver25: feedProbs.mcOver25,
-      mcBtts: feedProbs.mcBtts,
-    } : undefined,
-    edgeSummary: undefined,
-  } as Parameters<typeof generateNarrative>[0];
-  const matchNarrative = generateNarrative(narrativeMatch);
-
   // Cards thresholds
   const cardsCombined = [...homeLast10, ...awayLast10];
   const cardThresholds = cardsCombined.length > 0
@@ -326,7 +303,6 @@ export default async function MatchDetailPage({
             homeLast10={homeLast10}
             awayLast10={awayLast10}
             h2hSummary={match.h2hSummary}
-            narrative={matchNarrative}
           />
         )}
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { LeagueFilterValue } from "@/lib/leagues";
 
 export type DateRange = "today" | "tomorrow" | "week";
 
@@ -11,19 +10,15 @@ const OPTIONS: Array<{ value: DateRange; label: string }> = [
   { value: "week", label: "This Week" },
 ];
 
-function buildUrl(range: DateRange, league: LeagueFilterValue): string {
-  const sp = new URLSearchParams();
-  if (range !== "today") sp.set("range", range);
-  sp.set("league", league);
-  return `/feed?${sp.toString()}`;
+function buildUrl(range: DateRange): string {
+  if (range === "today") return "/matches";
+  return `/matches?range=${range}`;
 }
 
 export function DateSelector({
   currentRange,
-  currentLeague,
 }: {
   currentRange: DateRange;
-  currentLeague: LeagueFilterValue;
 }) {
   const router = useRouter();
 
@@ -35,7 +30,7 @@ export function DateSelector({
           <button
             key={opt.value}
             type="button"
-            onClick={() => router.push(buildUrl(opt.value, currentLeague))}
+            onClick={() => router.push(buildUrl(opt.value))}
             className="font-mono text-[12px] uppercase whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0 hover:bg-[var(--bg-surface)]"
             style={{
               padding: "8px 12px",

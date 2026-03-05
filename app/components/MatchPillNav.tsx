@@ -40,6 +40,7 @@ export function MatchPillNav({ activeTab, hasSimData, hasH2H }: Props) {
   const visibleTabs = TABS.filter((t) => {
     if (t.id === "simulation" && !hasSimData) return false;
     if (t.id === "h2h" && !hasH2H) return false;
+    if (t.id === "value") return false;
     return true;
   });
 

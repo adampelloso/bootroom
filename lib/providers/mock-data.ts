@@ -332,14 +332,82 @@ export function getMockFixturePlayersResponse(fixtureId: number): ApiFootballFix
   return playersResponse(response);
 }
 
-export function getMockOddsResponse(_fixtureId: number, _markets?: string[]): ApiFootballOddsResponse {
+export function getMockOddsResponse(fixtureId: number, _markets?: string[]): ApiFootballOddsResponse {
   return {
     get: "odds",
-    parameters: {},
+    parameters: { fixture: fixtureId },
     errors: {},
-    results: 0,
+    results: 1,
     paging: { current: 1, total: 1 },
-    response: [],
+    response: [
+      {
+        fixture: { id: fixtureId },
+        bookmakers: [
+          {
+            id: 1,
+            name: "Mock Sportsbook",
+            bets: [
+              {
+                id: 1,
+                name: "Match Winner",
+                values: [
+                  { value: "Home", odd: "2.10" },
+                  { value: "Draw", odd: "3.40" },
+                  { value: "Away", odd: "3.50" },
+                ],
+              },
+              {
+                id: 5,
+                name: "Goals Over/Under",
+                values: [
+                  { value: "Over 2.5", odd: "1.85" },
+                  { value: "Under 2.5", odd: "1.95" },
+                ],
+              },
+              {
+                id: 8,
+                name: "Both Teams Score",
+                values: [
+                  { value: "Yes", odd: "1.72" },
+                  { value: "No", odd: "2.05" },
+                ],
+              },
+            ],
+          },
+          {
+            id: 2,
+            name: "Mock Sportsbook 2",
+            bets: [
+              {
+                id: 1,
+                name: "Match Winner",
+                values: [
+                  { value: "Home", odd: "2.05" },
+                  { value: "Draw", odd: "3.50" },
+                  { value: "Away", odd: "3.40" },
+                ],
+              },
+              {
+                id: 5,
+                name: "Goals Over/Under",
+                values: [
+                  { value: "Over 2.5", odd: "1.80" },
+                  { value: "Under 2.5", odd: "2.00" },
+                ],
+              },
+              {
+                id: 8,
+                name: "Both Teams Score",
+                values: [
+                  { value: "Yes", odd: "1.75" },
+                  { value: "No", odd: "2.00" },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
   };
 }
 

@@ -7,14 +7,14 @@
 import type { FeedMatch } from "@/lib/feed";
 import { getFeedModelProbsFromDisk } from "@/lib/modeling/sim-reader";
 import { isWorkersRuntime } from "@/lib/kv";
-import { getOddsKeyForLeagueId, isCup, getCompetitionByLeagueId } from "@/lib/leagues";
+import { isCup, getCompetitionByLeagueId } from "@/lib/leagues";
 import { estimateMatchGoalLambdas, estimateMatchCornerLambdas } from "@/lib/modeling/baseline-params";
 import { findFirstLegResult } from "@/lib/modeling/first-leg-lookup";
 import type { FirstLegResult } from "@/lib/modeling/first-leg-lookup";
 import { simulateMatch } from "@/lib/modeling/mc-engine";
 import { applyCalibration } from "@/lib/modeling/calibration";
 import { blendModelAndMarket } from "@/lib/modeling/odds-blend";
-import { getMarketProbsForMatch } from "@/lib/odds/the-odds-api";
+import type { MarketProbabilities } from "@/lib/odds/the-odds-api";
 
 const EV_THRESHOLD = 0.03;
 
@@ -55,7 +55,10 @@ export interface FeedModelProbs {
 
 const cache = new Map<string, FeedModelProbs>();
 
-export function getFeedMatchModelProbs(match: FeedMatch): FeedModelProbs | null {
+export function getFeedMatchModelProbs(
+  match: FeedMatch,
+  externalMarketProbs?: MarketProbabilities | null,
+): FeedModelProbs | null {
   const cacheKey = `${match.providerFixtureId}-${match.kickoffUtc}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey)!;
@@ -64,6 +67,36 @@ export function getFeedMatchModelProbs(match: FeedMatch): FeedModelProbs | null 
   // Try pre-computed data from disk first
   const fromDisk = getFeedModelProbsFromDisk(match.providerFixtureId, match.kickoffUtc);
   if (fromDisk) {
+    // If disk data lacks edges but we have DB odds, merge them in
+    const marketProbs = externalMarketProbs !== undefined ? externalMarketProbs : null;
+    if (!fromDisk.edges && marketProbs) {
+      const edges = {
+        home: fromDisk.home - marketProbs.home,
+        draw: fromDisk.draw - marketProbs.draw,
+        away: fromDisk.away - marketProbs.away,
+        over_2_5: marketProbs.over_2_5 && fromDisk.over_2_5
+          ? fromDisk.over_2_5 - marketProbs.over_2_5
+          : undefined,
+        btts: marketProbs.btts != null && fromDisk.btts != null
+          ? fromDisk.btts - marketProbs.btts
+          : undefined,
+      };
+      fromDisk.edges = edges;
+      fromDisk.marketProbs = {
+        home: marketProbs.home,
+        draw: marketProbs.draw,
+        away: marketProbs.away,
+        over_2_5: marketProbs.over_2_5,
+        btts: marketProbs.btts,
+      };
+      const evFlags: string[] = [];
+      if (edges.home > EV_THRESHOLD) evFlags.push("HOME");
+      if (edges.draw > EV_THRESHOLD) evFlags.push("DRAW");
+      if (edges.away > EV_THRESHOLD) evFlags.push("AWAY");
+      if (edges.over_2_5 && edges.over_2_5 > EV_THRESHOLD) evFlags.push("O2.5");
+      if (edges.btts && edges.btts > EV_THRESHOLD) evFlags.push("BTTS");
+      if (evFlags.length > 0) fromDisk.evFlags = evFlags;
+    }
     cache.set(cacheKey, fromDisk);
     return fromDisk;
   }
@@ -105,16 +138,9 @@ export function getFeedMatchModelProbs(match: FeedMatch): FeedModelProbs | null 
     tempoStd: 0.15,
   });
 
-  const oddsKey = match.leagueId != null ? getOddsKeyForLeagueId(match.leagueId) : null;
-  const marketProbs =
-    oddsKey != null
-      ? getMarketProbsForMatch(
-          oddsKey,
-          match.homeTeamName,
-          match.awayTeamName,
-          match.kickoffUtc
-        )
-      : null;
+  // Use externally-provided market probs (from API-Football odds endpoint);
+  // undefined means "not provided" (backward compat), null means "no odds found".
+  const marketProbs = externalMarketProbs !== undefined ? externalMarketProbs : null;
 
   const rawModelProbs = {
     home: applyCalibration("1X2", "H", sim.pHomeWin),

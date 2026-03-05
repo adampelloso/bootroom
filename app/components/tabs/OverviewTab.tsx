@@ -9,7 +9,6 @@ import { EdgeBadge } from "@/app/components/EdgeBadge";
 import type { MatchSimulationResult } from "@/lib/modeling/mc-engine";
 import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import { ScorelineBarChart } from "@/app/components/ScorelineBarChart";
-import { PlainEnglishNarrative } from "@/app/components/PlainEnglishNarrative";
 
 type Props = {
   rows: FeedMarketRow[];
@@ -23,7 +22,6 @@ type Props = {
   homeLast10?: TeamMatchRow[];
   awayLast10?: TeamMatchRow[];
   h2hSummary?: H2HSummary | null;
-  narrative?: string;
 };
 
 function formatPercent(p: number): string {
@@ -42,7 +40,6 @@ export function OverviewTab({
   homeLast10,
   awayLast10,
   h2hSummary,
-  narrative,
 }: Props) {
   const o25Row = rows.find((r) => r.market === "O2.5");
   const bttsRow = rows.find((r) => r.market === "BTTS");
@@ -198,11 +195,6 @@ export function OverviewTab({
                 ))}
               </div>
             </section>
-          )}
-
-          {/* Plain-English Narrative */}
-          {narrative && (
-            <PlainEnglishNarrative narrative={narrative} />
           )}
 
           {sim && feedProbs && sortedScorelines && sortedScorelines.length > 0 && (

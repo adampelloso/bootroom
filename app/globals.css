@@ -13,13 +13,10 @@
   --radius-card: 0;
 
   /* Signal colors */
-  --color-accent: #3B82F6;
   --color-positive: #22C55E;
   --color-negative: #EF4444;
   --color-amber: #F59E0B;
-  --color-bar-primary: #3B82F6;
   --color-bar-secondary: #334155;
-  --color-bar-highlight: #3B82F6;
   --color-bar-muted: rgba(82,82,82,0.4);
 
   /* Edge colors */
@@ -43,9 +40,12 @@
   --bg-accent: #F1F5F9;
   --text-on-accent: #0A0A0A;
   --border-light: #1E293B;
-  --color-home: #3B82F6;
+  --color-accent: #D4FF00;
+  --color-bar-primary: #D4FF00;
+  --color-bar-highlight: #D4FF00;
+  --color-home: #D4FF00;
   --color-away: #737373;
-  --color-home-muted: rgba(59,130,246,0.3);
+  --color-home-muted: rgba(212,255,0,0.25);
   --color-away-muted: rgba(115,115,115,0.3);
 }
 
@@ -62,9 +62,12 @@
   --bg-accent: #0F172A;
   --text-on-accent: #FAFAFA;
   --border-light: #E2E8F0;
-  --color-home: #2563EB;
+  --color-accent: #65a30d;
+  --color-bar-primary: #65a30d;
+  --color-bar-highlight: #65a30d;
+  --color-home: #65a30d;
   --color-away: #525252;
-  --color-home-muted: rgba(37,99,235,0.2);
+  --color-home-muted: rgba(101,163,13,0.2);
   --color-away-muted: rgba(82,82,82,0.2);
 }
 

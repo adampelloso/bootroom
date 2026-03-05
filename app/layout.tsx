@@ -17,7 +17,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Bootroom",
+  title: "Bootroom | Match analytics that find the edge",
   description: "Stats-focused soccer intelligence — EPL",
 };
 

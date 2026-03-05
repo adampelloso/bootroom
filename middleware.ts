@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/subscribe"];
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/subscribe", "/subscribe/success"];
 const PUBLIC_PREFIXES = ["/api/auth", "/api/stripe", "/_next", "/images"];
 
 // Logged-in users hitting these pages should go straight to /today
@@ -21,7 +21,9 @@ export function middleware(request: NextRequest) {
 
   // /feed → /matches redirect (keep /feed alive for old bookmarks)
   if (pathname === "/feed" && sessionCookie) {
-    return NextResponse.redirect(new URL("/matches", request.url));
+    const dest = new URL("/matches", request.url);
+    dest.search = request.nextUrl.search;
+    return NextResponse.redirect(dest);
   }
 
   // Public routes — no auth check

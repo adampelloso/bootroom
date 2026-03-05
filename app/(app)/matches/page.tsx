@@ -1,9 +1,9 @@
 import { getFeedMatches } from "@/lib/build-feed";
 import { FeedView } from "@/app/components/FeedView";
 import { DateSelector, type DateRange } from "@/app/components/DateSelector";
-import { AccountButton } from "@/app/components/AccountButton";
-import { ALL_COMPETITION_IDS, SUPPORTED_COMPETITIONS, getLeagueStrength, type LeagueFilterValue } from "@/lib/leagues";
+import { getLeagueStrength } from "@/lib/leagues";
 import { requireActiveSubscription } from "@/lib/auth-guard";
+import { getFollowedLeagueIds } from "@/lib/league-preferences";
 
 
 function toISODate(d: Date): string {
@@ -34,35 +34,21 @@ function getDateRange(range: DateRange): { from: string; to: string } {
 export default async function MatchesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string; league?: LeagueFilterValue }>;
+  searchParams: Promise<{ range?: string }>;
 }) {
   await requireActiveSubscription();
 
   const params = await searchParams;
   const range: DateRange = (["today", "tomorrow", "week"].includes(params.range ?? "") ? params.range : "today") as DateRange;
-  const league = params.league ?? "all";
   const { from, to } = getDateRange(range);
 
-  // Always fetch all leagues — per-league cache makes this cheap after first load.
-  const allMatches = await getFeedMatches(from, to, ALL_COMPETITION_IDS);
+  const leagueIds = await getFollowedLeagueIds();
+  const allMatches = await getFeedMatches(from, to, leagueIds);
 
-  // Derive active leagues from actual match data, sorted by strength (strongest first)
-  const activeLeagueIds = new Set(allMatches.map((m) => m.leagueId).filter(Boolean));
-  const activeLeagues = SUPPORTED_COMPETITIONS
-    .filter((c) => activeLeagueIds.has(c.id))
-    .map((c) => ({ value: `${c.id}` as LeagueFilterValue, label: c.label, strength: getLeagueStrength(c.id) }))
-    .sort((a, b) => b.strength - a.strength);
-
-  // Filter for display, sort by league strength (strongest first)
-  const filtered =
-    league === "all"
-      ? allMatches
-      : allMatches.filter((m) => m.leagueId === Number(league));
-  const matches = filtered.toSorted((a, b) => {
-    if (league === "all") {
-      const strengthDiff = getLeagueStrength(b.leagueId ?? 0) - getLeagueStrength(a.leagueId ?? 0);
-      if (strengthDiff !== 0) return strengthDiff;
-    }
+  // Sort by league strength (strongest first), then kickoff time
+  const matches = allMatches.toSorted((a, b) => {
+    const strengthDiff = getLeagueStrength(b.leagueId ?? 0) - getLeagueStrength(a.leagueId ?? 0);
+    if (strengthDiff !== 0) return strengthDiff;
     return a.kickoffUtc.localeCompare(b.kickoffUtc);
   });
 
@@ -78,18 +64,10 @@ export default async function MatchesPage({
         >
           Matches
         </h1>
-        <div className="flex items-center gap-2">
-          <DateSelector currentRange={range} currentLeague={league} />
-          <AccountButton />
-        </div>
+        <DateSelector currentRange={range} />
       </header>
 
-      <FeedView
-        matches={matches}
-        currentRange={range}
-        currentLeague={league}
-        activeLeagues={activeLeagues}
-      />
+      <FeedView matches={matches} currentRange={range} />
     </main>
   );
 }

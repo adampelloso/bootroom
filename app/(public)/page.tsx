@@ -1,3 +1,10 @@
+const hoverStyles = `
+  .lp-link { transition: opacity 0.15s ease; }
+  .lp-link:hover { opacity: 0.7; }
+  .lp-btn { transition: filter 0.15s ease; }
+  .lp-btn:hover { filter: brightness(0.88); }
+`;
+
 export default function LandingPage() {
   const section: React.CSSProperties = {
     maxWidth: "1080px",
@@ -15,6 +22,8 @@ export default function LandingPage() {
         color: "#F1F5F9",
       }}
     >
+      <style dangerouslySetInnerHTML={{ __html: hoverStyles }} />
+
       {/* ─── NAV ─── */}
       <nav
         style={{
@@ -22,7 +31,7 @@ export default function LandingPage() {
           top: 0,
           zIndex: 100,
           background: "#0A0A0A",
-          borderBottom: "1px solid #1E293B",
+          borderBottom: "1px solid #808080",
         }}
       >
         <div
@@ -36,7 +45,7 @@ export default function LandingPage() {
         >
           <span
             style={{
-              fontSize: "15px",
+              fontSize: "16px",
               fontWeight: 700,
               letterSpacing: "0.08em",
               textTransform: "uppercase" as const,
@@ -48,9 +57,10 @@ export default function LandingPage() {
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
             <a
               href="/login"
+              className="lp-link"
               style={{
-                fontSize: "13px",
-                color: "#475569",
+                fontSize: "14px",
+                color: "#808080",
                 textDecoration: "none",
                 fontWeight: 500,
               }}
@@ -59,8 +69,9 @@ export default function LandingPage() {
             </a>
             <a
               href="/signup"
+              className="lp-btn"
               style={{
-                fontSize: "13px",
+                fontSize: "14px",
                 fontWeight: 600,
                 color: "#000",
                 background: "#fff",
@@ -76,17 +87,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ─── HERO ─── */}
-      <section style={{ ...section, paddingTop: "80px", paddingBottom: "64px", textAlign: "center", position: "relative" }}>
-        {/* Animated radial gradient mesh */}
-        <div
-          className="mesh-gradient"
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "radial-gradient(ellipse 600px 400px at 30% 40%, rgba(59,130,246,0.06) 0%, transparent 70%), radial-gradient(ellipse 500px 350px at 70% 60%, rgba(245,158,11,0.05) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
+      <section style={{ ...section, paddingTop: "72px", paddingBottom: "32px", textAlign: "center", position: "relative" }}>
         <h1
           style={{
             fontSize: "clamp(32px, 5vw, 52px)",
@@ -98,23 +99,22 @@ export default function LandingPage() {
             position: "relative",
           }}
         >
-          The beautiful game deserves beautiful data
+          Match analytics<br />that find the edge
         </h1>
         <p
           style={{
-            fontSize: "14px",
-            color: "#475569",
+            fontSize: "18px",
+            color: "#808080",
             lineHeight: 1.7,
-            maxWidth: "520px",
             margin: "0 auto 40px",
             position: "relative",
           }}
         >
-          100K simulations per match powered by 2K+ data points
+          100K simulations. 2K+ signals. Actionable insights.
         </p>
         <a
           href="/signup"
-          className="cta-glow"
+          className="cta-glow lp-btn"
           style={{
             display: "inline-block",
             fontSize: "14px",
@@ -128,18 +128,18 @@ export default function LandingPage() {
             transition: "box-shadow 0.2s ease",
           }}
         >
-          {"Start free trial \u2192"}
+          Start free trial
         </a>
 
         {/* ─── PRODUCT PREVIEW ─── */}
-        <div style={{ marginTop: "64px" }}>
+        <div style={{ marginTop: "72px" }}>
           {/* Mock feed — 2 column grid */}
           <div
             style={{
               background: "#0A0A0A",
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
-              gap: "12px",
+              gap: "32px",
             }}
           >
             <PreviewCard
@@ -183,21 +183,11 @@ export default function LandingPage() {
             />
           </div>
 
-          {/* Fade overlay */}
-          <div
-            style={{
-              height: "40px",
-              background: "linear-gradient(to bottom, transparent, #0A0A0A)",
-              marginTop: "-40px",
-              position: "relative",
-              zIndex: 1,
-            }}
-          />
         </div>
       </section>
 
       {/* ─── HOW IT WORKS ─── */}
-      <section style={{ ...section, paddingTop: "64px", paddingBottom: "64px" }}>
+      <section style={{ ...section, paddingTop: "72px", paddingBottom: "72px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "0" }}>
           <FeatureCard title="MATCH FEED" bullets={["Every fixture across 10+ leagues", "BTTS, Over 2.5, corners, xG", "Model vs. market edge detection", "Best signals surface first"]} />
           <FeatureCard title="SIMULATION ENGINE" bullets={["100,000 Monte Carlo runs per match", "Full scoreline distributions", "Probability breakdowns for every market", "Edge-aware intelligence for every fixture"]} />
@@ -206,24 +196,20 @@ export default function LandingPage() {
       </section>
 
       {/* ─── PRICING ─── */}
-      <section style={{ ...section, paddingTop: "64px", paddingBottom: "80px" }}>
-        <div style={{ fontSize: "13px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#475569", marginBottom: "32px", textAlign: "center" }}>
-          PRICING
-        </div>
-
-        <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
+      <section style={{ ...section, paddingTop: "0px", paddingBottom: "40px" }}>
+<div style={{ display: "flex", gap: "32px", justifyContent: "center", flexWrap: "wrap" }}>
           <PricingCard label="MONTHLY" price="$5" period="/mo" />
           <PricingCard label="YEARLY" price="$25" period="/yr" badge="SAVE 60%" featured />
         </div>
 
-        <p style={{ fontSize: "12px", color: "#475569", textAlign: "center", marginTop: "20px" }}>
+        <p style={{ fontSize: "14px", color: "#808080", textAlign: "center", marginTop: "20px" }}>
           7 day free trial. Cancel anytime.
         </p>
       </section>
 
       {/* ─── FOOTER ─── */}
       <footer style={{ padding: "24px", textAlign: "center" }}>
-        <span style={{ fontSize: "12px", color: "#333", letterSpacing: "0.04em" }}>
+        <span style={{ fontSize: "14px", color: "#333", letterSpacing: "0.04em" }}>
           BOOTROOM &middot; 2026
         </span>
       </footer>
@@ -235,11 +221,11 @@ export default function LandingPage() {
 
 function FeatureCard({ title, bullets }: { title: string; bullets: string[] }) {
   return (
-    <div style={{ border: "1px solid #1E293B", padding: "28px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-      <span style={{ fontSize: "13px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#F1F5F9" }}>{title}</span>
+    <div style={{ border: "1px solid #808080", padding: "28px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+      <span style={{ fontSize: "14px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#F1F5F9" }}>{title}</span>
       <ul style={{ listStyle: "disc", paddingLeft: "16px", margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
         {bullets.map((b) => (
-          <li key={b} style={{ fontSize: "13px", color: "#475569", lineHeight: 1.5 }}>{b}</li>
+          <li key={b} style={{ fontSize: "14px", color: "#808080", lineHeight: 1.5 }}>{b}</li>
         ))}
       </ul>
     </div>
@@ -268,14 +254,7 @@ function PreviewCard({
   const o25Pill = pillColor(over25);
   const bttsPill = pillColor(btts);
 
-  const leagueColorMap: Record<string, string> = {
-    "PREMIER LEAGUE": "#6B21A8",
-    "LA LIGA": "#EA580C",
-    "SERIE A": "#2563EB",
-    "BUNDESLIGA": "#DC2626",
-    "UCL": "#D4AF37",
-  };
-  const accentColor = leagueColorMap[league] ?? "#64748B";
+  const accentColor = "#808080";
 
   return (
     <div
@@ -288,8 +267,8 @@ function PreviewCard({
     >
       {/* Header row: league left, time right */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-        <span style={{ fontSize: "12px", fontWeight: 600, color: accentColor, textTransform: "uppercase" as const }}>{league}</span>
-        <span style={{ fontSize: "12px", color: "#475569", textTransform: "uppercase" as const }}>{time}</span>
+        <span style={{ fontSize: "14px", fontWeight: 600, color: accentColor, textTransform: "uppercase" as const }}>{league}</span>
+        <span style={{ fontSize: "14px", color: "#808080", textTransform: "uppercase" as const }}>{time}</span>
       </div>
 
       {/* Teams row: home — H2H — away */}
@@ -298,7 +277,7 @@ function PreviewCard({
           <img src={homeLogo} alt="" style={{ width: "24px", height: "24px", objectFit: "contain", flexShrink: 0 }} />
           <span style={{ fontSize: "18px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2, textTransform: "uppercase" as const, color: "#F1F5F9" }}>{homeCode}</span>
         </div>
-        <span style={{ fontSize: "12px", color: "#475569", textTransform: "uppercase" as const, flexShrink: 0, padding: "0 8px" }}>{h2h}</span>
+        <span style={{ fontSize: "14px", color: "#808080", textTransform: "uppercase" as const, flexShrink: 0, padding: "0 8px" }}>{h2h}</span>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, justifyContent: "flex-end" }}>
           <span style={{ fontSize: "18px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2, textTransform: "uppercase" as const, color: "#F1F5F9" }}>{awayCode}</span>
           <img src={awayLogo} alt="" style={{ width: "24px", height: "24px", objectFit: "contain", flexShrink: 0 }} />
@@ -309,29 +288,29 @@ function PreviewCard({
       <table style={{ width: "100%", borderCollapse: "collapse" as const, fontFamily: "var(--font-mono)" }}>
         <thead>
           <tr style={{ background: "#141414" }}>
-            <th style={{ fontSize: "12px", fontWeight: 700, color: "#475569", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.1em", textAlign: "left" as const, width: "40%" }}>Stat</th>
-            <th style={{ fontSize: "12px", fontWeight: 700, color: "#475569", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.1em", textAlign: "center" as const, width: "20%" }}>Home</th>
-            <th style={{ fontSize: "12px", fontWeight: 700, color: "#475569", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.1em", textAlign: "center" as const, width: "20%" }}>Away</th>
-            <th style={{ fontSize: "12px", fontWeight: 700, color: "#475569", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.1em", textAlign: "right" as const, width: "20%" }}>Total</th>
+            <th style={{ fontSize: "14px", fontWeight: 700, color: "#808080", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.1em", textAlign: "left" as const, width: "40%" }}>Stat</th>
+            <th style={{ fontSize: "14px", fontWeight: 700, color: "#808080", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.1em", textAlign: "center" as const, width: "20%" }}>Home</th>
+            <th style={{ fontSize: "14px", fontWeight: 700, color: "#808080", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.1em", textAlign: "center" as const, width: "20%" }}>Away</th>
+            <th style={{ fontSize: "14px", fontWeight: 700, color: "#808080", padding: "6px 6px", textTransform: "uppercase" as const, letterSpacing: "0.1em", textAlign: "right" as const, width: "20%" }}>Total</th>
           </tr>
         </thead>
         <tbody>
-          <tr style={{ borderBottom: "1px solid #1E293B" }}>
-            <td style={{ padding: "6px 6px", fontSize: "12px", fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" as const, textAlign: "left" as const }}>xG</td>
-            <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#F1F5F9", textAlign: "center" as const }}>{homeXg}</td>
-            <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#F1F5F9", textAlign: "center" as const }}>{awayXg}</td>
-            <td style={{ padding: "6px 6px", fontSize: "13px", fontWeight: 700, color: "#F1F5F9", textAlign: "right" as const }}>{totalXg}</td>
+          <tr style={{ borderBottom: "1px solid #808080" }}>
+            <td style={{ padding: "6px 6px", fontSize: "14px", fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" as const, textAlign: "left" as const }}>xG</td>
+            <td style={{ padding: "6px 6px", fontSize: "14px", fontWeight: 700, color: "#F1F5F9", textAlign: "center" as const }}>{homeXg}</td>
+            <td style={{ padding: "6px 6px", fontSize: "14px", fontWeight: 700, color: "#F1F5F9", textAlign: "center" as const }}>{awayXg}</td>
+            <td style={{ padding: "6px 6px", fontSize: "14px", fontWeight: 700, color: "#F1F5F9", textAlign: "right" as const }}>{totalXg}</td>
           </tr>
           <tr>
             <td colSpan={4} style={{ padding: "6px 6px" }}>
               <div style={{ display: "flex", alignItems: "center" }}>
-                <span style={{ width: "50%", display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" as const }}>
+                <span style={{ width: "50%", display: "flex", alignItems: "center", gap: "6px", fontSize: "14px", fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" as const }}>
                   o2.5
-                  <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: 700, background: o25Pill.bg, color: o25Pill.text }}>{over25}%</span>
+                  <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "14px", fontWeight: 700, background: o25Pill.bg, color: o25Pill.text }}>{over25}%</span>
                 </span>
-                <span style={{ width: "50%", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px", fontSize: "12px", fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" as const }}>
+                <span style={{ width: "50%", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px", fontSize: "14px", fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" as const }}>
                   BTTS
-                  <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: 700, background: bttsPill.bg, color: bttsPill.text }}>{btts}%</span>
+                  <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "14px", fontWeight: 700, background: bttsPill.bg, color: bttsPill.text }}>{btts}%</span>
                 </span>
               </div>
             </td>
@@ -344,7 +323,7 @@ function PreviewCard({
         {scorelines.map((s) => (
           <div key={s.score} style={{ flex: 1, background: "#141414", padding: "8px 0", textAlign: "center" as const }}>
             <span style={{ fontSize: "15px", fontWeight: 700, color: "#F1F5F9", display: "block" }}>{s.score}</span>
-            <span style={{ fontSize: "12px", color: "#475569" }}>{s.prob}%</span>
+            <span style={{ fontSize: "14px", color: "#808080" }}>{s.prob}%</span>
           </div>
         ))}
       </div>
@@ -356,20 +335,21 @@ function PricingCard({ label, price, period, badge, featured }: {
   label: string; price: string; period: string; badge?: string; featured?: boolean;
 }) {
   return (
-    <div style={{ flex: "1 1 280px", maxWidth: "300px", border: featured ? "2px solid #F59E0B" : "1px solid #1E293B", padding: "28px 24px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <div style={{ flex: 1, border: featured ? "2px solid #a3e635" : "1px solid #808080", padding: "28px 24px", display: "flex", flexDirection: "column", alignItems: "center" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-        <span style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#475569" }}>{label}</span>
-        {badge && <span style={{ fontSize: "12px", fontWeight: 600, color: "#F59E0B", letterSpacing: "0.04em", background: "rgba(245,158,11,0.12)", padding: "2px 6px" }}>{badge}</span>}
+        <span style={{ fontSize: "14px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#808080" }}>{label}</span>
+        {badge && <span style={{ fontSize: "14px", fontWeight: 600, color: "#a3e635", letterSpacing: "0.04em", background: "rgba(163,230,53,0.12)", padding: "2px 6px" }}>{badge}</span>}
       </div>
       <div style={{ marginBottom: "24px" }}>
         <span style={{ fontSize: "32px", fontWeight: 700, letterSpacing: "-0.03em", color: "#fff" }}>{price}</span>
-        <span style={{ fontSize: "14px", color: "#475569", marginLeft: "4px" }}>{period}</span>
+        <span style={{ fontSize: "14px", color: "#808080", marginLeft: "4px" }}>{period}</span>
       </div>
       <a
         href="/signup"
-        style={{ display: "block", width: "100%", textAlign: "center", fontSize: "13px", fontWeight: 600, color: "#000", background: "#fff", padding: "12px", textDecoration: "none", letterSpacing: "0.02em" }}
+        className="lp-btn"
+        style={{ display: "block", width: "100%", textAlign: "center", fontSize: "14px", fontWeight: 600, color: "#000", background: featured ? "#a3e635" : "#fff", padding: "12px", textDecoration: "none", letterSpacing: "0.02em" }}
       >
-        Try it for free
+        Try it free
       </a>
     </div>
   );

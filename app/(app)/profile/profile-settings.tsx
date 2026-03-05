@@ -3,6 +3,7 @@
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { LeagueSelector } from "@/app/components/LeagueSelector";
 
 const sectionStyle: React.CSSProperties = {
   borderBottom: "1px solid var(--border-light)",
@@ -58,7 +59,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, { bg: string; text: string }> = {
     active: { bg: "rgba(34,197,94,0.15)", text: "rgb(34,197,94)" },
-    trialing: { bg: "rgba(59,130,246,0.15)", text: "rgb(59,130,246)" },
+    trialing: { bg: "rgba(212,255,0,0.15)", text: "var(--color-accent)" },
     canceled: { bg: "rgba(239,68,68,0.15)", text: "rgb(239,68,68)" },
     past_due: { bg: "rgba(234,179,8,0.15)", text: "rgb(234,179,8)" },
     none: { bg: "rgba(107,114,128,0.15)", text: "rgb(107,114,128)" },
@@ -176,9 +177,14 @@ export function ProfileSettings({
 
   return (
     <div>
+      {/* Leagues */}
+      <section style={sectionStyle}>
+        <SectionHeading>Leagues</SectionHeading>
+        <LeagueSelector />
+      </section>
+
       {/* Account */}
       <section style={sectionStyle}>
-        <SectionHeading>Account</SectionHeading>
 
         <div style={{ marginBottom: "var(--space-md)" }}>
           <div style={labelStyle}>Email</div>
@@ -235,19 +241,6 @@ export function ProfileSettings({
           )}
         </div>
 
-        <div>
-          <button
-            type="button"
-            onClick={handleDeleteAccount}
-            style={{
-              ...btnStyle,
-              color: "rgb(239,68,68)",
-              borderColor: "rgba(239,68,68,0.3)",
-            }}
-          >
-            Delete account
-          </button>
-        </div>
       </section>
 
       {/* Subscription */}
@@ -304,9 +297,24 @@ export function ProfileSettings({
       </section>
 
       {/* Sign out */}
-      <section>
+      <section style={{ marginBottom: "var(--space-lg)" }}>
         <button type="button" onClick={handleSignOut} style={btnStyle}>
           Sign out
+        </button>
+      </section>
+
+      {/* Delete account */}
+      <section style={{ paddingBottom: "72px" }}>
+        <button
+          type="button"
+          onClick={handleDeleteAccount}
+          style={{
+            ...btnStyle,
+            color: "rgb(239,68,68)",
+            borderColor: "rgba(239,68,68,0.3)",
+          }}
+        >
+          Delete account
         </button>
       </section>
     </div>

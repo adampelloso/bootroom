@@ -78,7 +78,45 @@ export async function POST(request: Request) {
         break;
       }
 
-      case "checkout.session.completed":
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.subscription && session.customer) {
+          const subId = typeof session.subscription === "string" ? session.subscription : session.subscription.id;
+          const custId = typeof session.customer === "string" ? session.customer : session.customer.id;
+          const sub = await stripe.subscriptions.retrieve(subId);
+          const customer = await stripe.customers.retrieve(custId);
+          if (!customer.deleted) {
+            const userId = customer.metadata.userId ?? session.metadata?.userId;
+            if (userId) {
+              const statusMap = {
+                active: "active",
+                trialing: "trialing",
+                past_due: "past_due",
+                canceled: "canceled",
+                incomplete: "none",
+                incomplete_expired: "none",
+                unpaid: "past_due",
+                paused: "canceled",
+              } as const;
+              type SubStatus = "none" | "trialing" | "active" | "past_due" | "canceled";
+              const mappedStatus: SubStatus =
+                statusMap[sub.status as keyof typeof statusMap] ?? "none";
+              await upsertSubscription({
+                userId,
+                stripeCustomerId: custId,
+                stripeSubscriptionId: sub.id,
+                status: mappedStatus,
+                priceId: sub.items.data[0]?.price.id ?? null,
+                currentPeriodEnd: sub.current_period_end,
+                cancelAtPeriodEnd: sub.cancel_at_period_end,
+              });
+              console.log("[stripe webhook] checkout.session.completed: upserted subscription for user", userId, "status:", mappedStatus);
+            }
+          }
+        }
+        break;
+      }
+
       case "invoice.payment_failed":
         break;
     }

@@ -56,11 +56,11 @@ export function ScorelineHeatmap({ scorelines, totalSimulations }: Props) {
             const prob = grid[away][home];
             const pct = (prob * 100).toFixed(1);
             const isTop = `${home}-${away}` === topScore;
-            // Interpolated color: dim slate → bright blue
+            // Interpolated color: dim slate → lime green
             const intensity = maxProb > 0 ? prob / maxProb : 0;
-            const r = Math.round(30 + (59 - 30) * intensity);
-            const g = Math.round(41 + (130 - 41) * intensity);
-            const b = Math.round(59 + (246 - 59) * intensity);
+            const r = Math.round(30 + (212 - 30) * intensity);
+            const g = Math.round(41 + (255 - 41) * intensity);
+            const b = Math.round(59 + (0 - 59) * intensity);
             const a = Math.max(0.08, intensity * 0.9);
             return (
               <div

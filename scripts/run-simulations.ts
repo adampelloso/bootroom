@@ -12,8 +12,10 @@ import { simulateMatch } from "@/lib/modeling/mc-engine";
 import type { MatchSimulationResult } from "@/lib/modeling/mc-engine";
 import { applyCalibration } from "@/lib/modeling/calibration";
 import { blendModelAndMarket } from "@/lib/modeling/odds-blend";
-import { getOddsKeyForLeagueId, isCup } from "@/lib/leagues";
-import { getMarketProbsForMatch } from "@/lib/odds/the-odds-api";
+import { isCup } from "@/lib/leagues";
+import { resolveProvider } from "@/lib/providers/registry";
+import { extractMarketProbsFromApiFootball } from "@/lib/odds/api-football-odds";
+import type { MarketProbabilities } from "@/lib/odds/the-odds-api";
 import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import type { GoalLambdaComponents, MatchGoalLambdas, MatchCornerLambdas } from "@/lib/modeling/baseline-params";
 import { findFirstLegResult } from "@/lib/modeling/first-leg-lookup";
@@ -64,17 +66,8 @@ interface SimulationFile {
 
 function computeFeedProbs(
   sim: MatchSimulationResult,
-  leagueId: number,
-  homeTeam: string,
-  awayTeam: string,
-  kickoffUtc: string,
+  marketProbs: MarketProbabilities | null,
 ): { feedProbs: FeedModelProbs; hasMarketProbs: boolean } {
-  // Get market probabilities
-  const oddsKey = getOddsKeyForLeagueId(leagueId);
-  const marketProbs =
-    oddsKey != null
-      ? getMarketProbsForMatch(oddsKey, homeTeam, awayTeam, kickoffUtc)
-      : null;
 
   // Apply calibration
   const rawModelProbs = {
@@ -155,7 +148,7 @@ function computeFeedProbs(
   return { feedProbs, hasMarketProbs: marketProbs != null };
 }
 
-function main() {
+async function main() {
   const upcomingPath = path.join(process.cwd(), "data", "upcoming-fixtures.json");
   if (!fs.existsSync(upcomingPath)) {
     console.error(`No upcoming fixtures found at ${upcomingPath}`);
@@ -165,6 +158,9 @@ function main() {
 
   const fixtures: UpcomingFixture[] = JSON.parse(fs.readFileSync(upcomingPath, "utf-8"));
   console.log(`Loaded ${fixtures.length} upcoming fixtures`);
+
+  // Resolve provider for odds fetching
+  const { provider } = resolveProvider("api-football");
 
   // Group fixtures by date
   const byDate = new Map<string, UpcomingFixture[]>();
@@ -232,14 +228,17 @@ function main() {
         tempoStd: 0.15,
       });
 
+      // Fetch odds from API-Football
+      let marketProbs: MarketProbabilities | null = null;
+      try {
+        const oddsRes = await provider.getOdds(fixture.fixtureId);
+        marketProbs = extractMarketProbsFromApiFootball(oddsRes);
+      } catch {
+        // Odds fetch failed — continue without
+      }
+
       // Compute feed probs (calibrated, blended, with edges)
-      const { feedProbs, hasMarketProbs } = computeFeedProbs(
-        sim,
-        fixture.leagueId,
-        fixture.homeTeam,
-        fixture.awayTeam,
-        fixture.date,
-      );
+      const { feedProbs, hasMarketProbs } = computeFeedProbs(sim, marketProbs);
 
       const result: FixtureSimResult = {
         sim,
@@ -278,4 +277,4 @@ function main() {
   console.log(`\nDone: ${totalSimulated} simulated, ${totalSkipped} skipped`);
 }
 
-main();
+main().catch(console.error);
