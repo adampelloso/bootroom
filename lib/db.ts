@@ -10,7 +10,7 @@ function getClient() {
   if (!_client) {
     const url = getEnvVar("TURSO_DATABASE_URL")!;
     const authToken = getEnvVar("TURSO_AUTH_TOKEN");
-    _client = createClient({ url, authToken });
+    _client = createClient({ url, authToken, fetch: globalThis.fetch });
   }
   return _client;
 }
