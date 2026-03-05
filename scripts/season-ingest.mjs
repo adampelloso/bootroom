@@ -148,9 +148,9 @@ async function main() {
   const skipPlayers = Boolean(args.skipPlayers);
   const batchAll = Boolean(args.all);
   const force = Boolean(args.force);
-  const baseUrl = env.API_FOOTBALL_BASE_URL ?? "https://v3.football.api-sports.io";
-  const host = env.API_FOOTBALL_HOST;
-  const key = env.API_FOOTBALL_KEY;
+  const baseUrl = env.API_FOOTBALL_BASE_URL ?? process.env.API_FOOTBALL_BASE_URL ?? "https://v3.football.api-sports.io";
+  const host = env.API_FOOTBALL_HOST ?? process.env.API_FOOTBALL_HOST;
+  const key = env.API_FOOTBALL_KEY ?? process.env.API_FOOTBALL_KEY;
 
   if (!key) {
     console.error("Missing API_FOOTBALL_KEY in .env");
