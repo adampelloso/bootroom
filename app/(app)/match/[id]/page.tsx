@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMatchDetail } from "@/lib/build-feed";
 import { requireActiveSubscription } from "@/lib/auth-guard";
-import { resolveProvider } from "@/lib/providers/registry";
 import { isCup } from "@/lib/leagues";
 import { getMatchStats, getTeamLastNMatchRows, getTeamRecentResults } from "@/lib/insights/team-stats";
 import { getTeamPlayerStats } from "@/lib/insights/player-stats";
@@ -43,28 +42,6 @@ async function getMatch(id: string) {
   return getMatchDetail(id);
 }
 
-async function getPlayerPropsFromApi(id: string): Promise<PlayerPropStat[]> {
-  const fixtureId = Number(id);
-  if (Number.isNaN(fixtureId)) return [];
-  const { provider } = resolveProvider("api-football");
-  const res = await provider.getFixturePlayers(fixtureId);
-  const teams = res.response ?? [];
-  return teams.flatMap((team) =>
-    team.players.map((player) => {
-      const stats = player.statistics?.[0];
-      return {
-        id: player.id,
-        name: player.name,
-        teamName: team.team.name,
-        shotsTotal: stats?.shots?.total ?? null,
-        shotsOn: stats?.shots?.on ?? null,
-        goals: stats?.goals?.total ?? null,
-        assists: stats?.goals?.assists ?? null,
-      };
-    })
-  );
-}
-
 function getPlayerPropsFromSeason(homeTeamName: string, awayTeamName: string): PlayerPropStat[] {
   const homeStats = getTeamPlayerStats(homeTeamName);
   const awayStats = getTeamPlayerStats(awayTeamName);
@@ -101,21 +78,8 @@ export default async function MatchDetailPage({
   if (!match) notFound();
   const isFinished = match.homeGoals != null && match.awayGoals != null;
 
-  let playerStats: PlayerPropStat[];
-  let isSeasonAverage: boolean;
-  if (isFinished) {
-    const apiStats = await getPlayerPropsFromApi(id);
-    if (apiStats.length > 0) {
-      playerStats = apiStats;
-      isSeasonAverage = false;
-    } else {
-      playerStats = getPlayerPropsFromSeason(match.homeTeamName, match.awayTeamName);
-      isSeasonAverage = true;
-    }
-  } else {
-    playerStats = getPlayerPropsFromSeason(match.homeTeamName, match.awayTeamName);
-    isSeasonAverage = true;
-  }
+  const playerStats = getPlayerPropsFromSeason(match.homeTeamName, match.awayTeamName);
+  const isSeasonAverage = true;
 
   const fixtureDate = match.kickoffUtc?.slice(0, 10);
   const defaultFormSame = match.leagueId != null && isCup(match.leagueId);

@@ -10,7 +10,8 @@ env:
   API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
   API_FOOTBALL_HOST: ${{ secrets.API_FOOTBALL_HOST }}
   API_FOOTBALL_BASE_URL: ${{ secrets.API_FOOTBALL_BASE_URL }}
-  ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+  TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+  TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
 
 jobs:
   ingest:
@@ -29,15 +30,6 @@ jobs:
 
       - name: Install Node dependencies
         run: npm ci
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install Python dependencies
-        run: |
-          pip install requests
 
       # ── Cache data directory for incremental ingestion ──
       - name: Restore data cache
@@ -59,11 +51,17 @@ jobs:
       - name: Ingest upcoming fixtures (7-day window)
         run: node scripts/ingest-upcoming-fixtures.mjs --season=2025 --days=7
 
-      - name: Ingest odds
-        run: |
-          for comp in epl laliga seriea bundesliga ligue1 ucl uel uecl fa_cup efl_cup; do
-            python scripts/ingest-odds.py --competition "$comp" || echo "WARNING: odds ingest failed for $comp"
-          done
+      - name: Sync fixtures & teams to Turso DB
+        run: npx tsx scripts/sync-fixtures-to-db.ts
+
+      - name: Ingest team metadata to Turso DB
+        run: npx tsx scripts/ingest-teams-db.ts
+
+      - name: Ingest odds to Turso DB
+        run: npx tsx scripts/ingest-odds-db.ts
+
+      - name: Ingest H2H to Turso DB
+        run: npx tsx scripts/ingest-h2h-db.ts
 
       # ── Simulations ──────────────────────────────────────
 

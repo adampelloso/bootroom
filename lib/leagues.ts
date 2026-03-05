@@ -87,11 +87,6 @@ export function getCompetitionByLeagueId(leagueId: number): SupportedCompetition
   return COMPETITION_BY_ID.get(leagueId);
 }
 
-/** Returns The Odds API competition code for a league id, or null if no odds. */
-export function getOddsKeyForLeagueId(leagueId: number): string | null {
-  return getCompetitionByLeagueId(leagueId)?.oddsKey ?? null;
-}
-
 export function isCup(leagueId: number): boolean {
   return getCompetitionByLeagueId(leagueId)?.type === "cup";
 }
