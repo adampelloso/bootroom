@@ -8,10 +8,6 @@ export async function requireSession() {
     headers: await headers(),
   });
   if (!session) {
-    // Delete stale session cookie to prevent redirect loops
-    // (middleware sees cookie → skips /login → page checks session → no session → redirect /login → loop)
-    const jar = await cookies();
-    jar.delete("bootroom.session_token");
     redirect("/login");
   }
   return session;
