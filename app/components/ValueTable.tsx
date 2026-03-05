@@ -38,14 +38,14 @@ function buildRows(feedProbs: FeedModelProbs): MarketRow[] {
   add("HOME", feedProbs.home, feedProbs.marketProbs?.home ?? null);
   add("DRAW", feedProbs.draw, feedProbs.marketProbs?.draw ?? null);
   add("AWAY", feedProbs.away, feedProbs.marketProbs?.away ?? null);
-  add("O2.5", feedProbs.over_2_5, feedProbs.marketProbs?.over_2_5 ?? null);
+  add("o2.5", feedProbs.over_2_5, feedProbs.marketProbs?.over_2_5 ?? null);
   if (feedProbs.over_2_5 != null) {
     const bookU25 = feedProbs.marketProbs?.over_2_5 != null ? 1 - feedProbs.marketProbs.over_2_5 : null;
-    add("U2.5", 1 - feedProbs.over_2_5, bookU25);
+    add("u2.5", 1 - feedProbs.over_2_5, bookU25);
   }
-  add("O3.5", feedProbs.over_3_5, null);
+  add("o3.5", feedProbs.over_3_5, null);
   if (feedProbs.over_3_5 != null) {
-    add("U3.5", 1 - feedProbs.over_3_5, null);
+    add("u3.5", 1 - feedProbs.over_3_5, null);
   }
   add("BTTS YES", feedProbs.btts, feedProbs.marketProbs?.btts ?? null);
   if (feedProbs.btts != null) {
@@ -93,7 +93,7 @@ export function ValueTable({ feedProbs }: Props) {
                 key={row.market}
                 style={{ borderBottom: "1px solid var(--border-light)" }}
               >
-                <td className="py-2 px-3 uppercase font-semibold" style={{ color: "var(--text-main)" }}>
+                <td className="py-2 px-3 font-semibold" style={{ color: "var(--text-main)" }}>
                   {row.market}
                 </td>
                 <td className="py-2 px-3 text-right" style={{ color: "var(--text-sec)" }}>

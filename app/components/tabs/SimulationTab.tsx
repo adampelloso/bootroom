@@ -67,8 +67,8 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
       const marketOver = feedProbs.marketProbs?.over_2_5 ?? (feedProbs.over_2_5 - edges.over_2_5);
       const modelUnder = 1 - feedProbs.over_2_5;
       const marketUnder = 1 - marketOver;
-      edgeRows.push({ outcome: "OVER", market: "O2.5", modelProb: feedProbs.over_2_5, marketProb: marketOver, edge: edges.over_2_5 });
-      edgeRows.push({ outcome: "UNDER", market: "O2.5", modelProb: modelUnder, marketProb: marketUnder, edge: modelUnder - marketUnder });
+      edgeRows.push({ outcome: "OVER", market: "o2.5", modelProb: feedProbs.over_2_5, marketProb: marketOver, edge: edges.over_2_5 });
+      edgeRows.push({ outcome: "UNDER", market: "o2.5", modelProb: modelUnder, marketProb: marketUnder, edge: modelUnder - marketUnder });
     }
     if (edges.btts != null && feedProbs.btts != null) {
       const marketBtts = feedProbs.marketProbs?.btts ?? (feedProbs.btts - edges.btts);
@@ -137,26 +137,26 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
     }
 
     const totalGoals: MarketRow[] = [
-      { label: "O0.5", prob: pO05 },
-      { label: "O1.5", prob: pO15 },
-      { label: "O2.5", prob: sim.pO25 },
-      { label: "O3.5", prob: sim.pO35 },
-      { label: "O4.5", prob: pO45 },
-      { label: "O5.5", prob: pO55 },
+      { label: "o0.5", prob: pO05 },
+      { label: "o1.5", prob: pO15 },
+      { label: "o2.5", prob: sim.pO25 },
+      { label: "o3.5", prob: sim.pO35 },
+      { label: "o4.5", prob: pO45 },
+      { label: "o5.5", prob: pO55 },
     ];
 
     const homeGoals: MarketRow[] = [
-      { label: "Home O0.5", prob: pHomeO05 },
-      { label: "Home O1.5", prob: pHomeO15 },
-      { label: "Home O2.5", prob: pHomeO25 },
-      { label: "Home O3.5", prob: pHomeO35 },
+      { label: "Home o0.5", prob: pHomeO05 },
+      { label: "Home o1.5", prob: pHomeO15 },
+      { label: "Home o2.5", prob: pHomeO25 },
+      { label: "Home o3.5", prob: pHomeO35 },
     ];
 
     const awayGoals: MarketRow[] = [
-      { label: "Away O0.5", prob: pAwayO05 },
-      { label: "Away O1.5", prob: pAwayO15 },
-      { label: "Away O2.5", prob: pAwayO25 },
-      { label: "Away O3.5", prob: pAwayO35 },
+      { label: "Away o0.5", prob: pAwayO05 },
+      { label: "Away o1.5", prob: pAwayO15 },
+      { label: "Away o2.5", prob: pAwayO25 },
+      { label: "Away o3.5", prob: pAwayO35 },
     ];
 
     const doubleChance: MarketRow[] = [
@@ -223,8 +223,8 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
           <MarketPanel
             title="Goals markets"
             rows={expandedMarkets.totalGoals}
-            bookProbs={feedProbs?.marketProbs?.over_2_5 != null ? { "O2.5": feedProbs.marketProbs.over_2_5 } : {}}
-            edges={feedProbs?.edges?.over_2_5 != null ? { "O2.5": feedProbs.edges.over_2_5 } : {}}
+            bookProbs={feedProbs?.marketProbs?.over_2_5 != null ? { "o2.5": feedProbs.marketProbs.over_2_5 } : {}}
+            edges={feedProbs?.edges?.over_2_5 != null ? { "o2.5": feedProbs.edges.over_2_5 } : {}}
           />
 
           {/* Team Goals panel */}

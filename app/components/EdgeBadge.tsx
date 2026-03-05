@@ -7,6 +7,11 @@ type Props = {
   variant?: "inline" | "badge";
 };
 
+/** Lowercase the "O" prefix on over/under markets for display. */
+function formatMarket(m: string): string {
+  return m.replace(/^O(\d)/, "o$1").replace(/^U(\d)/, "u$1");
+}
+
 function edgeColor(edge: number): string {
   if (edge > 0.10) return "var(--color-edge-strong)";
   if (edge > 0.05) return "var(--color-edge-mild)";
@@ -44,7 +49,7 @@ export function EdgeBadge({ edge, market, bookProb, variant = "badge" }: Props) 
         background: `color-mix(in srgb, ${color} 12%, transparent)`,
       }}
     >
-      {market} {edgePct}
+      <span className="normal-case">{formatMarket(market)}</span> {edgePct}
     </span>
   );
 }
@@ -60,7 +65,7 @@ export function getBestEdge(
     { market: "DRAW", edge: e.draw },
     { market: "AWAY", edge: e.away },
   ];
-  if (e.over_2_5 != null) candidates.push({ market: "O2.5", edge: e.over_2_5 });
+  if (e.over_2_5 != null) candidates.push({ market: "o2.5", edge: e.over_2_5 });
   if (e.btts != null) candidates.push({ market: "BTTS", edge: e.btts });
 
   const best = candidates.reduce((a, b) => (b.edge > a.edge ? b : a), candidates[0]);

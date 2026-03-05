@@ -28,7 +28,7 @@ export function TotalGoalsSection({ rows, totalGoalsChart }: Props) {
 
       {o25Row && o25Row.market === "O2.5" && (
         <div className="border-b border-[var(--border-light)] pb-3">
-          <p className="text-mono text-[12px] uppercase text-tertiary mb-2">O2.5 (last 10)</p>
+          <p className="text-mono text-[12px] uppercase text-tertiary mb-2"><span className="normal-case">o2.5</span> (last 10)</p>
           <div className="flex items-baseline justify-between gap-4">
             <div className="grid grid-cols-2 gap-2 text-secondary-data">
               <span style={{ color: percentColor(o25Row.homeHits * 20) }}>Home {o25Row.homeHits * 20}%</span>

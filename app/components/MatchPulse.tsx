@@ -52,12 +52,12 @@ export function MatchPulse({ sim, feedProbs }: Props) {
         )}
         {o25 != null && (
           <div>
-            <span className="text-mono text-[12px] uppercase text-tertiary block mb-1">O2.5 proj.</span>
+            <span className="text-mono text-[12px] uppercase text-tertiary block mb-1"><span className="normal-case">o2.5</span> proj.</span>
             <span className="text-hero-metric" style={{ color: percentColor(o25 * 100) }}>{(o25 * 100).toFixed(0)}%</span>
             <PctBar value={o25} />
             {o25Edge != null && (
               <div className="mt-1.5">
-                <EdgeBadge edge={o25Edge} market="O2.5" bookProb={o25BookProb} variant="inline" />
+                <EdgeBadge edge={o25Edge} market="o2.5" bookProb={o25BookProb} variant="inline" />
               </div>
             )}
           </div>

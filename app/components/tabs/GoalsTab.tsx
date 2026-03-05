@@ -130,12 +130,12 @@ export function GoalsTab({
               <span className="text-hero-metric">{avgCombinedGoals.toFixed(1)}</span>
             </div>
             <div>
-              <span className="text-mono text-[12px] uppercase text-tertiary block mb-1">O2.5</span>
+              <span className="text-mono text-[12px] uppercase text-tertiary block mb-1"><span className="normal-case">o2.5</span></span>
               <span className="text-hero-metric" style={{ color: percentColor(o25Pct) }}>{o25Pct}%</span>
               <div className="pct-bar mt-1"><div className="pct-bar-fill" style={{ width: `${o25Pct}%`, background: percentColor(o25Pct) }} /></div>
               {feedProbs?.edges?.over_2_5 != null && (
                 <div className="mt-1.5">
-                  <EdgeBadge edge={feedProbs.edges.over_2_5} market="O2.5" bookProb={feedProbs.marketProbs?.over_2_5} variant="inline" />
+                  <EdgeBadge edge={feedProbs.edges.over_2_5} market="o2.5" bookProb={feedProbs.marketProbs?.over_2_5} variant="inline" />
                 </div>
               )}
             </div>
@@ -184,7 +184,7 @@ export function GoalsTab({
               </span>
             </div>
             <div>
-              <span className="text-mono text-[12px] uppercase text-tertiary block mb-1">1H O0.5 rate</span>
+              <span className="text-mono text-[12px] uppercase text-tertiary block mb-1">1H <span className="normal-case">o0.5</span> rate</span>
               <span className="font-semibold" style={{ color: percentColor(homeHtRows.length + awayHtRows.length > 0 ? Math.round(([...homeHtRows, ...awayHtRows].filter((r) => r.htGoalsFor! + r.htGoalsAgainst! >= 1).length / (homeHtRows.length + awayHtRows.length)) * 100) : 0) }}>
                 {homeHtRows.length + awayHtRows.length > 0
                   ? Math.round(

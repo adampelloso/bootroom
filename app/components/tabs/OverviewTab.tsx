@@ -60,7 +60,7 @@ export function OverviewTab({
     if (e.home > 0.03) edgeRows.push({ outcome: "HOME", market: "1X2", edge: e.home, bookProb: mp?.home });
     if (e.draw > 0.03) edgeRows.push({ outcome: "DRAW", market: "1X2", edge: e.draw, bookProb: mp?.draw });
     if (e.away > 0.03) edgeRows.push({ outcome: "AWAY", market: "1X2", edge: e.away, bookProb: mp?.away });
-    if (e.over_2_5 != null && e.over_2_5 > 0.03) edgeRows.push({ outcome: "OVER", market: "O2.5", edge: e.over_2_5, bookProb: mp?.over_2_5 });
+    if (e.over_2_5 != null && e.over_2_5 > 0.03) edgeRows.push({ outcome: "OVER", market: "o2.5", edge: e.over_2_5, bookProb: mp?.over_2_5 });
     if (e.btts != null && e.btts > 0.03) edgeRows.push({ outcome: "YES", market: "BTTS", edge: e.btts, bookProb: mp?.btts });
     edgeRows.sort((a, b) => b.edge - a.edge);
   }
@@ -78,7 +78,7 @@ export function OverviewTab({
             {o25Row && (
               <div className="space-y-1">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-mono text-[12px] uppercase text-tertiary">O2.5</span>
+                  <span className="text-mono text-[12px] uppercase text-tertiary"><span className="normal-case">o2.5</span></span>
                   <span className="font-semibold" style={{ color: percentColor(o25Row.combinedHits * 10) }}>{o25Row.combinedHits * 10}%</span>
                 </div>
                 <div className="pct-bar"><div className="pct-bar-fill" style={{ width: `${o25Row.combinedHits * 10}%`, background: percentColor(o25Row.combinedHits * 10) }} /></div>

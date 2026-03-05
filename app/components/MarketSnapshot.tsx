@@ -52,7 +52,7 @@ export function MarketSnapshot({ rows }: Props) {
               key={`${row.market}-${i}`}
               className="border-b border-[var(--border-light)] pb-3"
             >
-              <p className="text-mono text-[12px] uppercase text-tertiary mb-2">O2.5</p>
+              <p className="text-mono text-[12px] uppercase text-tertiary mb-2"><span className="normal-case">o2.5</span></p>
               <div className="flex items-baseline justify-between gap-4">
                 <div className="grid grid-cols-2 gap-2 text-secondary-data text-tertiary">
                   <span>Home {row.homeHits}/5</span>
