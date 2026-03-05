@@ -53,6 +53,14 @@ export function percentPill(pct: number): { bg: string; text: string } {
   return { bg, text: luminance > 0.55 ? "#000000" : "#ffffff" };
 }
 
+/**
+ * Return a CSS color for a percentage, suitable for text (slightly desaturated).
+ * Same scale as percentColor but with reduced opacity for readability on dark BG.
+ */
+export function percentTextColor(pct: number): string {
+  return percentColor(pct);
+}
+
 function lerpHex(a: string, b: string, t: number): string {
   const ar = parseInt(a.slice(1, 3), 16);
   const ag = parseInt(a.slice(3, 5), 16);

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { FeedPlayerSimEntry, FeedPredictedLineup } from "@/lib/feed";
+import { percentColor } from "@/lib/percent-color";
 
 type UnifiedPlayer = {
   playerId: number;
@@ -165,7 +166,6 @@ export function UnifiedPlayerTable({
           </thead>
           <tbody>
             {sorted.map((p, idx) => {
-              const isHighScorer = p.scorerPct != null && p.scorerPct >= 25;
               const isHighXg = p.xG != null && p.xG >= 0.3;
               const rowBg = idx % 2 === 1 ? "var(--bg-surface)" : "transparent";
               return (
@@ -173,10 +173,10 @@ export function UnifiedPlayerTable({
                   <td className="py-1.5 text-[var(--text-main)] truncate max-w-[120px] sticky left-0 z-10" style={{ background: idx % 2 === 1 ? "var(--bg-surface)" : "var(--bg-panel)", minWidth: "120px" }}>{p.name}</td>
                   <td className="py-1.5 text-tertiary">{p.teamName.slice(0, 3).toUpperCase()}</td>
                   <td className="py-1.5 text-tertiary">{p.position ?? "—"}</td>
-                  <td className="py-1.5 text-right text-[var(--text-sec)]">{p.startPct != null ? `${p.startPct.toFixed(0)}%` : "—"}</td>
+                  <td className="py-1.5 text-right" style={p.startPct != null ? { color: percentColor(p.startPct) } : { color: "var(--text-sec)" }}>{p.startPct != null ? `${p.startPct.toFixed(0)}%` : "—"}</td>
                   <td
-                    className="py-1.5 text-right text-[var(--text-main)] font-semibold"
-                    style={isHighScorer ? { background: "rgba(212,255,0,0.08)" } : undefined}
+                    className="py-1.5 text-right font-semibold"
+                    style={p.scorerPct != null ? { color: percentColor(p.scorerPct) } : { color: "var(--text-sec)" }}
                   >
                     {p.scorerPct != null ? `${p.scorerPct.toFixed(0)}%` : "—"}
                   </td>

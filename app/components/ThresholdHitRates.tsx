@@ -1,5 +1,7 @@
 "use client";
 
+import { percentColor } from "@/lib/percent-color";
+
 export type ThresholdRow = {
   label: string;
   hits: number;
@@ -28,7 +30,7 @@ export function ThresholdHitRates({ title, thresholds }: Props) {
             <div key={t.label}>
               <div className="flex items-center justify-between text-[12px] font-mono mb-1">
                 <span className="text-[var(--text-sec)]">{t.label}</span>
-                <span className="text-[var(--text-main)] font-semibold">
+                <span className="font-semibold" style={{ color: percentColor(Number(pct)) }}>
                   {t.hits}/{t.total} ({pct}%)
                 </span>
               </div>
@@ -37,7 +39,7 @@ export function ThresholdHitRates({ title, thresholds }: Props) {
                   className="h-full transition-all"
                   style={{
                     width: `${rate * 100}%`,
-                    backgroundColor: rate >= 0.7 ? "var(--color-positive)" : rate >= 0.5 ? "var(--color-accent)" : "var(--color-bar-muted)",
+                    backgroundColor: percentColor(rate * 100),
                     borderRadius: "1px",
                   }}
                 />

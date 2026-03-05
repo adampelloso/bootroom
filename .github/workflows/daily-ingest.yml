@@ -31,6 +31,11 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      # ── Fast DB sync (1 API call per league → scores in DB) ──
+
+      - name: Sync all fixture results to DB (lightweight)
+        run: npx tsx scripts/sync-fixtures-api-to-db.ts --season=2025
+
       # ── Cache data directory for incremental ingestion ──
       - name: Restore data cache
         uses: actions/cache@v4
@@ -40,10 +45,10 @@ jobs:
           restore-keys: |
             ingest-data-
 
-      # ── Data Ingest ──────────────────────────────────────
+      # ── Detailed Data Ingest (stats, players) ───────────────
 
       - name: Ingest season fixtures (incremental)
-        run: node scripts/season-ingest.mjs --all --season=2025
+        run: node scripts/season-ingest.mjs --all --season=2025 --skipPlayers
 
       - name: Ingest player stats (skip if fresh)
         run: node scripts/ingest-players.mjs --all --season=2025 --skip-if-fresh

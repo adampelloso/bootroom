@@ -3,6 +3,7 @@
 import type { FeedMarketRow } from "@/lib/feed";
 import { StatTrendChart } from "./StatTrendChart";
 import type { ScreenshotChartPoint } from "@/lib/insights/feed-market-stats";
+import { percentColor } from "@/lib/percent-color";
 
 type Props = {
   rows: FeedMarketRow[];
@@ -29,21 +30,21 @@ export function TotalGoalsSection({ rows, totalGoalsChart }: Props) {
         <div className="border-b border-[var(--border-light)] pb-3">
           <p className="text-mono text-[12px] uppercase text-tertiary mb-2">O2.5 (last 10)</p>
           <div className="flex items-baseline justify-between gap-4">
-            <div className="grid grid-cols-2 gap-2 text-secondary-data text-tertiary">
-              <span>Home {o25Row.homeHits * 20}%</span>
-              <span>Away {o25Row.awayHits * 20}%</span>
+            <div className="grid grid-cols-2 gap-2 text-secondary-data">
+              <span style={{ color: percentColor(o25Row.homeHits * 20) }}>Home {o25Row.homeHits * 20}%</span>
+              <span style={{ color: percentColor(o25Row.awayHits * 20) }}>Away {o25Row.awayHits * 20}%</span>
             </div>
             <span
               className="text-mono stat-value font-bold shrink-0 text-right"
               style={{
                 fontSize: "18px",
-                color: "var(--text-main)",
+                color: percentColor(o25Row.combinedHits * 10),
               }}
             >
               {o25Row.combinedHits * 10}%
             </span>
           </div>
-          <div className="pct-bar mt-2"><div className="pct-bar-fill" style={{ width: `${o25Row.combinedHits * 10}%` }} /></div>
+          <div className="pct-bar mt-2"><div className="pct-bar-fill" style={{ width: `${o25Row.combinedHits * 10}%`, background: percentColor(o25Row.combinedHits * 10) }} /></div>
           <p className="text-primary-data text-tertiary mt-2">Avg goals: {o25Row.avgGoals.toFixed(1)}</p>
         </div>
       )}
@@ -52,9 +53,9 @@ export function TotalGoalsSection({ rows, totalGoalsChart }: Props) {
         <div>
           <div className="flex items-baseline justify-between">
             <span className="text-mono text-[12px] text-tertiary">BTTS</span>
-            <span className="text-mono text-[12px] text-[var(--text-main)]">{bttsRow.combinedHits * 10}%</span>
+            <span className="text-mono text-[12px] font-semibold" style={{ color: percentColor(bttsRow.combinedHits * 10) }}>{bttsRow.combinedHits * 10}%</span>
           </div>
-          <div className="pct-bar mt-1"><div className="pct-bar-fill" style={{ width: `${bttsRow.combinedHits * 10}%` }} /></div>
+          <div className="pct-bar mt-1"><div className="pct-bar-fill" style={{ width: `${bttsRow.combinedHits * 10}%`, background: percentColor(bttsRow.combinedHits * 10) }} /></div>
         </div>
       )}
 

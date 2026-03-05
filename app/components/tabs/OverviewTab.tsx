@@ -9,6 +9,7 @@ import { EdgeBadge } from "@/app/components/EdgeBadge";
 import type { MatchSimulationResult } from "@/lib/modeling/mc-engine";
 import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import { ScorelineBarChart } from "@/app/components/ScorelineBarChart";
+import { percentColor } from "@/lib/percent-color";
 
 type Props = {
   rows: FeedMarketRow[];
@@ -78,9 +79,9 @@ export function OverviewTab({
               <div className="space-y-1">
                 <div className="flex items-baseline justify-between">
                   <span className="text-mono text-[12px] uppercase text-tertiary">O2.5</span>
-                  <span className="text-primary-data font-semibold">{o25Row.combinedHits * 10}%</span>
+                  <span className="font-semibold" style={{ color: percentColor(o25Row.combinedHits * 10) }}>{o25Row.combinedHits * 10}%</span>
                 </div>
-                <div className="pct-bar"><div className="pct-bar-fill" style={{ width: `${o25Row.combinedHits * 10}%` }} /></div>
+                <div className="pct-bar"><div className="pct-bar-fill" style={{ width: `${o25Row.combinedHits * 10}%`, background: percentColor(o25Row.combinedHits * 10) }} /></div>
               </div>
             )}
             {o25Row && (
@@ -93,9 +94,9 @@ export function OverviewTab({
               <div className="space-y-1">
                 <div className="flex items-baseline justify-between">
                   <span className="text-mono text-[12px] uppercase text-tertiary">BTTS</span>
-                  <span className="text-primary-data font-semibold">{bttsRow.combinedHits * 10}%</span>
+                  <span className="font-semibold" style={{ color: percentColor(bttsRow.combinedHits * 10) }}>{bttsRow.combinedHits * 10}%</span>
                 </div>
-                <div className="pct-bar"><div className="pct-bar-fill" style={{ width: `${bttsRow.combinedHits * 10}%` }} /></div>
+                <div className="pct-bar"><div className="pct-bar-fill" style={{ width: `${bttsRow.combinedHits * 10}%`, background: percentColor(bttsRow.combinedHits * 10) }} /></div>
               </div>
             )}
           </section>
@@ -242,7 +243,7 @@ export function OverviewTab({
                         {h2hSummary.bttsRate != null && (
                           <div className="flex-1 py-2 px-3 text-center" style={{ background: "var(--bg-surface)" }}>
                             <p className="text-[11px] uppercase text-tertiary font-mono mb-1">BTTS Rate</p>
-                            <p className="text-[14px] font-semibold font-mono" style={{ color: "var(--text-main)" }}>
+                            <p className="text-[14px] font-semibold font-mono" style={{ color: percentColor(Math.round(h2hSummary.bttsRate * 100)) }}>
                               {Math.round(h2hSummary.bttsRate * 100)}%
                             </p>
                           </div>

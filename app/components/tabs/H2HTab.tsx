@@ -1,6 +1,7 @@
 "use client";
 
 import type { H2HSummary, H2HMatchRow } from "@/lib/feed";
+import { percentColor } from "@/lib/percent-color";
 
 type Props = {
   homeTeamName: string;
@@ -80,7 +81,7 @@ export function H2HTab({ homeTeamName, awayTeamName, homeTeamId, awayTeamId, h2h
           {h2hSummary.bttsRate != null && (
             <div className="flex-1 py-2 px-3 text-center" style={{ background: "var(--bg-surface)" }}>
               <p className="text-[11px] uppercase text-tertiary font-mono mb-1">BTTS Rate</p>
-              <p className="text-[14px] font-semibold font-mono" style={{ color: "var(--text-main)" }}>
+              <p className="text-[14px] font-semibold font-mono" style={{ color: percentColor(Math.round(h2hSummary.bttsRate * 100)) }}>
                 {Math.round(h2hSummary.bttsRate * 100)}%
               </p>
             </div>
@@ -149,13 +150,13 @@ export function H2HTab({ homeTeamName, awayTeamName, homeTeamId, awayTeamId, h2h
             </div>
             <div className="py-2 px-3 text-center" style={{ background: "var(--bg-surface)" }}>
               <p className="text-[11px] uppercase text-tertiary font-mono mb-1">Last 5 BTTS</p>
-              <p className="text-[14px] font-semibold font-mono" style={{ color: "var(--text-main)" }}>
+              <p className="text-[14px] font-semibold font-mono" style={{ color: percentColor(Math.round(last5Stats.bttsRate * 100)) }}>
                 {Math.round(last5Stats.bttsRate * 100)}%
               </p>
             </div>
             <div className="py-2 px-3 text-center" style={{ background: "var(--bg-surface)" }}>
               <p className="text-[11px] uppercase text-tertiary font-mono mb-1">All-time BTTS</p>
-              <p className="text-[14px] font-semibold font-mono" style={{ color: "var(--text-main)" }}>
+              <p className="text-[14px] font-semibold font-mono" style={{ color: percentColor(Math.round(allTimeStats.bttsRate * 100)) }}>
                 {Math.round(allTimeStats.bttsRate * 100)}%
               </p>
             </div>

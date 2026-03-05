@@ -11,6 +11,7 @@ import { TotalGoalsSection } from "@/app/components/TotalGoalsSection";
 import { TeamTotalsSection } from "@/app/components/TeamTotalsSection";
 import { StatTrendChart } from "@/app/components/StatTrendChart";
 import { EdgeBadge } from "@/app/components/EdgeBadge";
+import { percentColor } from "@/lib/percent-color";
 
 type ChartSet = {
   totalGoals: { data: ScreenshotChartPoint[]; average: number };
@@ -130,8 +131,8 @@ export function GoalsTab({
             </div>
             <div>
               <span className="text-mono text-[12px] uppercase text-tertiary block mb-1">O2.5</span>
-              <span className="text-hero-metric">{o25Pct}%</span>
-              <div className="pct-bar mt-1"><div className="pct-bar-fill" style={{ width: `${o25Pct}%` }} /></div>
+              <span className="text-hero-metric" style={{ color: percentColor(o25Pct) }}>{o25Pct}%</span>
+              <div className="pct-bar mt-1"><div className="pct-bar-fill" style={{ width: `${o25Pct}%`, background: percentColor(o25Pct) }} /></div>
               {feedProbs?.edges?.over_2_5 != null && (
                 <div className="mt-1.5">
                   <EdgeBadge edge={feedProbs.edges.over_2_5} market="O2.5" bookProb={feedProbs.marketProbs?.over_2_5} variant="inline" />
@@ -140,8 +141,8 @@ export function GoalsTab({
             </div>
             <div>
               <span className="text-mono text-[12px] uppercase text-tertiary block mb-1">BTTS</span>
-              <span className="text-hero-metric">{bttsPct}%</span>
-              <div className="pct-bar mt-1"><div className="pct-bar-fill" style={{ width: `${bttsPct}%` }} /></div>
+              <span className="text-hero-metric" style={{ color: percentColor(bttsPct) }}>{bttsPct}%</span>
+              <div className="pct-bar mt-1"><div className="pct-bar-fill" style={{ width: `${bttsPct}%`, background: percentColor(bttsPct) }} /></div>
               {feedProbs?.edges?.btts != null && (
                 <div className="mt-1.5">
                   <EdgeBadge edge={feedProbs.edges.btts} market="BTTS" bookProb={feedProbs.marketProbs?.btts} variant="inline" />
@@ -151,11 +152,13 @@ export function GoalsTab({
             <div>
               <span className="text-mono text-[12px] uppercase text-tertiary block mb-1">Clean sheets</span>
               <div className="flex gap-3 items-baseline">
-                <span className="text-sans text-[14px] font-semibold" style={{ color: "var(--color-home)" }}>
-                  {homeTeamName.slice(0, 3).toUpperCase()} {homeCleanSheetPct}%
+                <span className="text-sans text-[14px] font-semibold">
+                  <span className="text-tertiary">{homeTeamName.slice(0, 3).toUpperCase()}</span>{" "}
+                  <span style={{ color: percentColor(homeCleanSheetPct) }}>{homeCleanSheetPct}%</span>
                 </span>
-                <span className="text-sans text-[14px] font-semibold" style={{ color: "var(--color-away)" }}>
-                  {awayTeamName.slice(0, 3).toUpperCase()} {awayCleanSheetPct}%
+                <span className="text-sans text-[14px] font-semibold">
+                  <span className="text-tertiary">{awayTeamName.slice(0, 3).toUpperCase()}</span>{" "}
+                  <span style={{ color: percentColor(awayCleanSheetPct) }}>{awayCleanSheetPct}%</span>
                 </span>
               </div>
             </div>
@@ -182,7 +185,7 @@ export function GoalsTab({
             </div>
             <div>
               <span className="text-mono text-[12px] uppercase text-tertiary block mb-1">1H O0.5 rate</span>
-              <span className="text-primary-data font-semibold">
+              <span className="font-semibold" style={{ color: percentColor(homeHtRows.length + awayHtRows.length > 0 ? Math.round(([...homeHtRows, ...awayHtRows].filter((r) => r.htGoalsFor! + r.htGoalsAgainst! >= 1).length / (homeHtRows.length + awayHtRows.length)) * 100) : 0) }}>
                 {homeHtRows.length + awayHtRows.length > 0
                   ? Math.round(
                       ([...homeHtRows, ...awayHtRows].filter(
