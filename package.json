@@ -9,6 +9,7 @@
     "start": "next start",
     "deploy": "npm run build && opennextjs-cloudflare deploy",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "postinstall": "node scripts/patch-cross-fetch.js",
     "lint": "next lint",
     "ingest:daily": "bash scripts/ingest-daily.sh",
     "db:push": "drizzle-kit push",
