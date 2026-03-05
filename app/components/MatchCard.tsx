@@ -106,7 +106,7 @@ export function MatchCard({ match }: { match: FeedMatch }) {
         </div>
       </div>
 
-      {/* Form dots */}
+      {/* Form dots — home: oldest→newest (L→R), away: newest→oldest (L→R) */}
       {(match.homeForm || match.awayForm) && (
         <div className="flex items-center justify-between mb-2 text-mono text-[12px]">
           <div className="flex items-center gap-1">
@@ -123,7 +123,7 @@ export function MatchCard({ match }: { match: FeedMatch }) {
             ))}
           </div>
           <div className="flex items-center gap-1">
-            {(match.awayForm ?? []).slice(-5).map((r, i) => (
+            {(match.awayForm ?? []).slice(-5).reverse().map((r, i) => (
               <span
                 key={i}
                 className="inline-block w-2 h-2 rounded-full"

@@ -115,6 +115,61 @@ export async function getH2HFixtures(
     .orderBy(sql`${fixture.date} DESC`);
 }
 
+/** Get recent form (W/D/L) for a team from the DB. */
+export async function getTeamFormFromDb(
+  teamId: number,
+  beforeDate: string,
+  n: number = 5,
+): Promise<import("@/lib/feed").FormResult[]> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      homeTeamId: fixture.homeTeamId,
+      homeGoals: fixture.homeGoals,
+      awayGoals: fixture.awayGoals,
+    })
+    .from(fixture)
+    .where(
+      and(
+        sql`(${fixture.homeTeamId} = ${teamId} OR ${fixture.awayTeamId} = ${teamId})`,
+        sql`${fixture.date} < ${beforeDate}`,
+        sql`${fixture.status} IN ('FT', 'AET', 'PEN')`,
+        sql`${fixture.homeGoals} IS NOT NULL`,
+      ),
+    )
+    .orderBy(sql`${fixture.date} DESC`)
+    .limit(n);
+
+  // Reverse so oldest is first (chronological order)
+  rows.reverse();
+
+  return rows.map((r): import("@/lib/feed").FormResult => {
+    const isHome = r.homeTeamId === teamId;
+    const goalsFor = isHome ? r.homeGoals! : r.awayGoals!;
+    const goalsAgainst = isHome ? r.awayGoals! : r.homeGoals!;
+    if (goalsFor > goalsAgainst) return "W";
+    if (goalsFor < goalsAgainst) return "L";
+    return "D";
+  });
+}
+
+/** Batch fetch form for multiple teams. */
+export async function getTeamFormBatch(
+  teamIds: number[],
+  beforeDate: string,
+  n: number = 5,
+): Promise<Map<number, import("@/lib/feed").FormResult[]>> {
+  const result = new Map<number, import("@/lib/feed").FormResult[]>();
+  // Run in parallel — each is a single indexed query
+  await Promise.all(
+    teamIds.map(async (id) => {
+      const form = await getTeamFormFromDb(id, beforeDate, n);
+      if (form.length > 0) result.set(id, form);
+    }),
+  );
+  return result;
+}
+
 /** Get H2H fixtures for multiple team pairs in a single query batch. */
 export async function getH2HForPairs(
   pairs: { homeId: number; awayId: number }[],

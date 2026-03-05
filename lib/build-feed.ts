@@ -3,7 +3,7 @@
  * Zero external API calls at runtime — all data comes from ingested DB tables.
  * Insights use real L5/L10 data from ingested fixtures when available; otherwise stub.
  */
-import type { FeedMatch, FeedInsight, MatchDetail, MatchDetailInsight } from "./feed";
+import type { FeedMatch, FeedInsight, MatchDetail, MatchDetailInsight, FormResult } from "./feed";
 import { selectThreeForMatch } from "@/lib/insights/select";
 import {
   DETAIL_INSIGHT_KEYS,
@@ -15,7 +15,7 @@ import type { SignalConfidence, SignalDirection } from "./feed";
 import { buildStubContext } from "@/lib/insights/stub-context";
 import { buildRealContext } from "@/lib/insights/real-context";
 import { fillInsightTemplate } from "@/lib/insights/fill-template";
-import { getMatchStats, getTeamRecentResults, preloadTeamStats, preloadLeagueAverages } from "@/lib/insights/team-stats";
+import { getMatchStats, preloadTeamStats, preloadLeagueAverages } from "@/lib/insights/team-stats";
 import { preloadPlayers } from "@/lib/insights/player-stats";
 import { getTeamStats } from "@/lib/insights/team-stats";
 import { getFeedMarketRows, feedMatchScore } from "@/lib/insights/feed-market-stats";
@@ -41,6 +41,7 @@ import {
   getOddsForFixtures,
   getH2HFixtures,
   getH2HForPairs,
+  getTeamFormBatch,
   type DbFixture,
 } from "@/lib/db-queries";
 
@@ -272,6 +273,7 @@ async function buildFeedMatchFromDb(
   teamIdToLogo: Map<number, string>,
   h2hSummary?: H2HSummary | null,
   marketProbs?: MarketProbabilities | null,
+  formMap?: Map<number, FormResult[]>,
 ): Promise<FeedMatch> {
   const fixtureDate = f.date;
   const home = f.homeTeamName;
@@ -281,8 +283,9 @@ async function buildFeedMatchFromDb(
   const leagueId = f.leagueId;
   const competition = getCompetitionByLeagueId(leagueId);
   const leagueName = competition?.label;
-  const homeForm = getTeamRecentResults(home, 10, fixtureDate);
-  const awayForm = getTeamRecentResults(away, 10, fixtureDate);
+  // Form from DB (no JSON fallback — DB is the single source of truth)
+  const homeForm = formMap?.get(homeId) ?? [];
+  const awayForm = formMap?.get(awayId) ?? [];
 
   const homeCode = teamIdToCode.get(homeId) ?? teamCodeFallback(home);
   const awayCode = teamIdToCode.get(awayId) ?? teamCodeFallback(away);
@@ -413,11 +416,12 @@ export async function getFeedMatches(
     allDates.add(f.date);
   }
 
-  const [teamCodeMap, teamLogoMap, oddsMap, h2hMap] = await Promise.all([
+  const [teamCodeMap, teamLogoMap, oddsMap, h2hMap, formMap] = await Promise.all([
     getTeamCodeMap(allTeamIds),
     getTeamLogoMap(allTeamIds),
     getOddsForFixtures(fixtureIds),
     getH2HForPairs(pairs),
+    getTeamFormBatch(allTeamIds, date, 5),
     // Side-effect preloads (return value not used)
     preloadTeamStats([...allTeamNames]),
     preloadLeagueAverages(ids),
@@ -427,6 +431,7 @@ export async function getFeedMatches(
     Map<number, string>,
     Map<number, MarketProbabilities>,
     Map<string, DbFixture[]>,
+    Map<number, FormResult[]>,
     ...unknown[],
   ];
 
@@ -437,7 +442,7 @@ export async function getFeedMatches(
       const h2hFixtures = h2hMap.get(h2hKey) ?? [];
       const h2hSummary = deriveH2HSummary(h2hFixtures, f.homeTeamId, f.awayTeamId, f.homeTeamName, f.awayTeamName);
       const odds = oddsMap.get(f.id) ?? null;
-      return buildFeedMatchFromDb(f, teamCodeMap, teamLogoMap, h2hSummary, odds);
+      return buildFeedMatchFromDb(f, teamCodeMap, teamLogoMap, h2hSummary, odds, formMap);
     }),
   );
 
@@ -461,21 +466,22 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
 
   // Parallel: team codes/logos, H2H, preloads
   const allTeamIds = [homeId, awayId];
-  const [teamCodeMap, teamLogoMap] = await Promise.all([
+  const [teamCodeMap, teamLogoMap, formMap] = await Promise.all([
     getTeamCodeMap(allTeamIds),
     getTeamLogoMap(allTeamIds),
+    getTeamFormBatch(allTeamIds, fixtureDate, 10),
     preloadTeamStats([home, away]),
     preloadLeagueAverages([leagueId]),
     preloadSimulations(fixtureDate ? [fixtureDate] : []),
     preloadPlayers(),
-  ]) as [Map<number, string>, Map<number, string>, ...unknown[]];
+  ]) as [Map<number, string>, Map<number, string>, Map<number, FormResult[]>, ...unknown[]];
 
   const homeCode = teamCodeMap.get(homeId) ?? teamCodeFallback(home);
   const awayCode = teamCodeMap.get(awayId) ?? teamCodeFallback(away);
   const competition = getCompetitionByLeagueId(leagueId);
   const leagueName = competition?.label;
-  const homeForm = getTeamRecentResults(home, 10, fixtureDate);
-  const awayForm = getTeamRecentResults(away, 10, fixtureDate);
+  const homeForm = formMap.get(homeId) ?? [];
+  const awayForm = formMap.get(awayId) ?? [];
 
   // H2H from DB
   let h2hSummary: H2HSummary | undefined;
