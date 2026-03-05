@@ -14,6 +14,13 @@ export function middleware(request: NextRequest) {
     cookiePrefix: "bootroom",
   });
 
+  // If a page flagged the session as expired, clear the cookie and let them through to /login
+  if (pathname === "/login" && request.nextUrl.searchParams.has("expired")) {
+    const res = NextResponse.next();
+    res.cookies.delete("bootroom.session_token");
+    return res;
+  }
+
   // Redirect logged-in users away from landing/login/signup → /today
   if (REDIRECT_IF_AUTHED.includes(pathname) && sessionCookie) {
     return NextResponse.redirect(new URL("/today", request.url));

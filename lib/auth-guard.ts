@@ -1,6 +1,6 @@
 import { getAuth } from "@/lib/auth";
 import { hasActiveSubscription } from "@/lib/subscription";
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export async function requireSession() {
@@ -8,7 +8,7 @@ export async function requireSession() {
     headers: await headers(),
   });
   if (!session) {
-    redirect("/login");
+    redirect("/login?expired=1");
   }
   return session;
 }
