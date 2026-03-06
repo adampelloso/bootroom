@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { authClient } from "@/lib/auth-client";
 
 type Props = {
   monthlyPriceId: string;
@@ -10,6 +11,7 @@ type Props = {
 export function SubscribeForm({ monthlyPriceId, yearlyPriceId }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleCheckout = async (priceId: string) => {
     setError(null);
@@ -36,6 +38,15 @@ export function SubscribeForm({ monthlyPriceId, yearlyPriceId }: Props) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
       setLoading(null);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setLoggingOut(true);
+    try {
+      await authClient.signOut();
+    } finally {
+      window.location.href = "/login";
     }
   };
 
@@ -215,6 +226,25 @@ export function SubscribeForm({ monthlyPriceId, yearlyPriceId }: Props) {
       >
         Cancel anytime. No commitment.
       </p>
+
+      <button
+        type="button"
+        onClick={handleSignOut}
+        disabled={loggingOut}
+        style={{
+          fontSize: "12px",
+          color: "#A3A3A3",
+          marginTop: "10px",
+          background: "transparent",
+          border: "none",
+          textDecoration: "underline",
+          textUnderlineOffset: "3px",
+          cursor: loggingOut ? "wait" : "pointer",
+          padding: 0,
+        }}
+      >
+        {loggingOut ? "Signing out..." : "Sign out and switch account"}
+      </button>
 
       <a
         href="/"
