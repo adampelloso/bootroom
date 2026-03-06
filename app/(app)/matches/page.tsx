@@ -3,6 +3,8 @@ import { requireActiveSubscription } from "@/lib/auth-guard";
 import { getFollowedLeagueIds } from "@/lib/league-preferences";
 import { MatchesClient } from "./matches-client";
 
+export const dynamic = "force-dynamic";
+
 
 function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
