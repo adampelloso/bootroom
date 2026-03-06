@@ -80,11 +80,8 @@ jobs:
       - name: Pipeline QA gate
         run: node scripts/qa-pipeline-gate.mjs
 
-      - name: Pre-build team stats + KV staging
-        run: node scripts/prebuild-stats.mjs
-
-      - name: Push to Cloudflare KV
+      - name: Push simulations to Cloudflare KV
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           KV_NAMESPACE_ID: ${{ secrets.KV_NAMESPACE_ID }}
-        run: node scripts/push-to-kv.mjs
+        run: node scripts/push-sims-to-kv.mjs
