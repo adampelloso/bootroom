@@ -97,6 +97,7 @@ function parseSeasonFixtures(): { fixtures: FixtureRow[]; teams: TeamRow[] } {
 interface UpcomingEntry {
   fixtureId: number;
   date: string;
+  status?: string;
   homeTeam: string;
   awayTeam: string;
   homeTeamId: number;
@@ -138,6 +139,12 @@ function parseUpcomingFixtures(): FixtureRow[] {
   }));
 }
 
+function isFinishedStatus(status: string | null | undefined): boolean {
+  if (!status) return false;
+  const s = status.toUpperCase();
+  return s === "FT" || s === "AET" || s === "PEN" || s === "CANC" || s === "ABD" || s === "AWD" || s === "WO";
+}
+
 // ── Main ────────────────────────────────────────────────────────────
 
 async function main() {
@@ -154,8 +161,41 @@ async function main() {
   const upcomingFixtures = parseUpcomingFixtures();
   console.log(`  Found ${upcomingFixtures.length} upcoming fixtures`);
 
-  // Merge: upcoming fixtures override season fixtures (more current status)
-  const allFixtures = [...seasonFixtures, ...upcomingFixtures];
+  // Merge with status/goals safety:
+  // - Upcoming fixtures should add missing rows.
+  // - Upcoming "NS" rows must NOT clobber finished/live rows from season/API sync.
+  const merged = new Map<number, FixtureRow>();
+  for (const row of seasonFixtures) {
+    if (row.id == null) continue;
+    merged.set(row.id, row);
+  }
+  for (const up of upcomingFixtures) {
+    if (up.id == null) continue;
+    const prev = merged.get(up.id);
+    if (!prev) {
+      merged.set(up.id, up);
+      continue;
+    }
+    // Preserve terminal/live status and scores from the authoritative season/API row.
+    if (isFinishedStatus(prev.status) || prev.status === "LIVE" || prev.status === "1H" || prev.status === "HT" || prev.status === "2H" || prev.status === "ET" || prev.status === "BT" || prev.status === "P") {
+      merged.set(up.id, {
+        ...up,
+        status: prev.status,
+        homeGoals: prev.homeGoals,
+        awayGoals: prev.awayGoals,
+        htHomeGoals: prev.htHomeGoals,
+        htAwayGoals: prev.htAwayGoals,
+      });
+      continue;
+    }
+    // Otherwise keep the richer timing/round payload from upcoming for scheduled matches.
+    merged.set(up.id, {
+      ...prev,
+      ...up,
+      status: prev.status ?? up.status,
+    });
+  }
+  const allFixtures = [...merged.values()];
   console.log(`\nWriting ${allFixtures.length} fixtures to DB...`);
   await upsertFixtures(allFixtures);
 

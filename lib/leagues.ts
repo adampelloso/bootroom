@@ -43,6 +43,7 @@ export const SUPPORTED_COMPETITIONS: SupportedCompetition[] = [
   { id: 113, label: "Allsvenskan", season: 2026, type: "league", oddsKey: null },
   { id: 106, label: "Ekstraklasa", season: 2025, type: "league", oddsKey: null },
   { id: 345, label: "Czech Liga", season: 2025, type: "league", oddsKey: null },
+  { id: 283, label: "Romania Liga I", season: 2025, type: "league", oddsKey: null },
   // Americas
   { id: 253, label: "MLS", season: 2026, type: "league", oddsKey: "mls" },
   { id: 262, label: "Liga MX", season: 2025, type: "league", oddsKey: "ligamx" },
@@ -93,6 +94,13 @@ export function isCup(leagueId: number): boolean {
 
 /** League IDs for batch ingest (all supported competitions). */
 export const ALL_COMPETITION_IDS = SUPPORTED_COMPETITIONS.map((c) => c.id);
+
+/** Static Phase-1 league eligibility for Today's Best Bets surface. */
+export const TODAY_ELIGIBLE_LEAGUE_IDS_PHASE1: number[] = [
+  39, 140, 135, 78, 61, // Big 5
+  88, 94, 144, 179, 203, // Europe tier 1.5
+  40, 79, 136, 62, // selected second tiers
+];
 
 /**
  * Relative league strength factors for cross-league (cup) match adjustments.

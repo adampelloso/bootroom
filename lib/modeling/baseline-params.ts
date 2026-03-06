@@ -10,7 +10,7 @@ function blendRecentSeason(
   recentMatches: number,
   season: number,
   seasonMatches: number,
-  recentWeightCap: number = 0.7
+  recentWeightCap: number = 0.5
 ): number {
   if (seasonMatches === 0 && recentMatches === 0) return 0;
   if (seasonMatches === 0) return recent;
@@ -35,13 +35,33 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /**
+ * Blend xG and goals using xG coverage as confidence.
+ * Sparse xG samples should influence, not dominate, the baseline.
+ */
+function blendXgWithGoals(
+  xgAvg: number,
+  goalsAvg: number,
+  xgMatchCount: number,
+  totalMatches: number,
+): number {
+  if (xgMatchCount <= 0 || totalMatches <= 0) return goalsAvg;
+  const coverage = clamp(xgMatchCount / totalMatches, 0, 1);
+  // Even with full coverage, keep some anchor to actual goals.
+  const xgWeight = 0.6 * coverage;
+  const blended = goalsAvg * (1 - xgWeight) + xgAvg * xgWeight;
+  // Prevent sparse/volatile xG from shifting baseline too far from observed output.
+  const maxShift = 0.45;
+  return clamp(blended, goalsAvg - maxShift, goalsAvg + maxShift);
+}
+
+/**
  * Shrink a raw attack/defence multiplier toward 1.0 based on sample size.
  * With few matches the estimate is noisy, so we trust the league average more.
  * At 20+ venue-filtered matches we use ~80% of the raw multiplier.
  */
 function shrinkMultiplier(raw: number, sampleSize: number): number {
-  // Confidence ramps from 0.3 (≤3 matches) to 0.85 (≥20 matches)
-  const confidence = clamp(0.3 + (sampleSize / 20) * 0.55, 0.3, 0.85);
+  // Confidence ramps from 0.25 (≤3 matches) to 0.7 (≥20 matches)
+  const confidence = clamp(0.25 + (sampleSize / 20) * 0.45, 0.25, 0.7);
   return 1 + (raw - 1) * confidence;
 }
 
@@ -125,24 +145,66 @@ function computeGoalLambdaComponents(
   if (!homeStats) homeStats = safeStats(getTeamStats(homeTeamName, fixtureDate, { venue: "home" }));
   if (!awayStats) awayStats = safeStats(getTeamStats(awayTeamName, fixtureDate, { venue: "away" }));
 
+  // Final fallback: if home/away venue slices are still sparse or missing (e.g. very recent
+  // promotions/newly tracked teams), use all-venue history so we still produce a simulation.
+  if (!homeStats) homeStats = safeStats(getTeamStats(homeTeamName, fixtureDate, { venue: "all", leagueId: homeLeagueId }));
+  if (!awayStats) awayStats = safeStats(getTeamStats(awayTeamName, fixtureDate, { venue: "all", leagueId: awayLeagueId }));
+  if (!homeStats) homeStats = safeStats(getTeamStats(homeTeamName, fixtureDate, { venue: "all" }));
+  if (!awayStats) awayStats = safeStats(getTeamStats(awayTeamName, fixtureDate, { venue: "all" }));
+
   if (!homeStats || !awayStats) return null;
 
-  // Prefer xG over raw goals when available (xG is far less noisy).
-  // Fall back to raw goals when xG coverage is insufficient (< 3 matches in window).
-  const useXgL5Home = homeStats.l5.xgMatchCount >= 3;
-  const useXgSeasonHome = homeStats.season.xgMatchCount >= 5;
-  const useXgL5Away = awayStats.l5.xgMatchCount >= 3;
-  const useXgSeasonAway = awayStats.season.xgMatchCount >= 5;
+  // Blend xG with goals by coverage instead of hard-threshold switching.
+  // This prevents a handful of xG-tagged matches from overpowering the baseline.
+  const homeAttackRecent = blendXgWithGoals(
+    homeStats.l5.xgFor,
+    homeStats.l5.goalsFor,
+    homeStats.l5.xgMatchCount,
+    homeStats.l5.matchCount,
+  );
+  const homeAttackSeason = blendXgWithGoals(
+    homeStats.season.xgFor,
+    homeStats.season.goalsFor,
+    homeStats.season.xgMatchCount,
+    homeStats.season.matchCount,
+  );
+  const homeDefRecent = blendXgWithGoals(
+    homeStats.l5.xgAgainst,
+    homeStats.l5.goalsAgainst,
+    homeStats.l5.xgMatchCount,
+    homeStats.l5.matchCount,
+  );
+  const homeDefSeason = blendXgWithGoals(
+    homeStats.season.xgAgainst,
+    homeStats.season.goalsAgainst,
+    homeStats.season.xgMatchCount,
+    homeStats.season.matchCount,
+  );
 
-  const homeAttackRecent = useXgL5Home ? homeStats.l5.xgFor : homeStats.l5.goalsFor;
-  const homeAttackSeason = useXgSeasonHome ? homeStats.season.xgFor : homeStats.season.goalsFor;
-  const homeDefRecent = useXgL5Home ? homeStats.l5.xgAgainst : homeStats.l5.goalsAgainst;
-  const homeDefSeason = useXgSeasonHome ? homeStats.season.xgAgainst : homeStats.season.goalsAgainst;
-
-  const awayAttackRecent = useXgL5Away ? awayStats.l5.xgFor : awayStats.l5.goalsFor;
-  const awayAttackSeason = useXgSeasonAway ? awayStats.season.xgFor : awayStats.season.goalsFor;
-  const awayDefRecent = useXgL5Away ? awayStats.l5.xgAgainst : awayStats.l5.goalsAgainst;
-  const awayDefSeason = useXgSeasonAway ? awayStats.season.xgAgainst : awayStats.season.goalsAgainst;
+  const awayAttackRecent = blendXgWithGoals(
+    awayStats.l5.xgFor,
+    awayStats.l5.goalsFor,
+    awayStats.l5.xgMatchCount,
+    awayStats.l5.matchCount,
+  );
+  const awayAttackSeason = blendXgWithGoals(
+    awayStats.season.xgFor,
+    awayStats.season.goalsFor,
+    awayStats.season.xgMatchCount,
+    awayStats.season.matchCount,
+  );
+  const awayDefRecent = blendXgWithGoals(
+    awayStats.l5.xgAgainst,
+    awayStats.l5.goalsAgainst,
+    awayStats.l5.xgMatchCount,
+    awayStats.l5.matchCount,
+  );
+  const awayDefSeason = blendXgWithGoals(
+    awayStats.season.xgAgainst,
+    awayStats.season.goalsAgainst,
+    awayStats.season.xgMatchCount,
+    awayStats.season.matchCount,
+  );
 
   const homeAttack = blendRecentSeason(
     homeAttackRecent,
@@ -277,7 +339,14 @@ export function estimateMatchGoalLambdas(
   firstLegResult?: FirstLegResult,
 ): MatchGoalLambdas | null {
   const computed = computeGoalLambdaComponents(homeTeamName, awayTeamName, fixtureDate, leagueId, firstLegResult);
-  if (!computed) return null;
+  if (!computed) {
+    // Final deterministic fallback so simulations are never dropped due to sparse team history.
+    const league = getLeagueGoalAverages(leagueId);
+    return {
+      lambdaHomeGoals: clamp(league.homeGoals || 1.4, 0.2, 4.2),
+      lambdaAwayGoals: clamp(league.awayGoals || 1.1, 0.2, 4.2),
+    };
+  }
 
   const { components, homeStats, awayStats } = computed;
 
@@ -300,13 +369,18 @@ export function estimateMatchGoalLambdas(
   const awayGoalsDelta = safeDelta(awayStats.l5.goalsFor, awayStats.season.goalsFor);
   const homeShotsDelta = safeDelta(homeStats.l5.shotsFor, homeStats.season.shotsFor);
   const awayShotsDelta = safeDelta(awayStats.l5.shotsFor, awayStats.season.shotsFor);
+  const homeSotDelta = safeDelta(homeStats.l5.sotFor, homeStats.season.sotFor);
+  const awaySotDelta = safeDelta(awayStats.l5.sotFor, awayStats.season.sotFor);
 
   const homeFormFactor =
-    scaleDelta(homeGoalsDelta, 0.6, 0.12) * // up to ~12% from goals trend
-    scaleDelta(homeShotsDelta, 4, 0.08); // up to ~8% from shots trend
+    scaleDelta(homeGoalsDelta, 0.6, 0.08) * // up to ~8% from goals trend
+    scaleDelta(homeShotsDelta, 4, 0.05) * // up to ~5% from shots trend
+    scaleDelta(homeSotDelta, 2, 0.04); // up to ~4% from SOT trend
 
   const awayFormFactor =
-    scaleDelta(awayGoalsDelta, 0.6, 0.12) * scaleDelta(awayShotsDelta, 4, 0.08);
+    scaleDelta(awayGoalsDelta, 0.6, 0.08) *
+    scaleDelta(awayShotsDelta, 4, 0.05) *
+    scaleDelta(awaySotDelta, 2, 0.04);
 
   const lambdaHomeBase =
     leagueHomeGoals * homeAttackMultiplier * awayDefenceMultiplier * homeAdvantageFactor;
@@ -400,4 +474,3 @@ export function debugGoalLambdaComponents(
   const computed = computeGoalLambdaComponents(homeTeamName, awayTeamName, fixtureDate, leagueId, firstLegResult);
   return computed?.components ?? null;
 }
-

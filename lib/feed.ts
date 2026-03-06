@@ -119,6 +119,15 @@ export interface FeedPlayerSimEntry {
   position: string | null;
   confidence: "locked" | "likely" | "rotation";
   anytimeScorerProb: number;
+  anytimeAssistProb: number;
+  bookScorerProb?: number;
+  bookScorerOdds?: number;
+  scorerEdgeProb?: number;
+  scorerEdgeEv?: number;
+  bookAssistProb?: number;
+  bookAssistOdds?: number;
+  assistEdgeProb?: number;
+  assistEdgeEv?: number;
   expectedGoals: number;
   expectedShots: number;
   expectedSOT: number;

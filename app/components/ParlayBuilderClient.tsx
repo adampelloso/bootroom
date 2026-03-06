@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useOddsFormat } from "@/app/hooks/useOddsFormat";
+import { formatOddsDisplay } from "@/lib/modeling/odds-display";
 
 export type ParlayLeg = {
   id: string;
@@ -37,6 +39,7 @@ export function ParlayBuilderClient({
   profiles: ParlayProfile[];
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const oddsFormat = useOddsFormat();
 
   function toggleLeg(id: string) {
     setSelectedIds((prev) => {
@@ -137,7 +140,7 @@ export function ParlayBuilderClient({
                       }}
                       disabled={!isSelected && selectedIds.size >= 12}
                     >
-                      {leg.market} {(leg.modelProb * 100).toFixed(0)}%
+                      {leg.market} {formatOddsDisplay(leg.modelProb, oddsFormat)}
                       <span
                         style={{
                           color: isSelected
@@ -194,10 +197,10 @@ export function ParlayBuilderClient({
                 className="text-[16px] font-bold font-mono"
                 style={{ color: "var(--text-main)" }}
               >
-                {(combinedProb * 100).toFixed(2)}%
+                {formatOddsDisplay(combinedProb, oddsFormat)}
               </p>
               <p className="text-[11px] font-mono" style={{ color: "var(--text-sec)" }}>
-                Combined probability
+                Combined odds
               </p>
             </div>
           </div>

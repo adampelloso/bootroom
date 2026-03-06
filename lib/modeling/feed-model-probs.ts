@@ -13,7 +13,6 @@ import { findFirstLegResult } from "@/lib/modeling/first-leg-lookup";
 import type { FirstLegResult } from "@/lib/modeling/first-leg-lookup";
 import { simulateMatch } from "@/lib/modeling/mc-engine";
 import { applyCalibration } from "@/lib/modeling/calibration";
-import { blendModelAndMarket } from "@/lib/modeling/odds-blend";
 import type { MarketProbabilities } from "@/lib/odds/the-odds-api";
 
 const EV_THRESHOLD = 0.03;
@@ -26,7 +25,7 @@ export interface FeedModelProbs {
   over_3_5?: number;
   /** Calibrated BTTS probability. */
   btts?: number;
-  /** Raw MC simulation probability for O2.5 (before calibration/blending). */
+  /** Raw MC simulation probability for O2.5 (before calibration). */
   mcOver25?: number;
   /** Raw MC simulation probability for BTTS. */
   mcBtts?: number;
@@ -58,7 +57,9 @@ const cache = new Map<string, FeedModelProbs>();
 export function getFeedMatchModelProbs(
   match: FeedMatch,
   externalMarketProbs?: MarketProbabilities | null,
+  options?: { allowRuntimeFallback?: boolean },
 ): FeedModelProbs | null {
+  const allowRuntimeFallback = options?.allowRuntimeFallback ?? true;
   const cacheKey = `${match.providerFixtureId}-${match.kickoffUtc}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey)!;
@@ -67,14 +68,18 @@ export function getFeedMatchModelProbs(
   // Try pre-computed data from disk first
   const fromDisk = getFeedModelProbsFromDisk(match.providerFixtureId, match.kickoffUtc);
   if (fromDisk) {
-    // If disk data lacks edges but we have DB odds, merge them in
-    const marketProbs = externalMarketProbs !== undefined ? externalMarketProbs : null;
-    if (!fromDisk.edges && marketProbs) {
+    const mergeEdges = (marketProbs: {
+      home: number;
+      draw: number;
+      away: number;
+      over_2_5?: number;
+      btts?: number;
+    }) => {
       const edges = {
         home: fromDisk.home - marketProbs.home,
         draw: fromDisk.draw - marketProbs.draw,
         away: fromDisk.away - marketProbs.away,
-        over_2_5: marketProbs.over_2_5 && fromDisk.over_2_5
+        over_2_5: marketProbs.over_2_5 != null && fromDisk.over_2_5 != null
           ? fromDisk.over_2_5 - marketProbs.over_2_5
           : undefined,
         btts: marketProbs.btts != null && fromDisk.btts != null
@@ -82,6 +87,18 @@ export function getFeedMatchModelProbs(
           : undefined,
       };
       fromDisk.edges = edges;
+      const evFlags: string[] = [];
+      if (edges.home > EV_THRESHOLD) evFlags.push("HOME");
+      if (edges.draw > EV_THRESHOLD) evFlags.push("DRAW");
+      if (edges.away > EV_THRESHOLD) evFlags.push("AWAY");
+      if (edges.over_2_5 && edges.over_2_5 > EV_THRESHOLD) evFlags.push("O2.5");
+      if (edges.btts && edges.btts > EV_THRESHOLD) evFlags.push("BTTS");
+      fromDisk.evFlags = evFlags.length > 0 ? evFlags : undefined;
+    };
+
+    // Merge market comparison edge data on top of pure model probabilities.
+    const marketProbs = externalMarketProbs !== undefined ? externalMarketProbs : null;
+    if (marketProbs) {
       fromDisk.marketProbs = {
         home: marketProbs.home,
         draw: marketProbs.draw,
@@ -89,13 +106,33 @@ export function getFeedMatchModelProbs(
         over_2_5: marketProbs.over_2_5,
         btts: marketProbs.btts,
       };
-      const evFlags: string[] = [];
-      if (edges.home > EV_THRESHOLD) evFlags.push("HOME");
-      if (edges.draw > EV_THRESHOLD) evFlags.push("DRAW");
-      if (edges.away > EV_THRESHOLD) evFlags.push("AWAY");
-      if (edges.over_2_5 && edges.over_2_5 > EV_THRESHOLD) evFlags.push("O2.5");
-      if (edges.btts && edges.btts > EV_THRESHOLD) evFlags.push("BTTS");
-      if (evFlags.length > 0) fromDisk.evFlags = evFlags;
+      mergeEdges({
+        home: marketProbs.home,
+        draw: marketProbs.draw,
+        away: marketProbs.away,
+        over_2_5: marketProbs.over_2_5,
+        btts: marketProbs.btts,
+      });
+    } else if (fromDisk.marketProbs) {
+      // Keep odds embedded in precomputed simulation file as fallback when DB odds are missing.
+      const fallback = fromDisk.marketProbs;
+      if (fallback.home != null && fallback.draw != null && fallback.away != null) {
+        mergeEdges({
+          home: fallback.home,
+          draw: fallback.draw,
+          away: fallback.away,
+          over_2_5: fallback.over_2_5,
+          btts: fallback.btts,
+        });
+      } else {
+        fromDisk.edges = undefined;
+        fromDisk.marketProbs = undefined;
+        fromDisk.evFlags = undefined;
+      }
+    } else {
+      fromDisk.edges = undefined;
+      fromDisk.marketProbs = undefined;
+      fromDisk.evFlags = undefined;
     }
     cache.set(cacheKey, fromDisk);
     return fromDisk;
@@ -104,6 +141,10 @@ export function getFeedMatchModelProbs(
   // On Workers, skip runtime simulation — it exceeds the CPU time limit.
   // Pre-computed sims are loaded from disk (local) or KV (Phase 2).
   if (isWorkersRuntime()) {
+    return null;
+  }
+
+  if (!allowRuntimeFallback) {
     return null;
   }
 
@@ -150,21 +191,14 @@ export function getFeedMatchModelProbs(
     under_2_5: applyCalibration("OU_2.5", "Under", 1 - sim.pO25),
   };
 
-  const blendedProbs = marketProbs
-    ? blendModelAndMarket(rawModelProbs, marketProbs, {
-        homeSampleSize: 38,
-        awaySampleSize: 38,
-      })
-    : rawModelProbs;
-
   const calibratedBtts = applyCalibration("BTTS", "Yes", sim.pBTTS);
   const edges = marketProbs
     ? {
-        home: blendedProbs.home - marketProbs.home,
-        draw: blendedProbs.draw - marketProbs.draw,
-        away: blendedProbs.away - marketProbs.away,
+        home: rawModelProbs.home - marketProbs.home,
+        draw: rawModelProbs.draw - marketProbs.draw,
+        away: rawModelProbs.away - marketProbs.away,
         over_2_5: marketProbs.over_2_5
-          ? (blendedProbs.over_2_5 ?? rawModelProbs.over_2_5) - marketProbs.over_2_5
+          ? rawModelProbs.over_2_5 - marketProbs.over_2_5
           : undefined,
         btts: marketProbs.btts != null
           ? calibratedBtts - marketProbs.btts
@@ -197,10 +231,10 @@ export function getFeedMatchModelProbs(
     .map(([score, count]) => ({ score, prob: count / sim.totalSimulations }));
 
   const result: FeedModelProbs = {
-    home: blendedProbs.home,
-    draw: blendedProbs.draw,
-    away: blendedProbs.away,
-    over_2_5: blendedProbs.over_2_5,
+    home: rawModelProbs.home,
+    draw: rawModelProbs.draw,
+    away: rawModelProbs.away,
+    over_2_5: rawModelProbs.over_2_5,
     over_3_5: sim.pO35,
     btts: calibratedBtts,
     mcOver25: sim.pO25,

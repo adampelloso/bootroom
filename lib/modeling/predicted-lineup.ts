@@ -16,6 +16,7 @@ export interface PredictedStarter {
   playerId: number;
   name: string;
   position: string | null; // Goalkeeper | Defender | Midfielder | Attacker
+  appearances: number;
   startRate: number; // weighted start rate (0-1)
   confidence: LineupConfidence;
   seasonGoals: number;
@@ -121,6 +122,7 @@ export function predictLineupFromDb(
       playerId: p.playerId,
       name: p.name,
       position: p.position,
+      appearances: apps,
       startRate,
       confidence: assignConfidence(startRate),
       seasonGoals: ss?.goals ?? 0,
@@ -204,6 +206,7 @@ export function predictLineup(
       playerId: p.playerId,
       name: p.name,
       position: p.position,
+      appearances,
       startRate,
       confidence: assignConfidence(startRate),
       seasonGoals: p.goals,

@@ -23,7 +23,7 @@ BIG5="39 78 135 140 61"
 # European tier 1.5
 EUR_T15="88 94 144 203 179 218"
 # European tier 2
-EUR_T2="207 119 197 210 106 345"
+EUR_T2="207 119 197 210 106 345 283"
 # Second-tier leagues (Championship, Serie B, etc.)
 SECOND_TIER="40 41 42 136 79 141 62"
 # European cups

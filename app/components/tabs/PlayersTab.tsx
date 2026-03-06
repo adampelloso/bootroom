@@ -1,6 +1,5 @@
 import type { FeedPredictedLineup, FeedPlayerSim } from "@/lib/feed";
 import type { PlayerPropStat } from "@/app/components/PlayerPropsCard";
-import { KeyPlayersHero } from "@/app/components/KeyPlayersHero";
 import { UnifiedPlayerTable } from "@/app/components/UnifiedPlayerTable";
 import { PlayerPropsCard } from "@/app/components/PlayerPropsCard";
 
@@ -29,16 +28,6 @@ export function PlayersTab({
 
   return (
     <div className="space-y-0">
-      {/* Key players hero */}
-      {hasProjections && (
-        <KeyPlayersHero
-          homeTeamName={homeTeamName}
-          awayTeamName={awayTeamName}
-          homePlayers={playerSimData!.home}
-          awayPlayers={playerSimData!.away}
-        />
-      )}
-
       {/* Unified sortable player table */}
       {hasProjections && (
         <UnifiedPlayerTable

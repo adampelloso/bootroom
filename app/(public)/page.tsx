@@ -99,7 +99,7 @@ export default function LandingPage() {
             position: "relative",
           }}
         >
-          Match analytics<br />that find the edge
+          Football's sharpest<br />simulation engine
         </h1>
         <p
           style={{
@@ -110,7 +110,7 @@ export default function LandingPage() {
             position: "relative",
           }}
         >
-          100K simulations. 2K+ signals. Actionable insights.
+          100K runs per match. 2K+ data points. 43 competitions.
         </p>
         <a
           href="/signup"
@@ -198,8 +198,8 @@ export default function LandingPage() {
       {/* ─── PRICING ─── */}
       <section style={{ ...section, paddingTop: "0px", paddingBottom: "40px" }}>
 <div style={{ display: "flex", gap: "32px", justifyContent: "center", flexWrap: "wrap" }}>
-          <PricingCard label="MONTHLY" price="$5" period="/mo" />
-          <PricingCard label="YEARLY" price="$25" period="/yr" badge="SAVE 60%" featured />
+          <PricingCard label="MONTHLY" price="$10" period="/mo" />
+          <PricingCard label="YEARLY" price="$60" period="/yr" badge="SAVE 50%" featured />
         </div>
 
         <p style={{ fontSize: "14px", color: "#808080", textAlign: "center", marginTop: "20px" }}>

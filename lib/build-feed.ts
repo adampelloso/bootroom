@@ -28,25 +28,54 @@ import {
   DEFAULT_LEAGUE_ID,
   getCompetitionByLeagueId,
 } from "@/lib/leagues";
-import { predictLineup, predictLineupFromDb } from "@/lib/modeling/predicted-lineup";
-import { getMatchPlayerSim } from "@/lib/modeling/player-sim";
-import type { FeedPredictedLineup, FeedPlayerSim, FeedPlayerSimEntry } from "./feed";
-import type { PredictedLineup } from "@/lib/modeling/predicted-lineup";
-import type { PlayerSimResult } from "@/lib/modeling/player-sim";
 import {
   getFixturesByDateRange,
   getFixtureById,
-  getTeamCodeMap,
-  getTeamLogoMap,
+  getTeamMetaMaps,
   getOddsForFixtures,
   getH2HFixtures,
   getH2HForPairs,
   getTeamFormBatch,
-  getInjuredPlayersByTeam,
-  getRecentLineupsBatch,
   type DbFixture,
-  type RecentStarterRow,
 } from "@/lib/db-queries";
+
+const FEED_CACHE_TTL_MS = 60_000;
+const MATCH_DETAIL_CACHE_TTL_MS = 60_000;
+
+type FeedCacheEntry = {
+  expiresAt: number;
+  data: FeedMatch[];
+};
+
+type MatchDetailCacheEntry = {
+  expiresAt: number;
+  data: MatchDetail | null;
+};
+
+const feedCache = new Map<string, FeedCacheEntry>();
+const matchDetailCache = new Map<number, MatchDetailCacheEntry>();
+
+type GetFeedOptions = {
+  includeTeamMeta?: boolean;
+  includeH2H?: boolean;
+  includeForm?: boolean;
+};
+
+const DEFAULT_GET_FEED_OPTIONS: Required<GetFeedOptions> = {
+  includeTeamMeta: true,
+  includeH2H: true,
+  includeForm: true,
+};
+
+function makeFeedCacheKey(
+  from: string,
+  to: string,
+  ids: number[],
+  opts: Required<GetFeedOptions>,
+): string {
+  const sortedIds = [...ids].sort((a, b) => a - b);
+  return `${from}|${to}|${sortedIds.join(",")}|tm:${opts.includeTeamMeta ? 1 : 0}|h2h:${opts.includeH2H ? 1 : 0}|form:${opts.includeForm ? 1 : 0}`;
+}
 
 /** Short labels for feed pills from catalog marketKey. */
 const MARKET_KEY_TO_LABEL: Record<string, string> = {
@@ -239,37 +268,6 @@ function teamCodeFallback(name: string): string {
   return name.slice(0, 3).toUpperCase() || name;
 }
 
-function toFeedLineup(lineup: PredictedLineup): FeedPredictedLineup {
-  return {
-    starters: lineup.starters.map((s) => ({
-      playerId: s.playerId,
-      name: s.name,
-      position: s.position,
-      startRate: s.startRate,
-      confidence: s.confidence,
-    })),
-    teamMatchesPlayed: lineup.teamMatchesPlayed,
-  };
-}
-
-function toFeedPlayerSim(sim: { home: PlayerSimResult[]; away: PlayerSimResult[] }): FeedPlayerSim {
-  const convert = (r: PlayerSimResult): FeedPlayerSimEntry => ({
-    playerId: r.playerId,
-    name: r.name,
-    position: r.position,
-    confidence: r.confidence,
-    anytimeScorerProb: r.anytimeScorerProb,
-    expectedGoals: r.expectedGoals,
-    expectedShots: r.expectedShots,
-    expectedSOT: r.expectedSOT,
-    expectedAssists: r.expectedAssists,
-  });
-  return {
-    home: sim.home.map(convert),
-    away: sim.away.map(convert),
-  };
-}
-
 async function buildFeedMatchFromDb(
   f: DbFixture,
   teamIdToCode: Map<number, string>,
@@ -277,8 +275,6 @@ async function buildFeedMatchFromDb(
   h2hSummary?: H2HSummary | null,
   marketProbs?: MarketProbabilities | null,
   formMap?: Map<number, FormResult[]>,
-  injuredMap?: Map<number, Set<number>>,
-  recentLineupsMap?: Map<number, RecentStarterRow[]>,
 ): Promise<FeedMatch> {
   const fixtureDate = f.date;
   const home = f.homeTeamName;
@@ -294,11 +290,6 @@ async function buildFeedMatchFromDb(
 
   const homeCode = teamIdToCode.get(homeId) ?? teamCodeFallback(home);
   const awayCode = teamIdToCode.get(awayId) ?? teamCodeFallback(away);
-
-  const marketRows = getFeedMarketRows(home, away, fixtureDate, { leagueId: leagueId });
-
-  const homeL5 = getTeamStats(home, fixtureDate, { venue: "home", leagueId: leagueId });
-  const awayL5 = getTeamStats(away, fixtureDate, { venue: "away", leagueId: leagueId });
 
   const match: FeedMatch = {
     id: `match-${f.id}`,
@@ -317,11 +308,11 @@ async function buildFeedMatchFromDb(
     status: f.status,
     homeGoals: f.homeGoals,
     awayGoals: f.awayGoals,
-    marketRows,
-    homeAvgGoalsFor: homeL5?.l5.matchCount ? homeL5.l5.goalsFor : undefined,
-    homeAvgGoalsAgainst: homeL5?.l5.matchCount ? homeL5.l5.goalsAgainst : undefined,
-    awayAvgGoalsFor: awayL5?.l5.matchCount ? awayL5.l5.goalsFor : undefined,
-    awayAvgGoalsAgainst: awayL5?.l5.matchCount ? awayL5.l5.goalsAgainst : undefined,
+    marketRows: [],
+    homeAvgGoalsFor: undefined,
+    homeAvgGoalsAgainst: undefined,
+    awayAvgGoalsFor: undefined,
+    awayAvgGoalsAgainst: undefined,
     highlights: [],
     homeForm: homeForm.length > 0 ? homeForm : undefined,
     awayForm: awayForm.length > 0 ? awayForm : undefined,
@@ -329,57 +320,27 @@ async function buildFeedMatchFromDb(
   };
 
   // Compute model probabilities for feed (on-demand, cached)
-  const modelProbs = getFeedMatchModelProbs(match, marketProbs);
+  const modelProbs = getFeedMatchModelProbs(match, marketProbs, { allowRuntimeFallback: false });
   if (modelProbs) {
     match.modelProbs = modelProbs;
   }
 
-  // Populate edge summary
-  if (match.modelProbs?.edges) {
-    const { computeMatchEdges } = await import("@/lib/edge-engine");
-    const edges = computeMatchEdges(match);
-    if (edges) {
-      match.edgeSummary = {
-        bestMarket: edges.bestMarket,
-        bestEdge: edges.bestEdge,
-        tier: edges.bestTier,
-      };
-    }
-  }
-
-  // Evaluate signal tags and generate narrative
-  const { evaluateSignals } = await import("@/lib/signals/evaluate");
-  const { generateNarrative } = await import("@/lib/narrative");
-  match.signalTags = evaluateSignals(match);
-  match.narrative = generateNarrative(match);
-
-  // Predicted lineups + player-level sim (upcoming matches only)
-  const isUpcoming = match.homeGoals == null && match.awayGoals == null;
-  if (isUpcoming) {
-    const homeInjured = injuredMap?.get(homeId);
-    const awayInjured = injuredMap?.get(awayId);
-    const homeRecentLineups = recentLineupsMap?.get(homeId);
-    const awayRecentLineups = recentLineupsMap?.get(awayId);
-    // Prefer DB-backed recency-weighted lineups; fall back to season stats
-    const homeLineup = (homeRecentLineups && homeRecentLineups.length > 0
-      ? predictLineupFromDb(home, homeRecentLineups, homeInjured)
-      : null) ?? predictLineup(home, leagueId, fixtureDate, homeInjured);
-    const awayLineup = (awayRecentLineups && awayRecentLineups.length > 0
-      ? predictLineupFromDb(away, awayRecentLineups, awayInjured)
-      : null) ?? predictLineup(away, leagueId, fixtureDate, awayInjured);
-    if (homeLineup) match.predictedHomeLineup = toFeedLineup(homeLineup);
-    if (awayLineup) match.predictedAwayLineup = toFeedLineup(awayLineup);
-    if (homeLineup && awayLineup && modelProbs?.expectedHomeGoals != null && modelProbs?.expectedAwayGoals != null) {
-      const playerSim = getMatchPlayerSim(
-        homeLineup,
-        awayLineup,
-        modelProbs.expectedHomeGoals,
-        modelProbs.expectedAwayGoals,
-        fixtureDate,
-        leagueId
-      );
-      match.playerSim = toFeedPlayerSim(playerSim);
-    }
+  // Compute heavier fallback stats only when precomputed model output is unavailable.
+  const needsFallbackStats =
+    !match.modelProbs ||
+    match.modelProbs.expectedHomeGoals == null ||
+    match.modelProbs.expectedAwayGoals == null ||
+    match.modelProbs.over_2_5 == null ||
+    match.modelProbs.btts == null;
+  if (needsFallbackStats) {
+    const marketRows = getFeedMarketRows(home, away, fixtureDate, { leagueId: leagueId });
+    const homeL5 = getTeamStats(home, fixtureDate, { venue: "home", leagueId: leagueId });
+    const awayL5 = getTeamStats(away, fixtureDate, { venue: "away", leagueId: leagueId });
+    match.marketRows = marketRows;
+    match.homeAvgGoalsFor = homeL5?.l5.matchCount ? homeL5.l5.goalsFor : undefined;
+    match.homeAvgGoalsAgainst = homeL5?.l5.matchCount ? homeL5.l5.goalsAgainst : undefined;
+    match.awayAvgGoalsFor = awayL5?.l5.matchCount ? awayL5.l5.goalsFor : undefined;
+    match.awayAvgGoalsAgainst = awayL5?.l5.matchCount ? awayL5.l5.goalsAgainst : undefined;
   }
 
   return match;
@@ -393,64 +354,73 @@ export async function getFeedMatches(
   from?: string,
   to?: string,
   leagueIds?: number[],
+  options?: GetFeedOptions,
 ): Promise<FeedMatch[]> {
   const ids =
     leagueIds && leagueIds.length > 0
       ? leagueIds
       : [DEFAULT_LEAGUE_ID];
+  const opts: Required<GetFeedOptions> = {
+    ...DEFAULT_GET_FEED_OPTIONS,
+    ...(options ?? {}),
+  };
 
   const date = from ?? new Date().toISOString().slice(0, 10);
   const effectiveTo = to ?? date;
+  const cacheKey = makeFeedCacheKey(date, effectiveTo, ids, opts);
+  const now = Date.now();
+  const cached = feedCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) {
+    return cached.data;
+  }
 
   // 1. Fetch fixtures from DB
   const fixtures = await getFixturesByDateRange(date, effectiveTo, ids);
-  if (fixtures.length === 0) return [];
+  if (fixtures.length === 0) {
+    feedCache.set(cacheKey, {
+      expiresAt: now + FEED_CACHE_TTL_MS,
+      data: [],
+    });
+    return [];
+  }
 
   // 2. Collect all team IDs for code/logo lookup
   const allTeamIds = [...new Set(fixtures.flatMap((f) => [f.homeTeamId, f.awayTeamId]))];
   const fixtureIds = fixtures.map((f) => f.id);
 
   // 3. Collect unique team pairs for H2H
-  const pairSet = new Set<string>();
   const pairs: { homeId: number; awayId: number }[] = [];
-  for (const f of fixtures) {
-    const key = `${Math.min(f.homeTeamId, f.awayTeamId)}-${Math.max(f.homeTeamId, f.awayTeamId)}`;
-    if (!pairSet.has(key)) {
-      pairSet.add(key);
-      pairs.push({ homeId: f.homeTeamId, awayId: f.awayTeamId });
+  if (opts.includeH2H) {
+    const pairSet = new Set<string>();
+    for (const f of fixtures) {
+      const key = `${Math.min(f.homeTeamId, f.awayTeamId)}-${Math.max(f.homeTeamId, f.awayTeamId)}`;
+      if (!pairSet.has(key)) {
+        pairSet.add(key);
+        pairs.push({ homeId: f.homeTeamId, awayId: f.awayTeamId });
+      }
     }
   }
 
   // 4. Parallel DB queries + preloads (no external API calls)
-  const allTeamNames = new Set<string>();
   const allDates = new Set<string>();
   for (const f of fixtures) {
-    allTeamNames.add(f.homeTeamName);
-    allTeamNames.add(f.awayTeamName);
     allDates.add(f.date);
   }
 
-  const [teamCodeMap, teamLogoMap, oddsMap, h2hMap, formMap, injuredMap, recentLineupsMap] = await Promise.all([
-    getTeamCodeMap(allTeamIds),
-    getTeamLogoMap(allTeamIds),
+  const [teamMeta, oddsMap, h2hMap, formMap] = await Promise.all([
+    opts.includeTeamMeta
+      ? getTeamMetaMaps(allTeamIds)
+      : Promise.resolve({ codeMap: new Map<number, string>(), logoMap: new Map<number, string>() }),
     getOddsForFixtures(fixtureIds),
-    getH2HForPairs(pairs),
-    getTeamFormBatch(allTeamIds, date, 5),
-    getInjuredPlayersByTeam(allTeamIds),
-    getRecentLineupsBatch(allTeamIds, date, 10),
-    // Side-effect preloads (return value not used)
-    preloadTeamStats([...allTeamNames]),
-    preloadLeagueAverages(ids),
+    opts.includeH2H ? getH2HForPairs(pairs) : Promise.resolve(new Map<string, DbFixture[]>()),
+    opts.includeForm ? getTeamFormBatch(allTeamIds, date, 5) : Promise.resolve(new Map<number, FormResult[]>()),
     preloadSimulations([...allDates]),
   ]) as [
-    Map<number, string>,
-    Map<number, string>,
+    { codeMap: Map<number, string>; logoMap: Map<number, string> },
     Map<number, MarketProbabilities>,
     Map<string, DbFixture[]>,
     Map<number, FormResult[]>,
-    Map<number, Set<number>>,
-    Map<number, RecentStarterRow[]>,
-    ...unknown[],
+    unknown,
   ];
 
   // 5. Build feed matches (pure computation — no I/O)
@@ -460,20 +430,35 @@ export async function getFeedMatches(
       const h2hFixtures = h2hMap.get(h2hKey) ?? [];
       const h2hSummary = deriveH2HSummary(h2hFixtures, f.homeTeamId, f.awayTeamId, f.homeTeamName, f.awayTeamName);
       const odds = oddsMap.get(f.id) ?? null;
-      return buildFeedMatchFromDb(f, teamCodeMap, teamLogoMap, h2hSummary, odds, formMap, injuredMap, recentLineupsMap);
+      return buildFeedMatchFromDb(f, teamMeta.codeMap, teamMeta.logoMap, h2hSummary, odds, formMap);
     }),
   );
 
   allMatches.sort((a, b) => feedMatchScore(b.marketRows) - feedMatchScore(a.marketRows));
+  feedCache.set(cacheKey, {
+    expiresAt: now + FEED_CACHE_TTL_MS,
+    data: allMatches,
+  });
   return allMatches;
 }
 
 export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | null> {
   const id = Number(fixtureId);
   if (Number.isNaN(id)) return null;
+  const now = Date.now();
+  const cached = matchDetailCache.get(id);
+  if (cached && cached.expiresAt > now) {
+    return cached.data;
+  }
 
   const f = await getFixtureById(id);
-  if (!f) return null;
+  if (!f) {
+    matchDetailCache.set(id, {
+      expiresAt: now + MATCH_DETAIL_CACHE_TTL_MS,
+      data: null,
+    });
+    return null;
+  }
 
   const leagueId = f.leagueId;
   const fixtureDate = f.date;
@@ -484,18 +469,17 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
 
   // Parallel: team codes/logos, H2H, preloads
   const allTeamIds = [homeId, awayId];
-  const [teamCodeMap, teamLogoMap, formMap] = await Promise.all([
-    getTeamCodeMap(allTeamIds),
-    getTeamLogoMap(allTeamIds),
+  const [teamMeta, formMap] = await Promise.all([
+    getTeamMetaMaps(allTeamIds),
     getTeamFormBatch(allTeamIds, fixtureDate, 10),
     preloadTeamStats([home, away]),
     preloadLeagueAverages([leagueId]),
     preloadSimulations(fixtureDate ? [fixtureDate] : []),
     preloadPlayers(),
-  ]) as [Map<number, string>, Map<number, string>, Map<number, FormResult[]>, ...unknown[]];
+  ]) as [{ codeMap: Map<number, string>; logoMap: Map<number, string> }, Map<number, FormResult[]>, ...unknown[]];
 
-  const homeCode = teamCodeMap.get(homeId) ?? teamCodeFallback(home);
-  const awayCode = teamCodeMap.get(awayId) ?? teamCodeFallback(away);
+  const homeCode = teamMeta.codeMap.get(homeId) ?? teamCodeFallback(home);
+  const awayCode = teamMeta.codeMap.get(awayId) ?? teamCodeFallback(away);
   const competition = getCompetitionByLeagueId(leagueId);
   const leagueName = competition?.label;
   const homeForm = formMap.get(homeId) ?? [];
@@ -523,7 +507,7 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
   const volatility = hasSupport ? derived.volatility : undefined;
   const angleStatements = supportingStatements.slice(0, 3);
 
-  return {
+  const detail: MatchDetail = {
     id: `match-${f.id}`,
     providerFixtureId: f.id,
     homeTeamId: homeId,
@@ -534,8 +518,8 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
     leagueName,
     homeTeamCode: homeCode,
     awayTeamCode: awayCode,
-    homeTeamLogo: teamLogoMap.get(homeId) ?? "",
-    awayTeamLogo: teamLogoMap.get(awayId) ?? "",
+    homeTeamLogo: teamMeta.logoMap.get(homeId) ?? "",
+    awayTeamLogo: teamMeta.logoMap.get(awayId) ?? "",
     kickoffUtc: f.kickoffUtc,
     venueName: f.venueName ?? "Venue TBD",
     status: f.status,
@@ -551,6 +535,11 @@ export async function getMatchDetail(fixtureId: string): Promise<MatchDetail | n
     referee: f.referee ?? undefined,
     h2hSummary,
   };
+  matchDetailCache.set(id, {
+    expiresAt: now + MATCH_DETAIL_CACHE_TTL_MS,
+    data: detail,
+  });
+  return detail;
 }
 
 function toDetailInsight(ins: FeedInsight): MatchDetailInsight {

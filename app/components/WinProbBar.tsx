@@ -1,5 +1,8 @@
 "use client";
 
+import { useOddsFormat } from "@/app/hooks/useOddsFormat";
+import { formatOddsDisplay } from "@/lib/modeling/odds-display";
+
 type Props = {
   homeWin: number;
   draw: number;
@@ -30,9 +33,7 @@ function ProbBar({ home, draw, away, label }: { home: number; draw: number; away
 }
 
 export function WinProbBar({ homeWin, draw, awayWin, homeTeamName, awayTeamName, marketHomeWin, marketDraw, marketAwayWin }: Props) {
-  const hPct = (homeWin * 100).toFixed(0);
-  const dPct = (draw * 100).toFixed(0);
-  const aPct = (awayWin * 100).toFixed(0);
+  const oddsFormat = useOddsFormat();
   const hasMarket = marketHomeWin != null && marketDraw != null && marketAwayWin != null;
 
   return (
@@ -45,17 +46,23 @@ export function WinProbBar({ homeWin, draw, awayWin, homeTeamName, awayTeamName,
           <span className="text-mono text-[12px] uppercase text-tertiary block mb-1">
             {homeTeamName.slice(0, 3).toUpperCase()}
           </span>
-          <span className="text-hero-metric" style={{ color: "var(--color-home)" }}>{hPct}%</span>
+          <span className="text-hero-metric" style={{ color: "var(--color-home)" }}>
+            {formatOddsDisplay(homeWin, oddsFormat)}
+          </span>
         </div>
         <div>
           <span className="text-mono text-[12px] uppercase text-tertiary block mb-1">Draw</span>
-          <span className="text-hero-metric" style={{ color: "var(--text-tertiary)" }}>{dPct}%</span>
+          <span className="text-hero-metric" style={{ color: "var(--text-tertiary)" }}>
+            {formatOddsDisplay(draw, oddsFormat)}
+          </span>
         </div>
         <div>
           <span className="text-mono text-[12px] uppercase text-tertiary block mb-1">
             {awayTeamName.slice(0, 3).toUpperCase()}
           </span>
-          <span className="text-hero-metric" style={{ color: "var(--color-away)" }}>{aPct}%</span>
+          <span className="text-hero-metric" style={{ color: "var(--color-away)" }}>
+            {formatOddsDisplay(awayWin, oddsFormat)}
+          </span>
         </div>
       </div>
 

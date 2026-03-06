@@ -1,3 +1,5 @@
+"use client";
+
 import type { FeedMarketRow } from "@/lib/feed";
 import type { ScreenshotChartPoint } from "@/lib/insights/feed-market-stats";
 import type { TeamMatchRow } from "@/lib/insights/team-stats";
@@ -10,6 +12,8 @@ import type { MatchSimulationResult } from "@/lib/modeling/mc-engine";
 import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import { ScorelineBarChart } from "@/app/components/ScorelineBarChart";
 import { percentColor } from "@/lib/percent-color";
+import { formatOddsDisplay } from "@/lib/modeling/odds-display";
+import { useOddsFormat } from "@/app/hooks/useOddsFormat";
 
 type Props = {
   rows: FeedMarketRow[];
@@ -42,6 +46,11 @@ export function OverviewTab({
   awayLast10,
   h2hSummary,
 }: Props) {
+  const oddsFormat = useOddsFormat();
+  const hasBookOdds =
+    feedProbs?.marketProbs?.home != null &&
+    feedProbs?.marketProbs?.draw != null &&
+    feedProbs?.marketProbs?.away != null;
   const o25Row = rows.find((r) => r.market === "O2.5");
   const bttsRow = rows.find((r) => r.market === "BTTS");
 
@@ -177,6 +186,13 @@ export function OverviewTab({
 
         {/* Right column: edge summary + narrative + scorelines + H2H */}
         <div className="space-y-4">
+          {!hasBookOdds && (
+            <section className="px-5 py-3" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
+              <p className="text-[11px] font-mono uppercase" style={{ color: "var(--text-tertiary)" }}>
+                Book odds unavailable for this fixture right now.
+              </p>
+            </section>
+          )}
           {/* Edge Summary Cards */}
           {edgeRows.length > 0 && (
             <section className="px-5 py-4" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
@@ -189,7 +205,7 @@ export function OverviewTab({
                       <span className="text-[12px] text-tertiary uppercase ml-2">{row.market}</span>
                     </div>
                     <div className="flex items-center gap-3 text-[12px] font-mono">
-                      <span className="text-tertiary">Book {row.bookProb != null ? `${Math.round(row.bookProb * 100)}%` : '\u2014'}</span>
+                      <span className="text-tertiary">Book {row.bookProb != null ? formatOddsDisplay(row.bookProb, oddsFormat) : "\u2014"}</span>
                       <EdgeBadge edge={row.edge} market={row.market} variant="badge" />
                     </div>
                   </div>

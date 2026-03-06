@@ -23,5 +23,12 @@ export async function GET(request: Request) {
     .filter((e): e is NonNullable<typeof e> => e !== null)
     .sort((a, b) => b.bestEdge - a.bestEdge);
 
-  return NextResponse.json({ edges });
+  return NextResponse.json(
+    { edges },
+    {
+      headers: {
+        "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+      },
+    },
+  );
 }

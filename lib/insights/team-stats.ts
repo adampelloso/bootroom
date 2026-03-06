@@ -46,13 +46,13 @@ export interface TeamRollingStats {
 interface IngestedFixture {
   fixture: {
     fixture: { id?: number; date: string };
-    league?: { id: number; name?: string };
+    league?: { id: number; name?: string; season?: number };
     teams: { home: { name: string }; away: { name: string } };
     goals: { home: number | null; away: number | null };
     score?: { halftime?: { home: number | null; away: number | null } };
   };
   /** Top-level league (when ingest persists it here); else use fixture.league */
-  league?: { id: number; name?: string };
+  league?: { id: number; name?: string; season?: number };
   stats?: Array<{
     team: { name: string };
     statistics: Array<{ type: string; value: number | string | null }>;
@@ -90,6 +90,7 @@ export interface TeamMatchRow {
   blockedShots: number;
   leagueId?: number;
   leagueName?: string;
+  season?: number;
 }
 
 function getStatValue(stats: Array<{ type: string; value: number | string | null }>, ...typeCandidates: string[]): number {
@@ -161,6 +162,7 @@ function buildTeamMatchHistory(fixtures: IngestedFixture[]): Map<string, TeamMat
     const dateMs = new Date(date).getTime();
     const leagueId = entry.league?.id ?? fixture.league?.id;
     const leagueName = entry.league?.name ?? fixture.league?.name;
+    const season = entry.league?.season ?? fixture.league?.season;
 
     const homeStats = stats?.find((s) => s.team?.name === home);
     const awayStats = stats?.find((s) => s.team?.name === away);
@@ -209,6 +211,7 @@ function buildTeamMatchHistory(fixtures: IngestedFixture[]): Map<string, TeamMat
       blockedShots: getStatValue(homeStatArr, "Blocked Shots"),
       leagueId,
       leagueName,
+      season,
     };
 
     const awayRow: TeamMatchRow = {
@@ -237,6 +240,7 @@ function buildTeamMatchHistory(fixtures: IngestedFixture[]): Map<string, TeamMat
       blockedShots: getStatValue(awayStatArr, "Blocked Shots"),
       leagueId,
       leagueName,
+      season,
     };
 
     if (!byTeam.has(home)) byTeam.set(home, []);
@@ -444,6 +448,16 @@ function applyLeagueFilter(rows: TeamMatchRow[], leagueId: number | undefined): 
   return rows.filter((r) => r.leagueId === leagueId);
 }
 
+function applyLatestSeasonFilter(rows: TeamMatchRow[], enabled: boolean): TeamMatchRow[] {
+  if (!enabled) return rows;
+  const seasons = rows
+    .map((r) => r.season)
+    .filter((s): s is number => Number.isFinite(s));
+  if (seasons.length === 0) return rows;
+  const latestSeason = Math.max(...seasons);
+  return rows.filter((r) => r.season === latestSeason);
+}
+
 /**
  * Get L5, L10 and season rolling stats for a team as of a given fixture date.
  * Optional venue filter and leagueId (same competition only when set).
@@ -464,6 +478,7 @@ export function getTeamStats(
   }
   filtered = applyVenueFilter(filtered, options?.venue ?? "all");
   filtered = applyLeagueFilter(filtered, options?.leagueId);
+  filtered = applyLatestSeasonFilter(filtered, options?.leagueId != null);
   if (filtered.length === 0) return null;
 
   const l5 = computeRolling(filtered, 5);
@@ -494,6 +509,7 @@ export function getTeamLastNMatchRows(
   }
   filtered = applyVenueFilter(filtered, options?.venue ?? "all");
   filtered = applyLeagueFilter(filtered, options?.leagueId);
+  filtered = applyLatestSeasonFilter(filtered, options?.leagueId != null);
   return filtered.slice(-n);
 }
 
@@ -620,6 +636,7 @@ export function getTeamRecentResults(
     filtered = matches.filter((m) => m.dateMs < cutoff);
   }
   filtered = applyLeagueFilter(filtered, options?.leagueId);
+  filtered = applyLatestSeasonFilter(filtered, options?.leagueId != null);
   const slice = filtered.slice(-n);
 
   return slice.map((m): FormResult => {

@@ -48,7 +48,7 @@ const ALL_LEAGUE_IDS = [
   39, 78, 135, 140, 61,           // Big 5
   88, 94, 144, 203, 179, 218,     // European tier 1.5
   207, 119, 197, 210, 103, 113,   // European tier 2
-  106, 345,                        // European tier 2 cont.
+  106, 345, 283,                   // European tier 2 cont.
   253, 262, 71, 128,              // Americas
   307, 98, 292, 188,              // Asia / Middle East / Oceania
   40, 41, 42, 136, 79, 141, 62,   // Second-tier leagues

@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOddsDisplay } from "@/lib/modeling/odds-display";
+import { useOddsFormat } from "@/app/hooks/useOddsFormat";
+
 type Props = {
   edge: number;
   market: string;
@@ -20,6 +23,7 @@ function edgeColor(edge: number): string {
 }
 
 export function EdgeBadge({ edge, market, bookProb, variant = "badge" }: Props) {
+  const oddsFormat = useOddsFormat();
   const color = edgeColor(edge);
   const sign = edge > 0 ? "+" : "";
   const edgePct = `${sign}${(edge * 100).toFixed(0)}%`;
@@ -32,7 +36,7 @@ export function EdgeBadge({ edge, market, bookProb, variant = "badge" }: Props) 
       >
         {bookProb != null && (
           <span style={{ color: "var(--text-tertiary)" }}>
-            BOOK {(bookProb * 100).toFixed(0)}%
+            BOOK {formatOddsDisplay(bookProb, oddsFormat)}
           </span>
         )}
         {bookProb != null && <span style={{ color: "var(--text-tertiary)" }}>|</span>}

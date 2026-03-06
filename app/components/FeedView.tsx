@@ -56,7 +56,7 @@ export function FeedView({
   return (
     <section
       className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-t border-[var(--border-light)] pt-5 pb-8"
-      style={{ gap: "var(--space-sm)" }}
+      style={{ gap: "var(--space-md)" }}
     >
       {matches.length === 0 ? (
         <p className="text-[13px] text-secondary">No matches in the feed.</p>

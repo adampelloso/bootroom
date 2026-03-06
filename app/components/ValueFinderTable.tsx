@@ -3,6 +3,8 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import type { ConfidenceTier } from "@/lib/edge-engine";
+import { formatOddsDisplay } from "@/lib/modeling/odds-display";
+import { useOddsFormat } from "@/app/hooks/useOddsFormat";
 
 export type ValueFinderRow = {
   matchId: string;
@@ -23,10 +25,6 @@ function tierColor(tier: string): string {
   if (tier === "HIGH") return "var(--color-edge-strong)";
   if (tier === "MEDIUM") return "var(--color-amber)";
   return "var(--color-edge-negative)";
-}
-
-function formatPercent(p: number): string {
-  return (p * 100).toFixed(1) + "%";
 }
 
 function formatTime(iso: string): string {
@@ -58,6 +56,7 @@ type Props = {
 };
 
 export function ValueFinderTable({ rows }: Props) {
+  const oddsFormat = useOddsFormat();
   const [tierFilter, setTierFilter] = useState<"ALL" | ConfidenceTier>("ALL");
   const [marketFilter, setMarketFilter] = useState<string>("ALL");
   const [leagueFilter, setLeagueFilter] = useState<string>("ALL");
@@ -202,16 +201,16 @@ export function ValueFinderTable({ rows }: Props) {
                     {r.market}
                   </td>
                   <td className="py-2 px-3 text-right" style={{ color: "var(--text-main)" }}>
-                    {formatPercent(r.modelProb)}
+                    {formatOddsDisplay(r.modelProb, oddsFormat)}
                   </td>
                   <td className="py-2 px-3 text-right" style={{ color: "var(--text-sec)" }}>
-                    {formatPercent(r.bookProb)}
+                    {formatOddsDisplay(r.bookProb, oddsFormat)}
                   </td>
                   <td
                     className="py-2 px-3 text-right font-semibold"
                     style={{ color: tierColor(r.tier) }}
                   >
-                    +{formatPercent(r.edge)}
+                    +{(r.edge * 100).toFixed(1)}%
                   </td>
                   <td className="py-2 px-3 text-right">
                     <span

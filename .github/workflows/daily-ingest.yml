@@ -6,6 +6,10 @@ on:
     - cron: "0 6 * * *"
   workflow_dispatch: # Manual trigger
 
+concurrency:
+  group: daily-ingest
+  cancel-in-progress: false
+
 env:
   API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
   API_FOOTBALL_HOST: ${{ secrets.API_FOOTBALL_HOST }}
@@ -31,10 +35,28 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Derive base season and odds window
+        id: vars
+        shell: bash
+        run: |
+          # European base season start year: Jul-Dec => current year, Jan-Jun => previous year
+          MONTH="$(date -u +%m)"
+          YEAR="$(date -u +%Y)"
+          if [ "$MONTH" -ge 7 ]; then
+            BASE_SEASON="$YEAR"
+          else
+            BASE_SEASON="$((YEAR - 1))"
+          fi
+          TODAY_UTC="$(date -u +%Y-%m-%d)"
+          ODDS_TO="$(date -u -d '+7 day' +%Y-%m-%d)"
+          echo "base_season=$BASE_SEASON" >> "$GITHUB_OUTPUT"
+          echo "today_utc=$TODAY_UTC" >> "$GITHUB_OUTPUT"
+          echo "odds_to=$ODDS_TO" >> "$GITHUB_OUTPUT"
+
       # ── Fast DB sync (1 API call per league → scores in DB) ──
 
       - name: Sync all fixture results to DB (lightweight)
-        run: npx tsx scripts/sync-fixtures-api-to-db.ts --season=2025
+        run: npx tsx scripts/sync-fixtures-api-to-db.ts --season=${{ steps.vars.outputs.base_season }}
 
       # ── Cache data directory for incremental ingestion ──
       - name: Restore data cache
@@ -48,13 +70,13 @@ jobs:
       # ── Detailed Data Ingest (stats, players) ───────────────
 
       - name: Ingest season fixtures (incremental)
-        run: node scripts/season-ingest.mjs --all --season=2025
+        run: node scripts/season-ingest.mjs --all --season=${{ steps.vars.outputs.base_season }}
 
       - name: Ingest player stats (skip if fresh)
-        run: node scripts/ingest-players.mjs --all --season=2025 --skip-if-fresh
+        run: node scripts/ingest-players.mjs --all --season=${{ steps.vars.outputs.base_season }} --skip-if-fresh
 
       - name: Ingest upcoming fixtures (7-day window)
-        run: node scripts/ingest-upcoming-fixtures.mjs --season=2025 --days=7
+        run: node scripts/ingest-upcoming-fixtures.mjs --season=${{ steps.vars.outputs.base_season }} --days=7
 
       - name: Sync fixtures & teams to Turso DB
         run: npx tsx scripts/sync-fixtures-to-db.ts
@@ -63,7 +85,18 @@ jobs:
         run: npx tsx scripts/ingest-teams-db.ts
 
       - name: Ingest odds to Turso DB
-        run: npx tsx scripts/ingest-odds-db.ts
+        shell: bash
+        run: |
+          for pass in 1 2 3; do
+            echo "Odds ingest pass ${pass}/3"
+            npx tsx scripts/ingest-odds-db.ts \
+              --statuses=NS \
+              --date-from=${{ steps.vars.outputs.today_utc }} \
+              --date-to=${{ steps.vars.outputs.odds_to }} \
+              --missing-only=true \
+              --batch-size=12 \
+              --delay-ms=500
+          done
 
       - name: Ingest H2H to Turso DB
         run: npx tsx scripts/ingest-h2h-db.ts
@@ -78,6 +111,9 @@ jobs:
 
       - name: Run Monte Carlo simulations
         run: npx tsx scripts/run-simulations.ts
+
+      - name: Pipeline QA gate (fixtures, sims, odds coverage)
+        run: node scripts/qa-pipeline-gate.mjs
 
       # ── Pre-build & KV Push ──────────────────────────────
 

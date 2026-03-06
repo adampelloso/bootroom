@@ -17,8 +17,30 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://bootroom.gg"),
   title: "Bootroom | Match analytics that find the edge",
   description: "Stats-focused soccer intelligence — EPL",
+  openGraph: {
+    title: "Bootroom | Match analytics that find the edge",
+    description: "Stats-focused soccer intelligence — EPL",
+    url: "https://bootroom.gg",
+    siteName: "Bootroom",
+    type: "website",
+    images: [
+      {
+        url: "/images/cover.png",
+        width: 1200,
+        height: 630,
+        alt: "Bootroom social cover",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Bootroom | Match analytics that find the edge",
+    description: "Stats-focused soccer intelligence — EPL",
+    images: ["/images/cover.png"],
+  },
 };
 
 export default function RootLayout({

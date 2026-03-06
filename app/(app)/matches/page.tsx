@@ -1,11 +1,7 @@
-export const dynamic = "force-dynamic";
-
-import { getFeedMatches } from "@/lib/build-feed";
-import { FeedView } from "@/app/components/FeedView";
 import { DateSelector, type DateRange } from "@/app/components/DateSelector";
-import { getLeagueStrength } from "@/lib/leagues";
 import { requireActiveSubscription } from "@/lib/auth-guard";
 import { getFollowedLeagueIds } from "@/lib/league-preferences";
+import { MatchesClient } from "./matches-client";
 
 
 function toISODate(d: Date): string {
@@ -45,15 +41,6 @@ export default async function MatchesPage({
   const { from, to } = getDateRange(range);
 
   const leagueIds = await getFollowedLeagueIds();
-  const allMatches = await getFeedMatches(from, to, leagueIds);
-
-  // Sort by league strength (strongest first), then kickoff time
-  const matches = allMatches.toSorted((a, b) => {
-    const strengthDiff = getLeagueStrength(b.leagueId ?? 0) - getLeagueStrength(a.leagueId ?? 0);
-    if (strengthDiff !== 0) return strengthDiff;
-    return a.kickoffUtc.localeCompare(b.kickoffUtc);
-  });
-
   return (
     <main className="app-shell app-shell--wide min-h-screen flex flex-col bg-[var(--bg-body)] pb-20">
       <header
@@ -69,7 +56,7 @@ export default async function MatchesPage({
         <DateSelector currentRange={range} />
       </header>
 
-      <FeedView matches={matches} currentRange={range} />
+      <MatchesClient from={from} to={to} range={range} leagueIds={leagueIds} />
     </main>
   );
 }

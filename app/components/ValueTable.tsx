@@ -2,6 +2,8 @@
 
 import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import { useState } from "react";
+import { formatOddsDisplay } from "@/lib/modeling/odds-display";
+import { useOddsFormat } from "@/app/hooks/useOddsFormat";
 
 type MarketRow = {
   market: string;
@@ -59,11 +61,21 @@ function buildRows(feedProbs: FeedModelProbs): MarketRow[] {
 
 export function ValueTable({ feedProbs }: Props) {
   const [showAll, setShowAll] = useState(true);
+  const oddsFormat = useOddsFormat();
+  const hasBookOdds =
+    feedProbs.marketProbs?.home != null &&
+    feedProbs.marketProbs?.draw != null &&
+    feedProbs.marketProbs?.away != null;
   const allRows = buildRows(feedProbs);
   const rows = showAll ? allRows : allRows.filter((r) => r.edge != null && r.edge > 0);
 
   return (
     <div>
+      {!hasBookOdds && (
+        <p className="text-[11px] font-mono uppercase mb-2" style={{ color: "var(--text-tertiary)" }}>
+          Book odds unavailable for this fixture right now.
+        </p>
+      )}
       <div className="flex items-center justify-end mb-3">
         <button
           onClick={() => setShowAll(!showAll)}
@@ -97,10 +109,10 @@ export function ValueTable({ feedProbs }: Props) {
                   {row.market}
                 </td>
                 <td className="py-2 px-3 text-right" style={{ color: "var(--text-sec)" }}>
-                  {Math.round(row.modelProb * 100)}%
+                  {formatOddsDisplay(row.modelProb, oddsFormat)}
                 </td>
                 <td className="py-2 px-3 text-right text-tertiary">
-                  {row.bookProb != null ? `${Math.round(row.bookProb * 100)}%` : "\u2014"}
+                  {row.bookProb != null ? formatOddsDisplay(row.bookProb, oddsFormat) : "unavailable"}
                 </td>
                 <td className="py-2 px-3 text-right" style={{ color: row.edge != null ? row.signalColor : "var(--text-tertiary)" }}>
                   {row.edge != null ? `${row.edge > 0 ? "+" : ""}${(row.edge * 100).toFixed(1)}%` : "\u2014"}

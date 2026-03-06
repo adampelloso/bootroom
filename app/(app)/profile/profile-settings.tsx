@@ -280,6 +280,7 @@ export function ProfileSettings({
                 onClick={() => {
                   setOddsFormat(fmt);
                   localStorage.setItem("oddsFormat", fmt);
+                  window.dispatchEvent(new Event("oddsFormatChanged"));
                 }}
                 style={{
                   ...btnStyle,

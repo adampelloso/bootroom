@@ -98,18 +98,21 @@ export function getFeedModelProbsFromDisk(
 
   const entry = simFile.fixtures[String(fixtureId)];
   if (!entry) return null;
-  // Backfill mcOver25/mcBtts from raw sim data if not already in feedProbs
-  if (entry.feedProbs.mcOver25 == null && entry.sim?.pO25 != null) {
-    entry.feedProbs.mcOver25 = entry.sim.pO25;
-  }
-  if (entry.feedProbs.mcBtts == null && entry.sim?.pBTTS != null) {
-    entry.feedProbs.mcBtts = entry.sim.pBTTS;
-  }
-  if (entry.feedProbs.btts == null && entry.sim?.pBTTS != null) {
+  // Always derive model-side probabilities from raw simulation output so
+  // older precomputed files cannot leak stale blended values.
+  if (entry.sim) {
+    entry.feedProbs.home = applyCalibration("1X2", "H", entry.sim.pHomeWin);
+    entry.feedProbs.draw = applyCalibration("1X2", "D", entry.sim.pDraw);
+    entry.feedProbs.away = applyCalibration("1X2", "A", entry.sim.pAwayWin);
+    entry.feedProbs.over_2_5 = applyCalibration("OU_2.5", "Over", entry.sim.pO25);
     entry.feedProbs.btts = applyCalibration("BTTS", "Yes", entry.sim.pBTTS);
-  }
-  if (entry.feedProbs.over_3_5 == null && entry.sim?.pO35 != null) {
     entry.feedProbs.over_3_5 = entry.sim.pO35;
+    entry.feedProbs.mcOver25 = entry.sim.pO25;
+    entry.feedProbs.mcBtts = entry.sim.pBTTS;
+    entry.feedProbs.expectedHomeGoals = entry.sim.expectedHomeGoals;
+    entry.feedProbs.expectedAwayGoals = entry.sim.expectedAwayGoals;
+    entry.feedProbs.expectedHomeCorners = entry.sim.expectedHomeCorners;
+    entry.feedProbs.expectedAwayCorners = entry.sim.expectedAwayCorners;
   }
   return entry.feedProbs;
 }

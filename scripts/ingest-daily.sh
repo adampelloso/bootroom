@@ -53,16 +53,29 @@ else
   }
 fi
 
-# Odds ingestion: competitions that have The Odds API sport_key (lib/leagues.ts oddsKey; scripts/ingest-odds.py SPORT_MAP).
-# Competitions with oddsKey null (Coppa Italia, Copa del Rey, Coupe de France, DFB-Pokal) are fixtures/stats only.
-# Set ODDS_COMPETITIONS to space-separated list; default below includes all with odds.
-ODDS_COMPETITIONS="${ODDS_COMPETITIONS:-epl laliga seriea bundesliga ligue1 eredivisie portugal belgium turkey scotland mls ligamx brazil_serie_a saudi ucl uel uecl fa_cup efl_cup}"
+# Odds ingestion from API-Football into fixture_odds (used by feed/today edge calculations).
+# Replaces legacy ingest-odds.py flow.
+ODDS_LOOKAHEAD_DAYS="${ODDS_LOOKAHEAD_DAYS:-7}"
+ODDS_BATCH_SIZE="${ODDS_BATCH_SIZE:-10}"
+ODDS_DELAY_MS="${ODDS_DELAY_MS:-500}"
+ODDS_RETRY_PASSES="${ODDS_RETRY_PASSES:-2}"
 
-for COMP in ${ODDS_COMPETITIONS}; do
-  echo "[ingest-daily] odds ingest for competition=${COMP}"
-  python "scripts/ingest-odds.py" --competition "${COMP}" || {
-    echo "[ingest-daily] WARNING: odds ingest failed for ${COMP}"
+TODAY_UTC="$(date -u +%Y-%m-%d)"
+ODDS_TO="$(node -e "const d=new Date(); d.setUTCDate(d.getUTCDate()+Number('${ODDS_LOOKAHEAD_DAYS}')); process.stdout.write(d.toISOString().slice(0,10));")"
+
+PASS=1
+while [ "$PASS" -le "$ODDS_RETRY_PASSES" ]; do
+  echo "[ingest-daily] odds ingest pass ${PASS}/${ODDS_RETRY_PASSES} (NS fixtures ${TODAY_UTC}..${ODDS_TO})"
+  npx tsx "scripts/ingest-odds-db.ts" \
+    --statuses=NS \
+    --date-from="${TODAY_UTC}" \
+    --date-to="${ODDS_TO}" \
+    --missing-only=true \
+    --batch-size="${ODDS_BATCH_SIZE}" \
+    --delay-ms="${ODDS_DELAY_MS}" || {
+    echo "[ingest-daily] WARNING: odds ingest pass ${PASS} failed"
   }
+  PASS=$((PASS + 1))
 done
 
 # Optional: injuries / news.
@@ -98,4 +111,3 @@ FIX_FILES="$(find data -maxdepth 1 -name "*-${SEASON}-fixtures.json" 2>/dev/null
 echo "[ingest-daily] fixture files for season ${SEASON}: ${FIX_FILES}"
 
 echo "[ingest-daily] done"
-

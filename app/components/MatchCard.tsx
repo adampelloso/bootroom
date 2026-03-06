@@ -33,8 +33,36 @@ function getOver25Percent(match: FeedMatch): number | null {
   return null;
 }
 
+function poissonPmf(k: number, lambda: number): number {
+  if (lambda <= 0) return k === 0 ? 1 : 0;
+  let factorial = 1;
+  for (let i = 2; i <= k; i++) factorial *= i;
+  return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial;
+}
+
+function buildFallbackTopScorelines(
+  lambdaHome: number,
+  lambdaAway: number,
+): Array<{ score: string; prob: number }> {
+  const maxGoals = 6;
+  const rows: Array<{ score: string; prob: number }> = [];
+  for (let h = 0; h <= maxGoals; h++) {
+    const pHome = poissonPmf(h, lambdaHome);
+    for (let a = 0; a <= maxGoals; a++) {
+      const pAway = poissonPmf(a, lambdaAway);
+      rows.push({ score: `${h}-${a}`, prob: pHome * pAway });
+    }
+  }
+  rows.sort((x, y) => y.prob - x.prob);
+  return rows.slice(0, 3);
+}
+
 export function MatchCard({ match }: { match: FeedMatch }) {
   const mp = match.modelProbs;
+  const hasBookOdds =
+    mp?.marketProbs?.home != null &&
+    mp?.marketProbs?.draw != null &&
+    mp?.marketProbs?.away != null;
   const hasMcData = mp?.expectedHomeGoals != null && mp?.expectedAwayGoals != null;
   const totalXg = hasMcData ? mp!.expectedHomeGoals! + mp!.expectedAwayGoals! : null;
 
@@ -43,7 +71,23 @@ export function MatchCard({ match }: { match: FeedMatch }) {
   const hasAvgGoals = !hasMcData && o25Row;
   const homeAvg = match.homeAvgGoalsFor;
   const awayAvg = match.awayAvgGoalsFor;
+  const homeAvgAgainst = match.homeAvgGoalsAgainst;
+  const awayAvgAgainst = match.awayAvgGoalsAgainst;
   const totalAvg = hasAvgGoals ? o25Row.avgGoals : null;
+
+  // Fallback scoreline projection when precomputed MC output is unavailable.
+  const fallbackHomeLambda =
+    homeAvg != null && awayAvgAgainst != null ? (homeAvg + awayAvgAgainst) / 2 : null;
+  const fallbackAwayLambda =
+    awayAvg != null && homeAvgAgainst != null ? (awayAvg + homeAvgAgainst) / 2 : null;
+  const fallbackScoreline =
+    fallbackHomeLambda != null && fallbackAwayLambda != null
+      ? `${Math.round(fallbackHomeLambda)}-${Math.round(fallbackAwayLambda)}`
+      : null;
+  const fallbackTopScorelines =
+    fallbackHomeLambda != null && fallbackAwayLambda != null
+      ? buildFallbackTopScorelines(fallbackHomeLambda, fallbackAwayLambda)
+      : [];
 
   const over25Display = getOver25Percent(match);
   const bttsDisplay = getBttsPercent(match);
@@ -70,8 +114,16 @@ export function MatchCard({ match }: { match: FeedMatch }) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          {bestEdge && (
+          {hasBookOdds && bestEdge && (
             <EdgeBadge edge={bestEdge.edge} market={bestEdge.market} variant="badge" />
+          )}
+          {!hasBookOdds && (
+            <span
+              className="inline-flex items-center font-mono font-semibold text-[11px] uppercase px-1.5 py-0.5"
+              style={{ color: "var(--text-tertiary)", background: "var(--bg-surface)" }}
+            >
+              odds unavailable
+            </span>
           )}
           <span className="text-mono text-[12px] uppercase" style={{ color: "var(--text-tertiary)" }}>
             {formatKickoffTime(match.kickoffUtc)}
@@ -198,7 +250,7 @@ export function MatchCard({ match }: { match: FeedMatch }) {
         </tbody>
       </table>
 
-      {/* Top scorelines (only when MC data available) */}
+      {/* Top scorelines (MC), with fallback scoreline from rolling team averages */}
       {hasMcData && mp!.topScorelines && mp!.topScorelines.length > 0 && (
         <div className="flex items-stretch gap-2 pt-2 text-mono uppercase">
           {mp!.topScorelines.map((s) => (
@@ -211,6 +263,30 @@ export function MatchCard({ match }: { match: FeedMatch }) {
               <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>{Math.round(s.prob * 100)}%</span>
             </div>
           ))}
+        </div>
+      )}
+      {!hasMcData && fallbackScoreline && (
+        <div className="flex items-stretch gap-2 pt-2 text-mono uppercase">
+          {fallbackTopScorelines.length > 0 ? (
+            fallbackTopScorelines.map((s) => (
+              <div
+                key={s.score}
+                className="flex-1 flex flex-col items-center justify-center py-2"
+                style={{ background: "var(--bg-surface)" }}
+              >
+                <span className="text-[15px] font-bold" style={{ color: "var(--text-main)" }}>{s.score}</span>
+                <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>{Math.round(s.prob * 100)}%</span>
+              </div>
+            ))
+          ) : (
+            <div
+              className="flex-1 flex flex-col items-center justify-center py-2"
+              style={{ background: "var(--bg-surface)" }}
+            >
+              <span className="text-[15px] font-bold" style={{ color: "var(--text-main)" }}>{fallbackScoreline}</span>
+              <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>proj.</span>
+            </div>
+          )}
         </div>
       )}
     </Link>

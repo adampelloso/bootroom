@@ -9,6 +9,8 @@ import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import type { MatchGoalLambdas, MatchCornerLambdas, GoalLambdaComponents } from "@/lib/modeling/baseline-params";
 import type { FeedPredictedLineup } from "@/lib/feed";
 import { useState } from "react";
+import { formatOddsDisplay } from "@/lib/modeling/odds-display";
+import { useOddsFormat } from "@/app/hooks/useOddsFormat";
 
 type SimInputs = {
   goalLambdas: MatchGoalLambdas;
@@ -41,6 +43,7 @@ function formatPercent(p: number): string {
 
 export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamName, predictedHomeLineup, predictedAwayLineup }: Props) {
   const [showInputs, setShowInputs] = useState(false);
+  const oddsFormat = useOddsFormat();
 
   if (!sim || !feedProbs) {
     return (
@@ -207,7 +210,7 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
                 <span className="w-10 uppercase text-tertiary">{row.market}</span>
                 <EdgeBadge edge={row.edge} market={row.market} bookProb={row.marketProb} variant="inline" />
                 <span className="text-tertiary ml-auto text-[12px]">
-                  model {formatPercent(row.modelProb)}
+                  model {formatOddsDisplay(row.modelProb, oddsFormat)}
                 </span>
               </div>
             ))}
@@ -223,6 +226,7 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
           <MarketPanel
             title="Goals markets"
             rows={expandedMarkets.totalGoals}
+            oddsFormat={oddsFormat}
             bookProbs={feedProbs?.marketProbs?.over_2_5 != null ? { "o2.5": feedProbs.marketProbs.over_2_5 } : {}}
             edges={feedProbs?.edges?.over_2_5 != null ? { "o2.5": feedProbs.edges.over_2_5 } : {}}
           />
@@ -231,6 +235,7 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
           <MarketPanel
             title="Team goals"
             rows={[...expandedMarkets.homeGoals, ...expandedMarkets.awayGoals]}
+            oddsFormat={oddsFormat}
           />
 
           {/* Result Markets panel */}
@@ -243,6 +248,7 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
               ...expandedMarkets.doubleChance,
               ...expandedMarkets.drawNoBet,
             ]}
+            oddsFormat={oddsFormat}
             bookProbs={{
               ...(feedProbs?.marketProbs?.home != null ? { Home: feedProbs.marketProbs.home } : {}),
               ...(feedProbs?.marketProbs?.draw != null ? { Draw: feedProbs.marketProbs.draw } : {}),
@@ -262,6 +268,7 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
               { label: "BTTS Yes", prob: sim.pBTTS },
               { label: "BTTS No", prob: 1 - sim.pBTTS },
             ]}
+            oddsFormat={oddsFormat}
             bookProbs={feedProbs?.marketProbs?.btts != null ? { "BTTS Yes": feedProbs.marketProbs.btts, "BTTS No": 1 - feedProbs.marketProbs.btts } : {}}
             edges={feedProbs?.edges?.btts != null ? { "BTTS Yes": feedProbs.edges.btts, "BTTS No": -(feedProbs.edges.btts) } : {}}
           />
@@ -390,7 +397,7 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
                 </div>
                 <div>
                   <span className="text-tertiary block text-[12px] uppercase">Market data</span>
-                  <span className="text-[var(--text-main)]">{inputs.hasMarketProbs ? "Blended" : "Model only"}</span>
+                  <span className="text-[var(--text-main)]">{inputs.hasMarketProbs ? "Compared" : "Unavailable"}</span>
                 </div>
                 <div>
                   <span className="text-tertiary block text-[12px] uppercase">Method</span>
@@ -448,11 +455,13 @@ export function SimulationTab({ sim, feedProbs, inputs, homeTeamName, awayTeamNa
 function MarketPanel({
   title,
   rows,
+  oddsFormat,
   bookProbs = {},
   edges = {},
 }: {
   title: string;
   rows: { label: string; prob: number }[];
+  oddsFormat: "decimal" | "fractional" | "american";
   bookProbs?: Record<string, number>;
   edges?: Record<string, number>;
 }) {
@@ -470,7 +479,7 @@ function MarketPanel({
               <div className="flex items-center justify-between text-[12px] font-mono mb-0.5">
                 <span className="text-[var(--text-sec)]">{row.label}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-[var(--text-main)] font-semibold">{formatPercent(row.prob)}</span>
+                  <span className="text-[var(--text-main)] font-semibold">{formatOddsDisplay(row.prob, oddsFormat)}</span>
                   {edge != null && Math.abs(edge) > 0.01 && (
                     <span
                       className="text-[12px] font-mono"
@@ -504,7 +513,7 @@ function MarketPanel({
                       background: "var(--color-amber)",
                       transform: "translateX(-1px)",
                     }}
-                    title={`Book: ${bookPct.toFixed(1)}%`}
+                    title={`Book: ${formatOddsDisplay(bookProb, oddsFormat)}`}
                   />
                 )}
               </div>

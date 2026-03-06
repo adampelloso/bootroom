@@ -1,5 +1,8 @@
 "use client";
 
+import { useOddsFormat } from "@/app/hooks/useOddsFormat";
+import { formatOddsDisplay } from "@/lib/modeling/odds-display";
+
 type ScorelineDistribution = Record<string, number>;
 
 type Props = {
@@ -8,6 +11,7 @@ type Props = {
 };
 
 export function ScorelineHeatmap({ scorelines, totalSimulations }: Props) {
+  const oddsFormat = useOddsFormat();
   const MAX_GOALS = 5;
 
   // Build grid data
@@ -54,7 +58,7 @@ export function ScorelineHeatmap({ scorelines, totalSimulations }: Props) {
           </div>
           {Array.from({ length: MAX_GOALS + 1 }, (_, home) => {
             const prob = grid[away][home];
-            const pct = (prob * 100).toFixed(1);
+            const odds = formatOddsDisplay(prob, oddsFormat);
             const isTop = `${home}-${away}` === topScore;
             // Interpolated color: dim slate → lime green
             const intensity = maxProb > 0 ? prob / maxProb : 0;
@@ -72,11 +76,11 @@ export function ScorelineHeatmap({ scorelines, totalSimulations }: Props) {
                   outline: isTop ? "2px solid var(--color-amber)" : "none",
                   outlineOffset: "-2px",
                 }}
-                title={`${home}-${away}: ${pct}%`}
+                title={`${home}-${away}: ${odds}`}
               >
                 {prob >= 0.01 && (
                   <span className="text-[12px] font-mono font-medium" style={{ color: "var(--text-main)" }}>
-                    {pct}
+                    {odds}
                   </span>
                 )}
               </div>

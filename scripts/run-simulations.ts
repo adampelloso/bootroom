@@ -4,6 +4,7 @@
  *
  * Run: npx tsx scripts/run-simulations.mts
  */
+import "dotenv/config";
 
 import fs from "fs";
 import path from "path";
@@ -11,7 +12,6 @@ import { estimateMatchGoalLambdas, estimateMatchCornerLambdas, debugGoalLambdaCo
 import { simulateMatch } from "@/lib/modeling/mc-engine";
 import type { MatchSimulationResult } from "@/lib/modeling/mc-engine";
 import { applyCalibration } from "@/lib/modeling/calibration";
-import { blendModelAndMarket } from "@/lib/modeling/odds-blend";
 import { isCup } from "@/lib/leagues";
 import { resolveProvider } from "@/lib/providers/registry";
 import { extractMarketProbsFromApiFootball } from "@/lib/odds/api-football-odds";
@@ -20,6 +20,7 @@ import type { FeedModelProbs } from "@/lib/modeling/feed-model-probs";
 import type { GoalLambdaComponents, MatchGoalLambdas, MatchCornerLambdas } from "@/lib/modeling/baseline-params";
 import { findFirstLegResult } from "@/lib/modeling/first-leg-lookup";
 import type { FirstLegResult } from "@/lib/modeling/first-leg-lookup";
+import { upsertFixtureOdds, type FixtureOddsRow } from "./lib/db-writer";
 
 const EV_THRESHOLD = 0.03;
 const SIMULATIONS = 100_000;
@@ -78,23 +79,15 @@ function computeFeedProbs(
     under_2_5: applyCalibration("OU_2.5", "Under", 1 - sim.pO25),
   };
 
-  // Blend with market if available
-  const blendedProbs = marketProbs
-    ? blendModelAndMarket(rawModelProbs, marketProbs, {
-        homeSampleSize: 38,
-        awaySampleSize: 38,
-      })
-    : rawModelProbs;
-
   // Compute edges and EV flags
   const calibratedBtts = applyCalibration("BTTS", "Yes", sim.pBTTS);
   const edges = marketProbs
     ? {
-        home: blendedProbs.home - marketProbs.home,
-        draw: blendedProbs.draw - marketProbs.draw,
-        away: blendedProbs.away - marketProbs.away,
+        home: rawModelProbs.home - marketProbs.home,
+        draw: rawModelProbs.draw - marketProbs.draw,
+        away: rawModelProbs.away - marketProbs.away,
         over_2_5: marketProbs.over_2_5
-          ? (blendedProbs.over_2_5 ?? rawModelProbs.over_2_5) - marketProbs.over_2_5
+          ? rawModelProbs.over_2_5 - marketProbs.over_2_5
           : undefined,
         btts: marketProbs.btts != null
           ? calibratedBtts - marketProbs.btts
@@ -128,10 +121,10 @@ function computeFeedProbs(
     .map(([score, count]) => ({ score, prob: count / sim.totalSimulations }));
 
   const feedProbs: FeedModelProbs = {
-    home: blendedProbs.home,
-    draw: blendedProbs.draw,
-    away: blendedProbs.away,
-    over_2_5: blendedProbs.over_2_5,
+    home: rawModelProbs.home,
+    draw: rawModelProbs.draw,
+    away: rawModelProbs.away,
+    over_2_5: rawModelProbs.over_2_5,
     btts: calibratedBtts,
     mcOver25: sim.pO25,
     mcBtts: sim.pBTTS,
@@ -175,6 +168,7 @@ async function main() {
 
   let totalSimulated = 0;
   let totalSkipped = 0;
+  let totalOddsPersisted = 0;
 
   for (const [date, dateFixtures] of byDate) {
     console.log(`\nProcessing ${date} (${dateFixtures.length} fixtures)...`);
@@ -184,6 +178,7 @@ async function main() {
       simulations_per_fixture: SIMULATIONS,
       fixtures: {},
     };
+    const oddsRows: FixtureOddsRow[] = [];
 
     for (const fixture of dateFixtures) {
       const fixtureDate = fixture.date.slice(0, 10);
@@ -233,11 +228,23 @@ async function main() {
       try {
         const oddsRes = await provider.getOdds(fixture.fixtureId);
         marketProbs = extractMarketProbsFromApiFootball(oddsRes);
+        if (marketProbs) {
+          oddsRows.push({
+            fixtureId: fixture.fixtureId,
+            homeProb: marketProbs.home,
+            drawProb: marketProbs.draw,
+            awayProb: marketProbs.away,
+            over25Prob: marketProbs.over_2_5 ?? null,
+            under25Prob: marketProbs.under_2_5 ?? null,
+            bttsProb: marketProbs.btts ?? null,
+            updatedAt: Date.now(),
+          });
+        }
       } catch {
         // Odds fetch failed — continue without
       }
 
-      // Compute feed probs (calibrated, blended, with edges)
+      // Compute feed probs (calibrated model + market comparison edges)
       const { feedProbs, hasMarketProbs } = computeFeedProbs(sim, marketProbs);
 
       const result: FixtureSimResult = {
@@ -271,10 +278,18 @@ async function main() {
 
     const outPath = path.join(simDir, `${date}.json`);
     fs.writeFileSync(outPath, JSON.stringify(output, null, 2));
+    if (oddsRows.length > 0) {
+      try {
+        await upsertFixtureOdds(oddsRows);
+        totalOddsPersisted += oddsRows.length;
+      } catch (err) {
+        console.warn(`  [WARN] Failed odds upsert for ${date}: ${err}`);
+      }
+    }
     console.log(`  Saved ${Object.keys(output.fixtures).length} simulations to ${outPath}`);
   }
 
-  console.log(`\nDone: ${totalSimulated} simulated, ${totalSkipped} skipped`);
+  console.log(`\nDone: ${totalSimulated} simulated, ${totalSkipped} skipped, ${totalOddsPersisted} odds rows persisted`);
 }
 
 main().catch(console.error);

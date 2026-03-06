@@ -5,7 +5,7 @@
 
 import { getDb } from "./db";
 import { fixture, team, fixtureOdds, h2h, injury, fixtureLineup } from "./db-schema";
-import { eq, and, gte, lte, inArray, sql } from "drizzle-orm";
+import { eq, and, gte, lte, inArray, or, sql } from "drizzle-orm";
 import type { MarketProbabilities } from "@/lib/odds/the-odds-api";
 
 export type DbFixture = typeof fixture.$inferSelect;
@@ -44,30 +44,38 @@ export async function getFixtureById(id: number): Promise<DbFixture | null> {
 
 export async function getTeamCodeMap(teamIds: number[]): Promise<Map<number, string>> {
   if (teamIds.length === 0) return new Map();
-  const db = getDb();
-  const rows = await db
-    .select({ id: team.id, code: team.code })
-    .from(team)
-    .where(inArray(team.id, teamIds));
-  const map = new Map<number, string>();
-  for (const row of rows) {
-    if (row.code) map.set(row.id, row.code);
-  }
-  return map;
+  const { codeMap } = await getTeamMetaMaps(teamIds);
+  return codeMap;
 }
 
 export async function getTeamLogoMap(teamIds: number[]): Promise<Map<number, string>> {
   if (teamIds.length === 0) return new Map();
+  const { logoMap } = await getTeamMetaMaps(teamIds);
+  return logoMap;
+}
+
+export async function getTeamMetaMaps(teamIds: number[]): Promise<{
+  codeMap: Map<number, string>;
+  logoMap: Map<number, string>;
+}> {
+  if (teamIds.length === 0) {
+    return {
+      codeMap: new Map<number, string>(),
+      logoMap: new Map<number, string>(),
+    };
+  }
   const db = getDb();
   const rows = await db
-    .select({ id: team.id, logo: team.logo })
+    .select({ id: team.id, code: team.code, logo: team.logo })
     .from(team)
     .where(inArray(team.id, teamIds));
-  const map = new Map<number, string>();
+  const codeMap = new Map<number, string>();
+  const logoMap = new Map<number, string>();
   for (const row of rows) {
-    if (row.logo) map.set(row.id, row.logo);
+    if (row.code) codeMap.set(row.id, row.code);
+    if (row.logo) logoMap.set(row.id, row.logo);
   }
-  return map;
+  return { codeMap, logoMap };
 }
 
 export async function getOddsForFixtures(
@@ -159,14 +167,67 @@ export async function getTeamFormBatch(
   beforeDate: string,
   n: number = 5,
 ): Promise<Map<number, import("@/lib/feed").FormResult[]>> {
+  if (teamIds.length === 0) return new Map();
+  const db = getDb();
   const result = new Map<number, import("@/lib/feed").FormResult[]>();
-  // Run in parallel — each is a single indexed query
-  await Promise.all(
-    teamIds.map(async (id) => {
-      const form = await getTeamFormFromDb(id, beforeDate, n);
-      if (form.length > 0) result.set(id, form);
-    }),
-  );
+
+  // Pull a bounded recent window to avoid scanning full history for each request.
+  const lowerBound = new Date(`${beforeDate}T00:00:00Z`);
+  lowerBound.setUTCDate(lowerBound.getUTCDate() - 400);
+  const fromDate = lowerBound.toISOString().slice(0, 10);
+
+  const rows = await db
+    .select({
+      date: fixture.date,
+      homeTeamId: fixture.homeTeamId,
+      awayTeamId: fixture.awayTeamId,
+      homeGoals: fixture.homeGoals,
+      awayGoals: fixture.awayGoals,
+    })
+    .from(fixture)
+    .where(
+      and(
+        gte(fixture.date, fromDate),
+        sql`${fixture.date} < ${beforeDate}`,
+        sql`${fixture.status} IN ('FT', 'AET', 'PEN')`,
+        sql`${fixture.homeGoals} IS NOT NULL`,
+        or(inArray(fixture.homeTeamId, teamIds), inArray(fixture.awayTeamId, teamIds)),
+      ),
+    )
+    .orderBy(sql`${fixture.date} DESC`);
+
+  const tracked = new Set(teamIds);
+  const newestFirst = new Map<number, import("@/lib/feed").FormResult[]>();
+  for (const row of rows) {
+    const homeId = row.homeTeamId;
+    const awayId = row.awayTeamId;
+    const hg = row.homeGoals!;
+    const ag = row.awayGoals!;
+
+    if (tracked.has(homeId)) {
+      const arr = newestFirst.get(homeId) ?? [];
+      if (arr.length < n) {
+        arr.push(hg > ag ? "W" : hg < ag ? "L" : "D");
+        newestFirst.set(homeId, arr);
+      }
+    }
+
+    if (tracked.has(awayId)) {
+      const arr = newestFirst.get(awayId) ?? [];
+      if (arr.length < n) {
+        arr.push(ag > hg ? "W" : ag < hg ? "L" : "D");
+        newestFirst.set(awayId, arr);
+      }
+    }
+  }
+
+  for (const [teamId, arr] of newestFirst) {
+    if (arr.length > 0) {
+      // Convert newest-first to chronological oldest-first.
+      result.set(teamId, [...arr].reverse());
+    }
+  }
+
   return result;
 }
 
@@ -176,14 +237,68 @@ export async function getH2HForPairs(
 ): Promise<Map<string, DbFixture[]>> {
   const result = new Map<string, DbFixture[]>();
   if (pairs.length === 0) return result;
+  const db = getDb();
+  const PAIR_CHUNK_SIZE = 40;
 
-  // Fetch all at once — small enough for feed (typically 10-20 matches per day)
+  const uniquePairs = new Map<string, { homeId: number; awayId: number }>();
   for (const { homeId, awayId } of pairs) {
     const key = `${Math.min(homeId, awayId)}-${Math.max(homeId, awayId)}`;
-    if (result.has(key)) continue;
-    const fixtures = await getH2HFixtures(homeId, awayId);
+    if (!uniquePairs.has(key)) {
+      uniquePairs.set(key, { homeId, awayId });
+    }
+  }
+
+  const uniqueValues = Array.from(uniquePairs.values());
+  const h2hRows: Array<{ teamAId: number; teamBId: number; fixtureId: number }> = [];
+  for (let i = 0; i < uniqueValues.length; i += PAIR_CHUNK_SIZE) {
+    const chunk = uniqueValues.slice(i, i + PAIR_CHUNK_SIZE);
+    const conditions = chunk.map(({ homeId, awayId }) =>
+      and(
+        eq(h2h.teamAId, Math.min(homeId, awayId)),
+        eq(h2h.teamBId, Math.max(homeId, awayId)),
+      ),
+    );
+    const chunkRows = await db
+      .select({
+        teamAId: h2h.teamAId,
+        teamBId: h2h.teamBId,
+        fixtureId: h2h.fixtureId,
+      })
+      .from(h2h)
+      .where(conditions.length === 1 ? conditions[0] : or(...conditions))
+      .orderBy(sql`${h2h.fixtureId} DESC`);
+    h2hRows.push(...chunkRows);
+  }
+
+  if (h2hRows.length === 0) return result;
+
+  const fixtureIdsByPair = new Map<string, number[]>();
+  for (const row of h2hRows) {
+    const key = `${row.teamAId}-${row.teamBId}`;
+    const arr = fixtureIdsByPair.get(key) ?? [];
+    if (arr.length < 20) arr.push(row.fixtureId);
+    fixtureIdsByPair.set(key, arr);
+  }
+
+  const fixtureIds = [...new Set(Array.from(fixtureIdsByPair.values()).flat())];
+  if (fixtureIds.length === 0) return result;
+
+  const fixtureRows = await db
+    .select()
+    .from(fixture)
+    .where(inArray(fixture.id, fixtureIds));
+
+  const fixtureById = new Map<number, DbFixture>();
+  for (const row of fixtureRows) fixtureById.set(row.id, row);
+
+  for (const [key, ids] of fixtureIdsByPair.entries()) {
+    const fixtures = ids
+      .map((id) => fixtureById.get(id))
+      .filter((f): f is DbFixture => Boolean(f))
+      .sort((a, b) => b.date.localeCompare(a.date));
     result.set(key, fixtures);
   }
+
   return result;
 }
 
@@ -291,12 +406,95 @@ export async function getRecentLineupsBatch(
   beforeDate: string,
   n: number = 10,
 ): Promise<Map<number, RecentStarterRow[]>> {
+  if (teamIds.length === 0) return new Map();
+  const db = getDb();
   const result = new Map<number, RecentStarterRow[]>();
-  await Promise.all(
-    teamIds.map(async (id) => {
-      const rows = await getRecentLineups(id, beforeDate, n);
-      if (rows.length > 0) result.set(id, rows);
-    }),
+
+  // Bound the scan window; this is enough to get last N matches for active teams.
+  const lowerBound = new Date(`${beforeDate}T00:00:00Z`);
+  lowerBound.setUTCDate(lowerBound.getUTCDate() - 400);
+  const fromDate = lowerBound.toISOString().slice(0, 10);
+
+  const fixturesForTeams = await db
+    .select({
+      id: fixture.id,
+      date: fixture.date,
+      homeTeamId: fixture.homeTeamId,
+      awayTeamId: fixture.awayTeamId,
+    })
+    .from(fixture)
+    .where(
+      and(
+        gte(fixture.date, fromDate),
+        sql`${fixture.date} < ${beforeDate}`,
+        sql`${fixture.status} IN ('FT', 'AET', 'PEN')`,
+        or(inArray(fixture.homeTeamId, teamIds), inArray(fixture.awayTeamId, teamIds)),
+      ),
+    )
+    .orderBy(sql`${fixture.date} DESC`);
+
+  const tracked = new Set(teamIds);
+  const fixtureIdsByTeam = new Map<number, number[]>();
+  const fixtureDateMap = new Map<number, string>();
+
+  for (const row of fixturesForTeams) {
+    fixtureDateMap.set(row.id, row.date);
+    if (tracked.has(row.homeTeamId)) {
+      const arr = fixtureIdsByTeam.get(row.homeTeamId) ?? [];
+      if (arr.length < n) {
+        arr.push(row.id);
+        fixtureIdsByTeam.set(row.homeTeamId, arr);
+      }
+    }
+    if (tracked.has(row.awayTeamId)) {
+      const arr = fixtureIdsByTeam.get(row.awayTeamId) ?? [];
+      if (arr.length < n) {
+        arr.push(row.id);
+        fixtureIdsByTeam.set(row.awayTeamId, arr);
+      }
+    }
+  }
+
+  const allFixtureIds = Array.from(
+    new Set(Array.from(fixtureIdsByTeam.values()).flat())
   );
+  if (allFixtureIds.length === 0) return result;
+
+  const lineupRows = await db
+    .select({
+      teamId: fixtureLineup.teamId,
+      playerId: fixtureLineup.playerId,
+      playerName: fixtureLineup.playerName,
+      position: fixtureLineup.position,
+      started: fixtureLineup.started,
+      fixtureId: fixtureLineup.fixtureId,
+    })
+    .from(fixtureLineup)
+    .where(
+      and(
+        inArray(fixtureLineup.teamId, teamIds),
+        inArray(fixtureLineup.fixtureId, allFixtureIds),
+      ),
+    );
+
+  const fixtureSetByTeam = new Map<number, Set<number>>();
+  for (const [teamId, ids] of fixtureIdsByTeam) {
+    fixtureSetByTeam.set(teamId, new Set(ids));
+  }
+
+  for (const row of lineupRows) {
+    const teamFixtures = fixtureSetByTeam.get(row.teamId);
+    if (!teamFixtures || !teamFixtures.has(row.fixtureId)) continue;
+    const out = result.get(row.teamId) ?? [];
+    out.push({
+      playerId: row.playerId,
+      playerName: row.playerName,
+      position: row.position,
+      started: row.started,
+      fixtureDate: fixtureDateMap.get(row.fixtureId) ?? "",
+    });
+    result.set(row.teamId, out);
+  }
+
   return result;
 }

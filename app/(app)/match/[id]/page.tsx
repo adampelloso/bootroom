@@ -24,12 +24,15 @@ import { H2HTab } from "@/app/components/tabs/H2HTab";
 import { ValueTab } from "@/app/components/tabs/ValueTab";
 import { predictLineup, predictLineupFromDb } from "@/lib/modeling/predicted-lineup";
 import { getMatchPlayerSim } from "@/lib/modeling/player-sim";
+import { attachPlayerMarketComparison } from "@/lib/modeling/player-market-odds";
 import { estimateMatchGoalLambdas } from "@/lib/modeling/baseline-params";
 import { getInjuredPlayersByTeam, getRecentLineupsBatch } from "@/lib/db-queries";
+import { resolveProvider } from "@/lib/providers/registry";
 import type { FeedPredictedLineup, FeedPlayerSim, FeedPlayerSimEntry } from "@/lib/feed";
 import type { PredictedLineup } from "@/lib/modeling/predicted-lineup";
 import type { PlayerSimResult } from "@/lib/modeling/player-sim";
 import type { PlayerPropStat } from "@/app/components/PlayerPropsCard";
+import type { ApiFootballOddsResponse } from "@/lib/api-football-types";
 
 function formatKickoffTime(iso: string): string {
   const d = new Date(iso);
@@ -83,6 +86,7 @@ export default async function MatchDetailPage({
 
   const playerStats = getPlayerPropsFromSeason(match.homeTeamName, match.awayTeamName);
   const isSeasonAverage = true;
+  const precomputed = getPrecomputedSim(match.providerFixtureId, match.kickoffUtc);
 
   const fixtureDate = match.kickoffUtc?.slice(0, 10);
   const defaultFormSame = match.leagueId != null && isCup(match.leagueId);
@@ -204,27 +208,56 @@ export default async function MatchDetailPage({
     if (awayLineupRaw) predictedAwayLineup = toFeedLineup(awayLineupRaw);
 
     if (homeLineupRaw && awayLineupRaw) {
-      const lambdas = estimateMatchGoalLambdas(match.homeTeamName, match.awayTeamName, fixtureDate, match.leagueId);
-      if (lambdas) {
-        const sim = getMatchPlayerSim(homeLineupRaw, awayLineupRaw, lambdas.lambdaHomeGoals, lambdas.lambdaAwayGoals, fixtureDate, match.leagueId);
+      const precomputedHomeLambda = precomputed?.sim?.expectedHomeGoals;
+      const precomputedAwayLambda = precomputed?.sim?.expectedAwayGoals;
+      let homeLambda = precomputedHomeLambda;
+      let awayLambda = precomputedAwayLambda;
+
+      if (homeLambda == null || awayLambda == null) {
+        const lambdas = estimateMatchGoalLambdas(match.homeTeamName, match.awayTeamName, fixtureDate, match.leagueId);
+        if (lambdas) {
+          homeLambda = lambdas.lambdaHomeGoals;
+          awayLambda = lambdas.lambdaAwayGoals;
+        }
+      }
+
+      if (homeLambda != null && awayLambda != null) {
+        const sim = getMatchPlayerSim(
+          homeLineupRaw,
+          awayLineupRaw,
+          homeLambda,
+          awayLambda,
+          fixtureDate,
+          match.leagueId,
+          { simulations: 100000, randomSeed: match.providerFixtureId, tempoStd: 0.15 }
+        );
         const convert = (r: PlayerSimResult): FeedPlayerSimEntry => ({
           playerId: r.playerId,
           name: r.name,
           position: r.position,
           confidence: r.confidence,
           anytimeScorerProb: r.anytimeScorerProb,
+          anytimeAssistProb: r.anytimeAssistProb,
           expectedGoals: r.expectedGoals,
           expectedShots: r.expectedShots,
           expectedSOT: r.expectedSOT,
           expectedAssists: r.expectedAssists,
         });
-        playerSimData = { home: sim.home.map(convert), away: sim.away.map(convert) };
+        const basePlayerSimData: FeedPlayerSim = { home: sim.home.map(convert), away: sim.away.map(convert) };
+
+        let oddsResponse: ApiFootballOddsResponse | null = null;
+        try {
+          const provider = resolveProvider("api-football").provider;
+          oddsResponse = await provider.getOdds(match.providerFixtureId);
+        } catch {
+          oddsResponse = null;
+        }
+        playerSimData = attachPlayerMarketComparison(basePlayerSimData, oddsResponse);
       }
     }
   }
 
   // Sim data
-  const precomputed = getPrecomputedSim(match.providerFixtureId, match.kickoffUtc);
   const hasSimData = precomputed != null;
 
   const showDebug = debugParam === "1" || debugParam === "true";

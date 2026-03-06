@@ -29,7 +29,7 @@ export function generateNarrative(match: FeedMatch): string {
 
   // 4. BTTS backed by trends
   if (bttsProb != null && bttsProb > 0.65 && o25Prob != null && o25Prob > 0.60) {
-    return `Both sides have been finding the net regularly — the model gives ${Math.round(bttsProb * 100)}% on both teams scoring. The over 2.5 projection of ${Math.round(o25Prob * 100)}% aligns.`;
+    return `Both sides have been finding the net regularly, and the model rates both BTTS and over 2.5 as strong outcomes in this matchup.`;
   }
 
   // 5. Form divergence
@@ -48,12 +48,12 @@ export function generateNarrative(match: FeedMatch): string {
 
   // 7. Strong BTTS signal
   if (bttsProb != null && bttsProb > 0.70) {
-    return `At ${Math.round(bttsProb * 100)}%, both teams scoring is the headline here. Both attacks are creating enough to trouble the opposition.`;
+    return `Both teams scoring is the headline angle here. Both attacks are creating enough to trouble the opposition.`;
   }
 
   // 8. Over 2.5 strong
   if (o25Prob != null && o25Prob > 0.70) {
-    return `Over 2.5 goals projects at ${Math.round(o25Prob * 100)}%. Recent form from both sides supports the expectation of a multi-goal game.`;
+    return `Over 2.5 goals grades as a strong outcome here. Recent form from both sides supports the expectation of a multi-goal game.`;
   }
 
   // 9. Corners highlight

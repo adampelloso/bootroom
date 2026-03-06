@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { primeCachedApi } from "@/app/hooks/useCachedApi";
 
 interface NavItem {
   label: string;
@@ -29,6 +31,42 @@ const NAV_ITEMS: NavItem[] = [
 
 export function GlobalNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    const warmTimer = window.setTimeout(() => {
+      const today = new Date().toISOString().slice(0, 10);
+      const rawFollowed = document.cookie
+        .split("; ")
+        .find((x) => x.startsWith("followed_leagues="))
+        ?.split("=")
+        .slice(1)
+        .join("=");
+      const followedLeagues = rawFollowed ? decodeURIComponent(rawFollowed) : "all";
+
+      const urls = [
+        `/api/today/best-bets?date=${encodeURIComponent(today)}`,
+        `/api/feed?from=${encodeURIComponent(today)}&to=${encodeURIComponent(today)}&league=${encodeURIComponent(followedLeagues)}`,
+      ];
+
+      void Promise.all(
+        urls.map(async (url) => {
+          try {
+            const res = await fetch(url, { credentials: "include" });
+            if (!res.ok) return;
+            const json = await res.json();
+            primeCachedApi(url, json, 60_000);
+          } catch {
+            // ignore prewarm failures
+          }
+        }),
+      );
+    }, 120);
+
+    return () => {
+      window.clearTimeout(warmTimer);
+    };
+  }, [pathname]);
 
   return (
     <>
@@ -60,6 +98,9 @@ export function GlobalNav() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch
+                  onMouseEnter={() => router.prefetch(item.href)}
+                  onFocus={() => router.prefetch(item.href)}
                   className="transition-colors"
                   style={{
                     color: active ? "var(--color-accent)" : "var(--text-tertiary)",
@@ -101,6 +142,8 @@ export function GlobalNav() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch
+                onTouchStart={() => router.prefetch(item.href)}
                 className="flex items-center justify-center flex-1 h-full transition-colors"
                 style={{
                   color: active ? "var(--color-accent)" : "var(--text-tertiary)",

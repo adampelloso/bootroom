@@ -1,0 +1,38 @@
+Historical Calibration QA (finished fixtures with odds; precomputed+runtime sims):
+fixturesWithOdds=391, observations=1340, leagues=34
+simSource: precomputed=36, runtime=232, skipped=123
+
+Overall by market (model vs actual, with book baseline):
+H     n=268  model=41.6%  book=41.4%  actual=41.8%  calErr(model)=-0.2%  brier(model/book)=0.2307/0.2100
+D     n=268  model=25.3%  book=26.2%  actual=28.0%  calErr(model)=-2.7%  brier(model/book)=0.2026/0.1942
+A     n=268  model=33.8%  book=32.3%  actual=30.2%  calErr(model)=+3.6%  brier(model/book)=0.2184/0.1847
+O25   n=268  model=52.8%  book=50.8%  actual=51.1%  calErr(model)=+1.7%  brier(model/book)=0.2476/0.2357
+BTTS  n=268  model=53.8%  book=52.8%  actual=52.2%  calErr(model)=+1.6%  brier(model/book)=0.2465/0.2486
+
+Worst absolute calibration error by league+market (n>=8):
+L79 BTTS  n= 9 model=56.1% actual=88.9% err=-32.8% bookErr=-30.6%
+L62 BTTS  n= 9 model=52.5% actual=22.2% err=+30.3% bookErr=+28.8%
+L61 O25   n= 9 model=51.6% actual=22.2% err=+29.4% bookErr=+30.3%
+L94 D     n= 9 model=26.5% actual=55.6% err=-29.0% bookErr=-31.0%
+L141 A     n=11 model=34.7% actual=63.6% err=-28.9% bookErr=-36.1%
+L144 A     n= 8 model=41.4% actual=12.5% err=+28.9% bookErr=+21.6%
+L62 O25   n= 9 model=51.0% actual=22.2% err=+28.8% bookErr=+23.2%
+L40 A     n=13 model=32.8% actual=61.5% err=-28.7% bookErr=-26.9%
+L62 D     n= 9 model=27.0% actual=55.6% err=-28.5% bookErr=-26.3%
+L40 D     n=13 model=26.6% actual=0.0% err=+26.6% bookErr=+25.9%
+L78 BTTS  n=10 model=56.1% actual=30.0% err=+26.1% bookErr=+27.9%
+L78 O25   n=10 model=54.4% actual=30.0% err=+24.4% bookErr=+28.0%
+
+Where edge picks are overconfident (edge>=4%, n>=5):
+L61 A     edgeN= 6 model=38.2% actual=0.0% bias(actual-model)=-38.2%
+L207 A     edgeN= 8 model=38.1% actual=0.0% bias(actual-model)=-38.1%
+L136 H     edgeN= 6 model=52.9% actual=16.7% bias(actual-model)=-36.2%
+L141 BTTS  edgeN= 6 model=52.0% actual=16.7% bias(actual-model)=-35.3%
+L40 H     edgeN= 5 model=35.1% actual=0.0% bias(actual-model)=-35.1%
+L62 O25   edgeN= 6 model=50.5% actual=16.7% bias(actual-model)=-33.8%
+L136 A     edgeN=10 model=47.9% actual=20.0% bias(actual-model)=-27.9%
+L62 A     edgeN= 6 model=42.3% actual=16.7% bias(actual-model)=-25.6%
+L41 H     edgeN=10 model=52.9% actual=30.0% bias(actual-model)=-22.9%
+L78 A     edgeN= 6 model=34.5% actual=16.7% bias(actual-model)=-17.9%
+L140 BTTS  edgeN= 5 model=56.8% actual=40.0% bias(actual-model)=-16.8%
+L140 O25   edgeN= 8 model=53.6% actual=37.5% bias(actual-model)=-16.1%

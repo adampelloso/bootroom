@@ -1,11 +1,15 @@
 "use client";
 
+import { useOddsFormat } from "@/app/hooks/useOddsFormat";
+import { formatOddsDisplay } from "@/lib/modeling/odds-display";
+
 type Props = {
   scorelines: Array<[string, number]>;
   totalSimulations: number;
 };
 
 export function ScorelineBarChart({ scorelines, totalSimulations }: Props) {
+  const oddsFormat = useOddsFormat();
   const maxPercent = Math.max(...scorelines.map(([, count]) => count / totalSimulations));
 
   return (
@@ -24,7 +28,7 @@ export function ScorelineBarChart({ scorelines, totalSimulations }: Props) {
               />
             </div>
             <span className="text-mono text-[12px] text-tertiary w-16 text-right shrink-0">
-              {(percent * 100).toFixed(1)}%
+              {formatOddsDisplay(percent, oddsFormat)}
             </span>
           </div>
         );

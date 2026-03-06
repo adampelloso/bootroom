@@ -48,7 +48,7 @@ const ALL_LEAGUE_IDS = [
   39, 78, 135, 140, 61,           // Big 5
   88, 94, 144, 203, 179, 218,     // European tier 1.5
   207, 119, 197, 210, 103, 113,   // European tier 2
-  106, 345,                        // European tier 2 cont.
+  106, 345, 283,                   // European tier 2 cont.
   253, 262, 71, 128,              // Americas
   307, 98, 292, 188,              // Asia / Middle East / Oceania
   40, 41, 42, 136, 79, 141, 62,   // Second-tier leagues
@@ -101,13 +101,15 @@ async function main() {
     const res = await fetchJson(baseUrl, key, host, `/fixtures?league=${league}&season=${season}&status=NS`);
     const fixtures = res.response ?? [];
 
-    // Filter to fixtures within the next N days
-    const now = Date.now();
-    const cutoff = now + days * 24 * 60 * 60 * 1000;
+    // Filter to fixtures from start-of-today (UTC) through next N days.
+    // Using "now" here can drop same-day fixtures if status lags as NS after kickoff.
+    const now = new Date();
+    const windowStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0);
+    const cutoff = windowStart + (days + 1) * 24 * 60 * 60 * 1000;
 
     const upcoming = fixtures.filter((f) => {
       const kickoff = new Date(f.fixture.date).getTime();
-      return kickoff >= now && kickoff <= cutoff;
+      return kickoff >= windowStart && kickoff <= cutoff;
     });
 
     console.log(`  Found ${upcoming.length} upcoming fixtures (within ${days} days)`);
@@ -116,6 +118,7 @@ async function main() {
       allUpcoming.push({
         fixtureId: item.fixture.id,
         date: item.fixture.date,
+        status: item.fixture?.status?.short ?? "NS",
         homeTeam: item.teams.home.name,
         awayTeam: item.teams.away.name,
         homeTeamId: item.teams.home.id,
