@@ -18,12 +18,12 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://bootroom.gg"),
-  title: "Bootroom | Match analytics that find the edge",
-  description: "Stats-focused soccer intelligence — EPL",
+  title: "Bootroom | The sharpest insights in football",
+  description: "Football's sharpest simulation engine. 100K runs per match. 2K+ data points. 43 competitions.",
   openGraph: {
-    title: "Bootroom | Match analytics that find the edge",
-    description: "Stats-focused soccer intelligence — EPL",
-    url: "https://bootroom.gg",
+    title: "Bootroom | The sharpest insights in football",
+    description: "Football's sharpest simulation engine. 100K runs per match. 2K+ data points. 43 competitions.",
+    url: "https://bootroom.gg/",
     siteName: "Bootroom",
     type: "website",
     images: [
@@ -31,15 +31,21 @@ export const metadata: Metadata = {
         url: "/images/cover.png",
         width: 1200,
         height: 630,
-        alt: "Bootroom social cover",
+        alt: "Bootroom — The sharpest insights in football",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Bootroom | Match analytics that find the edge",
-    description: "Stats-focused soccer intelligence — EPL",
-    images: ["/images/cover.png"],
+    site: "@bootroomgg",
+    title: "Bootroom | The sharpest insights in football",
+    description: "Football's sharpest simulation engine. 100K runs per match. 2K+ data points. 43 competitions.",
+    images: [
+      {
+        url: "/images/cover.png",
+        alt: "Bootroom — The sharpest insights in football",
+      },
+    ],
   },
 };
 
