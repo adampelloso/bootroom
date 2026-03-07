@@ -35,6 +35,9 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Apply safe DB migrations
+        run: npm run migrate:safe
+
       - name: Derive base season
         id: vars
         shell: bash

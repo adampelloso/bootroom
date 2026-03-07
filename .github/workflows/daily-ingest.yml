@@ -35,6 +35,9 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Apply safe DB migrations
+        run: npm run migrate:safe
+
       - name: Derive base season and odds window
         id: vars
         shell: bash
@@ -90,6 +93,11 @@ jobs:
         env:
           PIPELINE_MIN_ODDS_COVERAGE: "0.65"
         run: node scripts/qa-pipeline-gate.mjs
+
+      - name: Runtime freshness check
+        env:
+          CORE_MAX_STALE_HOURS: "24"
+        run: npm run qa:runtime:freshness
 
       # ── Pre-build & KV Push ──────────────────────────────
 

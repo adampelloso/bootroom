@@ -12,6 +12,11 @@
     "postinstall": "node scripts/patch-cross-fetch.js",
     "lint": "next lint",
     "ingest:daily": "bash scripts/ingest-daily.sh",
+    "migrate:safe": "node scripts/migrate-safe.mjs",
+    "qa:runtime:smoke": "node scripts/qa-runtime-smoke.mjs",
+    "qa:runtime:freshness": "node scripts/qa-runtime-freshness.mjs",
+    "qa:referral:readiness": "node scripts/qa-referral-readiness.mjs",
+    "qa:fixtures:required-seasons": "node scripts/verify-required-seasons.mjs",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"

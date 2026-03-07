@@ -1,0 +1,44 @@
+name: Runtime Health Monitor
+
+on:
+  schedule:
+    - cron: "15 */6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: health-monitor
+  cancel-in-progress: true
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+      TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+      BOOTROOM_BASE_URL: https://bootroom.gg
+      CORE_MAX_STALE_HOURS: "24"
+      SMOKE_RETRIES: "6"
+      SMOKE_DELAY_MS: "5000"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Runtime smoke checks
+        run: npm run qa:runtime:smoke
+
+      - name: Runtime freshness checks
+        run: npm run qa:runtime:freshness
+
+      - name: Referral schema readiness
+        run: npm run qa:referral:readiness
