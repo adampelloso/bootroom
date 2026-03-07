@@ -87,6 +87,8 @@ jobs:
         run: npx tsx scripts/run-simulations.ts
 
       - name: Pipeline QA gate (fixtures, sims, odds coverage)
+        env:
+          PIPELINE_MIN_ODDS_COVERAGE: "0.65"
         run: node scripts/qa-pipeline-gate.mjs
 
       # ── Pre-build & KV Push ──────────────────────────────
