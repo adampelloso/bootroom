@@ -20,7 +20,7 @@ env:
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 120
 
     steps:
       - name: Checkout
@@ -58,25 +58,8 @@ jobs:
       - name: Sync all fixture results to DB (lightweight)
         run: npx tsx scripts/sync-fixtures-api-to-db.ts --season=${{ steps.vars.outputs.base_season }}
 
-      # ── Cache data directory for incremental ingestion ──
-      - name: Restore data cache
-        uses: actions/cache@v4
-        with:
-          path: data/
-          key: ingest-data-${{ github.run_id }}
-          restore-keys: |
-            ingest-data-
-
-      # ── Detailed Data Ingest (stats, players) ───────────────
-
-      - name: Ingest season fixtures (incremental)
-        run: node scripts/season-ingest.mjs --all --season=${{ steps.vars.outputs.base_season }}
-
-      - name: Ingest player stats (skip if fresh)
-        run: node scripts/ingest-players.mjs --all --season=${{ steps.vars.outputs.base_season }} --skip-if-fresh
-
       - name: Ingest upcoming fixtures (7-day window)
-        run: node scripts/ingest-upcoming-fixtures.mjs --season=${{ steps.vars.outputs.base_season }} --days=7
+        run: node scripts/ingest-upcoming-fixtures.mjs --season=${{ steps.vars.outputs.base_season }} --days=7 --delay=200
 
       - name: Sync fixtures & teams to Turso DB
         run: npx tsx scripts/sync-fixtures-to-db.ts
@@ -97,15 +80,6 @@ jobs:
               --batch-size=12 \
               --delay-ms=500
           done
-
-      - name: Ingest H2H to Turso DB
-        run: npx tsx scripts/ingest-h2h-db.ts
-
-      - name: Sync per-match lineups to Turso DB
-        run: npx tsx scripts/sync-lineups-to-db.ts
-
-      - name: Ingest injuries to Turso DB
-        run: npx tsx scripts/ingest-injuries-db.ts
 
       # ── Simulations ──────────────────────────────────────
 
@@ -130,7 +104,7 @@ jobs:
 
       - name: Summary
         run: |
-          echo "## Ingest Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- Fixture files: $(ls data/*-fixtures.json 2>/dev/null | wc -l)" >> $GITHUB_STEP_SUMMARY
+          echo "## Core Ingest Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Core workflow excludes heavy enrichment by design" >> $GITHUB_STEP_SUMMARY
           echo "- KV staging files: $(ls data/kv-staging/*.json 2>/dev/null | wc -l)" >> $GITHUB_STEP_SUMMARY
           echo "- Simulation files: $(ls data/simulations/*.json 2>/dev/null | wc -l)" >> $GITHUB_STEP_SUMMARY

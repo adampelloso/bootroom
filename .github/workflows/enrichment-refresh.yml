@@ -1,0 +1,109 @@
+name: Enrichment Refresh (48h SLA)
+
+on:
+  schedule:
+    # Twice daily retries keep enrichment within the 48h freshness target.
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: enrichment-refresh
+  cancel-in-progress: true
+
+env:
+  API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+  API_FOOTBALL_HOST: ${{ secrets.API_FOOTBALL_HOST }}
+  API_FOOTBALL_BASE_URL: ${{ secrets.API_FOOTBALL_BASE_URL }}
+  TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+  TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+
+jobs:
+  enrichment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Derive base season
+        id: vars
+        shell: bash
+        run: |
+          MONTH="$(date -u +%m)"
+          YEAR="$(date -u +%Y)"
+          if [ "$MONTH" -ge 7 ]; then
+            BASE_SEASON="$YEAR"
+          else
+            BASE_SEASON="$((YEAR - 1))"
+          fi
+          TODAY_UTC="$(date -u +%Y-%m-%d)"
+          echo "base_season=$BASE_SEASON" >> "$GITHUB_OUTPUT"
+          echo "today_utc=$TODAY_UTC" >> "$GITHUB_OUTPUT"
+
+      - name: Restore data cache
+        uses: actions/cache@v4
+        with:
+          path: data/
+          key: enrich-data-${{ github.run_id }}
+          restore-keys: |
+            enrich-data-
+            ingest-data-
+
+      - name: Ingest season fixtures (incremental)
+        timeout-minutes: 90
+        continue-on-error: true
+        run: node scripts/season-ingest.mjs --all --season=${{ steps.vars.outputs.base_season }} --delay=500
+
+      - name: Ingest player stats (skip if fresh)
+        timeout-minutes: 90
+        continue-on-error: true
+        run: node scripts/ingest-players.mjs --all --season=${{ steps.vars.outputs.base_season }} --skip-if-fresh --delay=1200
+
+      - name: Sync fixtures to Turso DB
+        timeout-minutes: 45
+        continue-on-error: true
+        run: npx tsx scripts/sync-fixtures-to-db.ts
+
+      - name: Ingest team metadata to Turso DB
+        timeout-minutes: 20
+        continue-on-error: true
+        run: npx tsx scripts/ingest-teams-db.ts
+
+      - name: Ingest H2H to Turso DB
+        timeout-minutes: 60
+        continue-on-error: true
+        run: npx tsx scripts/ingest-h2h-db.ts
+
+      - name: Sync per-match lineups to Turso DB
+        timeout-minutes: 45
+        continue-on-error: true
+        run: npx tsx scripts/sync-lineups-to-db.ts
+
+      - name: Ingest injuries to Turso DB
+        timeout-minutes: 45
+        continue-on-error: true
+        run: npx tsx scripts/ingest-injuries-db.ts --date=${{ steps.vars.outputs.today_utc }} --season=${{ steps.vars.outputs.base_season }}
+
+      - name: Enrichment freshness check (48h target)
+        continue-on-error: true
+        env:
+          ENRICHMENT_MAX_AGE_HOURS: "48"
+        run: node scripts/qa-enrichment-freshness.mjs
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Enrichment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Fixture files: $(ls data/*-fixtures.json 2>/dev/null | wc -l)" >> $GITHUB_STEP_SUMMARY
+          echo "- Player files: $(ls data/*-players.json 2>/dev/null | wc -l)" >> $GITHUB_STEP_SUMMARY
+          echo "- This workflow is non-blocking for core publish." >> $GITHUB_STEP_SUMMARY
