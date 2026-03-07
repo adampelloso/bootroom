@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { inArray } from "drizzle-orm";
 import { getMatchDetail } from "@/lib/build-feed";
 import { requireActiveSubscription } from "@/lib/auth-guard";
 import { isCup } from "@/lib/leagues";
@@ -13,6 +14,7 @@ import { getPrecomputedSim } from "@/lib/modeling/sim-reader";
 import { FormFilterLinks } from "@/app/components/FormFilterLinks";
 import { MatchPillNav } from "@/app/components/MatchPillNav";
 import type { TabId } from "@/app/components/MatchPillNav";
+import { TeamRadar, type TeamRadarData } from "@/app/components/TeamRadar";
 import { OverviewTab } from "@/app/components/tabs/OverviewTab";
 import { GoalsTab } from "@/app/components/tabs/GoalsTab";
 import { ShotsTab } from "@/app/components/tabs/ShotsTab";
@@ -27,7 +29,10 @@ import { getMatchPlayerSim } from "@/lib/modeling/player-sim";
 import { attachPlayerMarketComparison } from "@/lib/modeling/player-market-odds";
 import { estimateMatchGoalLambdas } from "@/lib/modeling/baseline-params";
 import { getInjuredPlayersByTeam, getRecentLineupsBatch } from "@/lib/db-queries";
+import { getDb } from "@/lib/db";
+import { team } from "@/lib/db-schema";
 import { resolveProvider } from "@/lib/providers/registry";
+import { computeTeamRadar, resolveTeamLeagueSeason, seasonYearToLabel } from "@/lib/radar";
 import type { FeedPredictedLineup, FeedPlayerSim, FeedPlayerSimEntry } from "@/lib/feed";
 import type { PredictedLineup } from "@/lib/modeling/predicted-lineup";
 import type { PlayerSimResult } from "@/lib/modeling/player-sim";
@@ -63,7 +68,7 @@ function getPlayerPropsFromSeason(homeTeamName: string, awayTeamName: string): P
   }));
 }
 
-const VALID_TABS: TabId[] = ["overview", "goals", "shots", "corners", "cards", "h2h", "players", "value", "simulation"];
+const VALID_TABS: TabId[] = ["overview", "goals", "shots", "corners", "cards", "h2h", "players", "teams", "value", "simulation"];
 
 export default async function MatchDetailPage({
   params,
@@ -262,6 +267,92 @@ export default async function MatchDetailPage({
 
   const showDebug = debugParam === "1" || debugParam === "true";
 
+  const radarTeamIds = [match.homeTeamId, match.awayTeamId];
+  const radarTeamRows = await getDb()
+    .select({ id: team.id, name: team.name, logo: team.logo })
+    .from(team)
+    .where(inArray(team.id, radarTeamIds));
+  const radarById = new Map(radarTeamRows.map((row) => [row.id, row]));
+  const radarTeams: TeamRadarData[] = radarTeamIds.map((teamId) => {
+    const meta = radarById.get(teamId);
+    if (!meta) {
+      return {
+        team_id: String(teamId),
+        team_name: `Team ${teamId}`,
+        league: null,
+        matches_played: 0,
+        crest_url: null,
+        error: {
+          code: "team_not_found",
+          message: `No seasonal data found for Team ${teamId}.`,
+        },
+      };
+    }
+
+    const leagueSeason = resolveTeamLeagueSeason(meta.name, null);
+    if (!leagueSeason) {
+      return {
+        team_id: String(meta.id),
+        team_name: meta.name,
+        league: null,
+        matches_played: 0,
+        crest_url: meta.logo ?? null,
+        error: {
+          code: "no_season_data",
+          message: `No seasonal data found for ${meta.name}.`,
+        },
+      };
+    }
+
+    const radar = computeTeamRadar(
+      meta.name,
+      leagueSeason.leagueId,
+      leagueSeason.leagueName,
+      leagueSeason.seasonYear,
+    );
+    if (!radar) {
+      return {
+        team_id: String(meta.id),
+        team_name: meta.name,
+        league: leagueSeason.leagueName,
+        matches_played: 0,
+        crest_url: meta.logo ?? null,
+        error: {
+          code: "no_season_data",
+          message: `No seasonal data found for ${meta.name}.`,
+        },
+      };
+    }
+
+    if (radar.matchesPlayed < 5) {
+      return {
+        team_id: String(meta.id),
+        team_name: meta.name,
+        league: radar.leagueName,
+        matches_played: radar.matchesPlayed,
+        crest_url: meta.logo ?? null,
+        error: {
+          code: "insufficient_matches",
+          message: `${meta.name} has played fewer than 5 league matches this season. Radar unavailable.`,
+        },
+      };
+    }
+
+    return {
+      team_id: String(meta.id),
+      team_name: meta.name,
+      league: radar.leagueName,
+      matches_played: radar.matchesPlayed,
+      crest_url: meta.logo ?? null,
+      percentiles: radar.percentiles,
+      raw: radar.raw,
+    };
+  });
+  const seasonCandidate = radarTeams.find((t) => t.percentiles);
+  const radarSeasonLabel = seasonCandidate
+    ? seasonYearToLabel(resolveTeamLeagueSeason(seasonCandidate.team_name, null)?.seasonYear ?? new Date().getFullYear())
+    : `${new Date().getFullYear()}-${String((new Date().getFullYear() + 1) % 100).padStart(2, "0")}`;
+
   // Cards thresholds
   const cardsCombined = [...homeLast10, ...awayLast10];
   const cardThresholds = cardsCombined.length > 0
@@ -435,6 +526,12 @@ export default async function MatchDetailPage({
             playerStats={playerStats}
             isSeasonAverage={isSeasonAverage}
           />
+        )}
+
+        {activeTab === "teams" && (
+          <div className="px-5 py-4" style={{ paddingLeft: "var(--space-md)", paddingRight: "var(--space-md)" }}>
+            <TeamRadar teams={radarTeams} season={radarSeasonLabel} showTable showRawValues />
+          </div>
         )}
 
         {activeTab === "value" && (

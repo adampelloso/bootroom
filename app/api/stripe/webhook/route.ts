@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import Stripe from "stripe";
+import { getDb } from "@/lib/db";
+import { referralEarning, subscription, user } from "@/lib/db-schema";
 import { upsertSubscription } from "@/lib/subscription";
 import { getEnvVar } from "@/lib/env";
 
@@ -119,6 +122,51 @@ export async function POST(request: Request) {
 
       case "invoice.payment_failed":
         break;
+
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId =
+          typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+        if (!customerId) break;
+
+        const customerSub = await getDb()
+          .select({ userId: subscription.userId })
+          .from(subscription)
+          .where(eq(subscription.stripeCustomerId, customerId))
+          .limit(1);
+        const userId = customerSub[0]?.userId;
+        if (!userId) break;
+
+        const referred = await getDb()
+          .select({ id: user.id, referredBy: user.referredBy })
+          .from(user)
+          .where(eq(user.id, userId))
+          .limit(1);
+        const referredUser = referred[0];
+        if (!referredUser?.referredBy) break;
+
+        const paymentAmount = invoice.amount_paid;
+        const commissionAmount = Math.floor(paymentAmount * 0.1);
+        if (commissionAmount <= 0) break;
+
+        await getDb()
+          .insert(referralEarning)
+          .values({
+            id: crypto.randomUUID(),
+            referrerId: referredUser.referredBy,
+            referredUserId: referredUser.id,
+            stripeInvoiceId: invoice.id,
+            paymentAmount,
+            commissionAmount,
+            status: "pending",
+            createdAt: Math.floor(Date.now() / 1000),
+          })
+          .onConflictDoNothing({
+            target: referralEarning.stripeInvoiceId,
+          });
+
+        break;
+      }
     }
 
     return NextResponse.json({ received: true });

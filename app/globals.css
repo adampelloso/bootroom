@@ -24,6 +24,11 @@
   --color-edge-mild: #4ADE80;
   --color-edge-neutral: #64748B;
   --color-edge-negative: #EF4444;
+  --prob-very-high: #16A34A;
+  --prob-high: #4ADE80;
+  --prob-mid: #F59E0B;
+  --prob-low: #F97316;
+  --prob-very-low: #DC2626;
 }
 
 /* Dark theme (default) */
@@ -47,6 +52,7 @@
   --color-away: #737373;
   --color-home-muted: rgba(212,255,0,0.25);
   --color-away-muted: rgba(115,115,115,0.3);
+  --radar-grid: #2A2A2A;
 }
 
 /* Light theme */
@@ -69,6 +75,7 @@
   --color-away: #525252;
   --color-home-muted: rgba(101,163,13,0.2);
   --color-away-muted: rgba(82,82,82,0.2);
+  --radar-grid: #E0E0E0;
 }
 
 * {

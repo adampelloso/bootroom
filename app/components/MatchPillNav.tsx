@@ -3,7 +3,17 @@
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
 
-export type TabId = "overview" | "goals" | "shots" | "corners" | "cards" | "h2h" | "players" | "value" | "simulation";
+export type TabId =
+  | "overview"
+  | "goals"
+  | "shots"
+  | "corners"
+  | "cards"
+  | "h2h"
+  | "players"
+  | "teams"
+  | "value"
+  | "simulation";
 
 const TABS: Array<{ id: TabId; label: string }> = [
   { id: "overview", label: "OVERVIEW" },
@@ -13,6 +23,7 @@ const TABS: Array<{ id: TabId; label: string }> = [
   { id: "cards", label: "CARDS" },
   { id: "h2h", label: "H2H" },
   { id: "players", label: "PLAYERS" },
+  { id: "teams", label: "TEAMS" },
   { id: "value", label: "VALUE" },
   { id: "simulation", label: "SIMULATION" },
 ];

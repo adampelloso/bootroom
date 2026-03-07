@@ -1,13 +1,16 @@
 export const dynamic = "force-dynamic";
 
 import { requireSession } from "@/lib/auth-guard";
+import { getEnvVar } from "@/lib/env";
+import { getReferralProgramSnapshot } from "@/lib/referrals";
 import { getSubscription } from "@/lib/subscription";
 import { ProfileSettings } from "./profile-settings";
-import { LeagueSelector } from "@/app/components/LeagueSelector";
 
 export default async function ProfilePage() {
   const session = await requireSession();
   const sub = await getSubscription(session.user.id);
+  const referral = await getReferralProgramSnapshot(session.user.id);
+  const appBaseUrl = (getEnvVar("BETTER_AUTH_URL") ?? "").replace(/\/$/, "");
 
   return (
     <main
@@ -31,6 +34,8 @@ export default async function ProfilePage() {
         email={session.user.email}
         subscriptionStatus={sub?.status ?? "none"}
         currentPeriodEnd={sub?.currentPeriodEnd ?? null}
+        appBaseUrl={appBaseUrl}
+        referral={referral}
       />
     </main>
   );

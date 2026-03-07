@@ -430,6 +430,27 @@ function findTeamMatches(history: Map<string, TeamMatchRow[]>, teamName: string)
   return undefined;
 }
 
+/** Get full match history rows for a team name (chronological). */
+export function getTeamHistoryRows(teamName: string): TeamMatchRow[] {
+  const history = getTeamHistory();
+  const rows = findTeamMatches(history, teamName);
+  return rows ?? [];
+}
+
+/**
+ * Get all team rows for a specific league and season.
+ * Returns a map keyed by team name with chronological rows.
+ */
+export function getLeagueSeasonTeamRows(leagueId: number, season: number): Map<string, TeamMatchRow[]> {
+  const history = getTeamHistory();
+  const byTeam = new Map<string, TeamMatchRow[]>();
+  for (const [teamName, rows] of history) {
+    const filtered = rows.filter((r) => r.leagueId === leagueId && r.season === season);
+    if (filtered.length > 0) byTeam.set(teamName, filtered);
+  }
+  return byTeam;
+}
+
 export type VenueFilter = "home" | "away" | "all";
 
 export interface TeamStatsOptions {

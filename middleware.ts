@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
 const PUBLIC_PATHS = ["/", "/login", "/signup", "/subscribe", "/subscribe/success"];
-const PUBLIC_PREFIXES = ["/api/auth", "/api/stripe", "/_next", "/images"];
+const PUBLIC_PREFIXES = ["/api/auth", "/api/stripe", "/_next", "/images", "/ref"];
 
 // Logged-in users hitting these pages should go straight to /today
 const REDIRECT_IF_AUTHED = ["/", "/login", "/signup"];

@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getDb } from "@/lib/db";
 import { getEnvVar } from "@/lib/env";
+import { generateUniqueReferralCode, REFERRAL_COOKIE_NAME, resolveValidReferrerId } from "@/lib/referrals";
 import * as schema from "@/lib/db-schema";
 
 function createAuth() {
@@ -27,6 +28,55 @@ function createAuth() {
     },
     emailAndPassword: {
       enabled: true,
+    },
+    user: {
+      additionalFields: {
+        referralCode: {
+          type: "string",
+          required: true,
+          input: false,
+          fieldName: "referral_code",
+        },
+        referralSlug: {
+          type: "string",
+          required: false,
+          input: false,
+          fieldName: "referral_slug",
+        },
+        referredBy: {
+          type: "string",
+          required: false,
+          input: false,
+          fieldName: "referred_by",
+        },
+      },
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          before: async (pendingUser, context) => {
+            const userWithRef = pendingUser as Record<string, unknown>;
+            userWithRef.referralCode = await generateUniqueReferralCode();
+
+            const cookieReferrer = context?.getCookie(REFERRAL_COOKIE_NAME) ?? null;
+            const nextUserId = typeof userWithRef.id === "string" ? userWithRef.id : undefined;
+            const referredBy = await resolveValidReferrerId(cookieReferrer, nextUserId);
+            userWithRef.referredBy = referredBy;
+
+            if (cookieReferrer) {
+              context?.setCookie(REFERRAL_COOKIE_NAME, "", {
+                path: "/",
+                maxAge: 0,
+                httpOnly: true,
+                sameSite: "lax",
+                secure: process.env.NODE_ENV === "production",
+              });
+            }
+
+            return { data: userWithRef };
+          },
+        },
+      },
     },
     socialProviders: {
       google: {

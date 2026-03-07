@@ -1,4 +1,5 @@
-import { sqliteTable, text, integer, real, index, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index, uniqueIndex, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 
 // ── Better Auth tables ──────────────────────────────────────────────
 
@@ -8,6 +9,9 @@ export const user = sqliteTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: integer("emailVerified").notNull().default(0),
   image: text("image"),
+  referralCode: text("referral_code").notNull().unique(),
+  referralSlug: text("referral_slug").unique(),
+  referredBy: text("referred_by").references((): AnySQLiteColumn => user.id),
   createdAt: integer("createdAt").notNull(),
   updatedAt: integer("updatedAt").notNull(),
 });
@@ -151,3 +155,30 @@ export const subscription = sqliteTable("subscription", {
   createdAt: integer("created_at"),
   updatedAt: integer("updated_at"),
 });
+
+export const referralEarning = sqliteTable("referral_earnings", {
+  id: text("id").primaryKey(),
+  referrerId: text("referrer_id").notNull().references(() => user.id),
+  referredUserId: text("referred_user_id").notNull().references(() => user.id),
+  stripeInvoiceId: text("stripe_invoice_id").notNull().unique(),
+  paymentAmount: integer("payment_amount").notNull(),
+  commissionAmount: integer("commission_amount").notNull(),
+  status: text("status", { enum: ["pending", "paid"] }).notNull().default("pending"),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch())`),
+  paidAt: integer("paid_at"),
+}, (t) => [
+  index("idx_referral_earning_referrer").on(t.referrerId),
+  index("idx_referral_earning_referred_user").on(t.referredUserId),
+  index("idx_referral_earning_status").on(t.status),
+]);
+
+export const referralPayout = sqliteTable("referral_payouts", {
+  id: text("id").primaryKey(),
+  referrerId: text("referrer_id").notNull().references(() => user.id),
+  amount: integer("amount").notNull(),
+  method: text("method"),
+  note: text("note"),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch())`),
+}, (t) => [
+  index("idx_referral_payout_referrer").on(t.referrerId),
+]);
